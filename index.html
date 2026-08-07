@@ -141,19 +141,19 @@ th u{display:block;text-decoration:none;font-family:"IBM Plex Mono",monospace;fo
 th s{display:block;text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:11.5px;
   color:var(--tx2);margin-top:2px;line-height:1.2}
 th.today u,th.today s{color:var(--accent)}
-td.hr{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--tx3);text-align:right;
-  padding:0 7px 0 0;vertical-align:middle;height:26px;line-height:1;border:0;white-space:nowrap}
-td.c{background:var(--cell);height:26px;padding:0;vertical-align:top;cursor:pointer;
+td.hr{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3);text-align:right;
+  padding:0 7px 0 0;vertical-align:middle;height:32px;line-height:1;border:0;white-space:nowrap}
+td.c{background:var(--cell);height:32px;padding:0;vertical-align:top;cursor:pointer;
   border:1px solid var(--line2)}
 td.c.half{border-top-style:dotted}
 td.c.mark{border-top-color:var(--line);border-top-style:solid}
 td.c.we{background:var(--panel2)}
 td.c.on{border-color:rgba(0,0,0,.3)}
 td.c em{display:block;font-style:normal;padding:2px 5px 0;overflow:hidden}
-td.c em b{display:block;font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;
-  letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+td.c em b{display:block;font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:600;
+  letter-spacing:.01em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   line-height:1.1}
-td.c em s{display:block;text-decoration:none;font-size:8.5px;opacity:.8;line-height:1.15;
+td.c em s{display:block;text-decoration:none;font-size:11px;opacity:.85;line-height:1.15;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 td.c.cont em{display:none}
 table.moving td.c.on{cursor:grab}
@@ -223,7 +223,6 @@ table.moving td.c.on{cursor:grab}
     <button class="icon" id="theme" title="Cambia tema" aria-label="Cambia tema">◐</button>
   </div>
   <p class="sync" id="sync"><i></i><span>Pronto</span>
-    <button id="saveNow">Salva ora</button>
     <button id="syncBtn">Sync</button>
     <button id="backup">Backup</button>
   </p>
@@ -1137,14 +1136,6 @@ document.getElementById("sync").onclick=e=>{
   if(!sv.local&&!sv.remote)parts.push("Usa Backup per copiare il piano e non perderlo.");
   d.textContent=parts.join(" · ");
   d.classList.toggle("show");
-};
-document.getElementById("saveNow").onclick=()=>{
-  const p=payload(),b=body(p);
-  let done=false;
-  if(sv.local&&lsSet(p)){sv.localSaved=b;done=true;}
-  if(sv.remote){sv.dirty=true;clearTimeout(sv.timer);flush();done=true;}
-  updateSync();
-  toast(done?"Salvato":"Nessun salvataggio possibile");
 };
 document.getElementById("backup").onclick=()=>{
   document.getElementById("bkText").value=payload();
