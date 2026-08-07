@@ -224,6 +224,7 @@ table.moving td.c.on{cursor:grab}
   </div>
   <p class="sync" id="sync"><i></i><span>Pronto</span>
     <button id="saveNow">Salva ora</button>
+    <button id="syncBtn">Sync</button>
     <button id="backup">Backup</button>
   </p>
 
@@ -271,6 +272,29 @@ table.moving td.c.on{cursor:grab}
       <span>Il giorno scelto apre la Settimana 1</span>
       <button id="mClose">Chiudi</button>
     </div>
+  </div>
+</div>
+
+<div class="modal" id="syncModal">
+  <div class="sheet bk">
+    <div class="mhead"><b>Sincronizza dispositivi</b><button id="syClose">✕</button></div>
+    <p style="font-size:12.5px;color:var(--tx2);margin:0 0 12px;line-height:1.55">
+      Il piano viene tenuto in un <b>gist segreto</b> sul tuo account GitHub. Incolla qui un token
+      con il solo permesso <code>gist</code> e ripeti l'operazione sull'altro dispositivo:
+      da quel momento si allineano da soli.</p>
+    <input id="syTok" type="password" placeholder="ghp_… oppure github_pat_…" spellcheck="false"
+      style="width:100%;border:1px solid var(--line);background:var(--cell);color:var(--tx);
+      padding:10px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12px">
+    <p id="syState" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+      color:var(--tx3);margin:10px 0 0"></p>
+    <div class="mfoot" style="flex-wrap:wrap">
+      <button id="syConnect">Collega</button>
+      <button id="syNow">Sincronizza ora</button>
+      <button id="syOff">Scollega</button>
+    </div>
+    <p style="font-size:11px;color:var(--tx3);margin:12px 0 0;line-height:1.5">
+      Il token resta solo su questo dispositivo e non finisce mai nel gist né su GitHub Pages.
+      Puoi revocarlo quando vuoi dalle impostazioni di GitHub.</p>
   </div>
 </div>
 
@@ -429,7 +453,7 @@ const LSKEY="piano-6272-local";
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
         localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
 
-function payload(){const o={ts:Date.now()};DURABLE.forEach(k=>o[k]=state[k]);return JSON.stringify(o);}
+function payload(){const o={ts:sv.ts||Date.now()};DURABLE.forEach(k=>o[k]=state[k]);return JSON.stringify(o);}
 function body(p){const o=JSON.parse(p);delete o.ts;return JSON.stringify(o);}
 
 function remoteOK(){return !!(window.storage&&typeof window.storage.set==="function");}
@@ -449,8 +473,9 @@ function hhmm(){return new Date().toLocaleTimeString("it-IT",{hour:"2-digit",min
 function updateSync(){
   if(!sv.local&&!sv.remote){syncUI("err","Nessun salvataggio possibile — tocca qui");return;}
   const where=sv.local&&sv.remote?"doppio":(sv.remote?"artifact":"locale");
-  if(sv.dirty)syncUI("wait","Da salvare");
-  else syncUI("ok","Salvato "+hhmm()+" · "+where);
+  const cloud=gh.on?(gh.err?" · sync ✕":" · sync ✓"):"";
+  if(sv.dirty)syncUI("wait","Da salvare"+cloud);
+  else syncUI("ok","Salvato "+hhmm()+" · "+where+cloud);
 }
 function toast(m){
   const t=document.getElementById("toast");
@@ -459,7 +484,7 @@ function toast(m){
 }
 
 function save(msg){
-  sv.touched=true;
+  sv.touched=true;sv.ts=Date.now();
   const p=payload(),b=body(p);
   if(b===sv.localSaved&&b===sv.remoteSaved){if(msg)toast(msg);return;}
 
@@ -471,6 +496,7 @@ function save(msg){
   /* livello b: in coda */
   if(sv.remote&&b!==sv.remoteSaved){sv.dirty=true;if(msg)sv.msg=msg;schedule();}
   else if(msg)toast(msg);
+  ghSchedule();
   updateSync();
 }
 function schedule(extra){
@@ -500,6 +526,93 @@ async function flush(silent){
 document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(sv.timer);flush(true);}});
 window.addEventListener("pagehide",()=>{clearTimeout(sv.timer);flush(true);});
 
+/* ============================================================
+   3b. SINCRONIZZAZIONE FRA DISPOSITIVI (gist segreto su GitHub)
+   Il token resta solo in questo dispositivo, non finisce mai nel gist.
+   Vince sempre la copia con il timestamp più recente.
+   ============================================================ */
+const TOKKEY="piano-6272-token",GISTKEY="piano-6272-gist",GDESC="piano-settimanale-6272";
+let gh={token:null,gist:null,busy:false,timer:null,lastPull:0,err:"",on:false};
+
+function ghRead(){
+  try{gh.token=localStorage.getItem(TOKKEY)||null;gh.gist=localStorage.getItem(GISTKEY)||null;}catch(e){}
+  gh.on=!!gh.token;
+}
+function ghStore(t){
+  try{
+    if(t)localStorage.setItem(TOKKEY,t);
+    else{localStorage.removeItem(TOKKEY);localStorage.removeItem(GISTKEY);}
+  }catch(e){}
+  gh.token=t||null;gh.gist=t?gh.gist:null;gh.on=!!t;
+}
+async function ghApi(path,opt){
+  opt=opt||{};
+  const r=await fetch("https://api.github.com"+path,{
+    method:opt.method||"GET",
+    headers:{Authorization:"Bearer "+gh.token,Accept:"application/vnd.github+json",
+             "Content-Type":"application/json"},
+    body:opt.body
+  });
+  if(r.status===401)throw new Error("token non valido o senza permesso gist");
+  if(!r.ok)throw new Error("GitHub "+r.status);
+  return r.json();
+}
+async function ghFind(){
+  if(gh.gist)return gh.gist;
+  const list=await ghApi("/gists?per_page=100");
+  const hit=list.find(g=>g.description===GDESC);
+  if(hit)gh.gist=hit.id;
+  else{
+    const made=await ghApi("/gists",{method:"POST",body:JSON.stringify({
+      description:GDESC,public:false,files:{"piano.json":{content:payload()}}})});
+    gh.gist=made.id;
+  }
+  try{localStorage.setItem(GISTKEY,gh.gist);}catch(e){}
+  return gh.gist;
+}
+async function ghPull(loud){
+  if(!gh.on||gh.busy)return;
+  gh.busy=true;
+  try{
+    await ghFind();
+    const g=await ghApi("/gists/"+gh.gist);
+    const f=g.files&&g.files["piano.json"];
+    if(f&&f.content){
+      const d=JSON.parse(f.content);
+      if((d.ts||0)>(sv.ts||0)){
+        adopt(d);sv.ts=d.ts;
+        const p=payload(),b=body(p);
+        if(sv.local&&lsSet(p))sv.localSaved=b;
+        if(sv.remote){sv.dirty=true;schedule();}
+        render();
+        toast("Aggiornato dall'altro dispositivo");
+      }else if(loud)toast("Già aggiornato");
+    }
+    gh.lastPull=Date.now();gh.err="";
+  }catch(e){gh.err=e.message||"errore";if(loud)toast("Sync: "+gh.err);}
+  gh.busy=false;updateSync();
+}
+async function ghPush(loud){
+  if(!gh.on||gh.busy)return;
+  gh.busy=true;
+  try{
+    await ghFind();
+    await ghApi("/gists/"+gh.gist,{method:"PATCH",body:JSON.stringify({
+      files:{"piano.json":{content:payload()}}})});
+    gh.err="";if(loud)toast("Sincronizzato");
+  }catch(e){gh.err=e.message||"errore";if(loud)toast("Sync: "+gh.err);}
+  gh.busy=false;updateSync();
+}
+function ghSchedule(){
+  if(!gh.on)return;
+  clearTimeout(gh.timer);
+  gh.timer=setTimeout(()=>ghPush(),4000);
+}
+/* tornando sulla pagina controlla se l'altro dispositivo ha modificato */
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden&&gh.on&&Date.now()-gh.lastPull>20000)ghPull();
+});
+
 function adopt(d){
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
   migrate(d);
@@ -512,6 +625,7 @@ async function load(){
   const pick=(R&&L)?(((R.ts||0)>=(L.ts||0))?R:L):(R||L);
   if(pick){
     adopt(pick);
+    sv.ts=pick.ts||Date.now();
     const b=body(payload());
     if(R)sv.remoteSaved=b;
     if(L)sv.localSaved=b;
@@ -521,6 +635,8 @@ async function load(){
   }
   updateSync();
   if(!sv.remote)watchRemote();
+  ghRead();
+  if(gh.on)ghPull();
 }
 /* lo storage dell'artifact a volte compare dopo il caricamento: lo aspetto */
 function watchRemote(){
@@ -1051,6 +1167,46 @@ document.getElementById("bkRestore").onclick=()=>{
     document.getElementById("bkModal").classList.remove("open");
     save("Piano ripristinato");render();
   }catch(e){toast("Testo non valido");}
+};
+
+/* ---------- sincronizzazione ---------- */
+function syState(){
+  const el=document.getElementById("syState");
+  if(!gh.on)el.textContent="Non collegato.";
+  else if(gh.err)el.textContent="Errore: "+gh.err;
+  else el.textContent="Collegato"+(gh.gist?" · gist "+gh.gist.slice(0,8):"")+
+    (gh.lastPull?" · ultimo controllo "+new Date(gh.lastPull).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):"");
+}
+document.getElementById("syncBtn").onclick=()=>{
+  ghRead();
+  document.getElementById("syTok").value=gh.token||"";
+  syState();
+  document.getElementById("syncModal").classList.add("open");
+};
+document.getElementById("syClose").onclick=()=>document.getElementById("syncModal").classList.remove("open");
+document.getElementById("syncModal").onclick=e=>{
+  if(e.target.id==="syncModal")e.currentTarget.classList.remove("open");
+};
+document.getElementById("syConnect").onclick=async()=>{
+  const t=document.getElementById("syTok").value.trim();
+  if(!t){toast("Incolla il token");return;}
+  ghStore(t);
+  document.getElementById("syState").textContent="Collegamento…";
+  try{
+    await ghFind();
+    await ghPull(false);
+    await ghPush(false);
+    toast("Sincronizzazione attiva");
+  }catch(e){gh.err=e.message||"errore";toast("Sync: "+gh.err);}
+  syState();updateSync();
+};
+document.getElementById("syNow").onclick=async()=>{
+  if(!gh.on){toast("Collega prima un token");return;}
+  await ghPull(true);await ghPush(false);syState();
+};
+document.getElementById("syOff").onclick=()=>{
+  ghStore(null);document.getElementById("syTok").value="";
+  syState();updateSync();toast("Scollegato");
 };
 
 document.getElementById("addBtn").onclick=()=>{
