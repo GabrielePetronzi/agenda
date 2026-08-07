@@ -58,7 +58,7 @@ button:focus-visible,select:focus-visible,td:focus-visible,input:focus-visible{
 .diag{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--warn);
   margin:-14px 0 18px;word-break:break-word;display:none}
 .diag.show{display:block}
-.bk textarea{width:100%;height:180px;background:var(--cell);color:var(--tx);border:1px solid var(--line);
+.bk textarea{width:100%;height:180px;font-family:"IBM Plex Sans",sans-serif;font-size:14px;background:var(--cell);color:var(--tx);border:1px solid var(--line);
   border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;padding:9px;resize:vertical}
 
 /* materie */
@@ -80,6 +80,8 @@ button:focus-visible,select:focus-visible,td:focus-visible,input:focus-visible{
 .ph u{display:block;text-decoration:none;font-size:9px;color:var(--tx3);margin-top:3px}
 .vedit{display:none;gap:6px;margin-top:8px}
 .vedit.open{display:flex}
+.adder input.cfu,.vedit input.cfu{flex:0 0 78px;width:78px;text-align:center;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px}
 .vedit input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--tx);
   padding:9px 10px;border-radius:8px;font-size:13.5px;font-family:"IBM Plex Sans",sans-serif}
 .vedit button{border:1px solid var(--line);background:var(--panel);color:var(--tx2);padding:9px 12px;
@@ -91,6 +93,11 @@ button:focus-visible,select:focus-visible,td:focus-visible,input:focus-visible{
 .exrow .t{flex:1;min-width:0;font-size:13.5px}
 .exrow .cd{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--tx3);flex:0 0 auto}
 .exrow .cd.soon{color:var(--warn)}
+tr.exline td{border:1px solid var(--line2);background:var(--panel2);padding:0;vertical-align:top}
+tr.exline td.lab{border:0;background:none;font-family:"IBM Plex Mono",monospace;font-size:8.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);text-align:right;padding-right:6px}
+tr.exline .tag{display:block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;line-height:1.25;
+  color:var(--warn);padding:4px 5px;white-space:normal;word-break:break-word}
 .exrow button{background:none;border:0;color:var(--tx3);cursor:pointer;font-size:14px;padding:2px 6px}
 .exrow button:hover{color:var(--warn)}
 th.exam u::after{content:" ●";color:var(--warn)}
@@ -134,6 +141,7 @@ td.tot b{color:var(--tx2);font-weight:500}
 .adder input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--tx);
   padding:9px 10px;border-radius:8px;font-size:13.5px;font-family:"IBM Plex Sans",sans-serif}
 .adder input::placeholder{color:var(--tx3)}
+.adder button#exPick{flex:0 0 auto;font-size:15px;padding:9px 12px}
 .adder button{border:1px solid var(--line);background:var(--panel);color:var(--tx);padding:9px 14px;
   border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:12px;cursor:pointer}
 
@@ -180,17 +188,21 @@ th.today u,th.today s{color:var(--accent)}
 td.hr{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3);text-align:right;
   padding:0 7px 0 0;vertical-align:middle;height:32px;line-height:1;border:0;white-space:nowrap}
 td.c{background:var(--cell);height:32px;padding:0;vertical-align:top;cursor:pointer;
-  border:1px solid var(--line2)}
+  border:1px solid var(--line2);position:relative}
 td.c.half{border-top-style:dotted}
 td.c.mark{border-top-color:var(--line);border-top-style:solid}
 td.c.we{background:var(--panel2)}
 td.c.on{border-color:rgba(0,0,0,.3)}
-td.c em{display:block;font-style:normal;padding:2px 5px 0;overflow:hidden}
-td.c em b{display:block;font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:600;
+td.c em{display:block;font-style:normal;padding:3px 6px 0;overflow:hidden;
+  position:absolute;left:0;right:0;top:0;z-index:1;pointer-events:none}
+td.c em b{display:block;font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;
   letter-spacing:.01em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  line-height:1.1}
-td.c em s{display:block;text-decoration:none;font-size:11px;opacity:.85;line-height:1.15;
+  line-height:1.15}
+td.c em s{display:block;text-decoration:none;font-size:12px;opacity:.88;line-height:1.2;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.c em q{display:block;quotes:none;font-size:10.5px;opacity:.78;line-height:1.25;margin-top:3px;
+  white-space:pre-wrap;overflow:hidden}
+td.c em .pin{position:absolute;right:5px;top:4px;font-size:9px;opacity:.7}
 td.c.cont em{display:none}
 table.moving td.c.on{cursor:grab}
 
@@ -282,12 +294,14 @@ table.moving td.c.on{cursor:grab}
     <p class="lbl">Nuove Materie/Attività</p>
     <div class="adder">
       <input id="newName" type="text" maxlength="46" placeholder="Nuova Materia, Lavoro, …">
+      <input id="newCfu" type="number" min="0" max="40" placeholder="CFU" class="cfu" aria-label="CFU">
       <button id="addBtn">Aggiungi</button>
     </div>
     <div class="tools" id="voci" style="margin-top:8px"></div>
     <div class="vedit" id="vedit">
       <input id="vName" type="text" maxlength="46" aria-label="Rinomina voce">
-      <button id="vRen">Rinomina</button>
+      <input id="vCfu" type="number" min="0" max="40" placeholder="CFU" class="cfu" aria-label="CFU">
+      <button id="vRen">Salva</button>
       <button id="vDel">Elimina</button>
     </div>
   </div>
@@ -296,6 +310,7 @@ table.moving td.c.on{cursor:grab}
     <p class="lbl">Esami e scadenze</p>
     <div class="adder">
       <input id="exDate" type="date" style="flex:0 0 auto" aria-label="Data">
+      <button id="exPick" title="Scegli dal calendario">▦</button>
       <input id="exText" type="text" maxlength="46" placeholder="Esame, consegna, colloquio…">
       <button id="exAdd">Aggiungi</button>
     </div>
@@ -334,8 +349,20 @@ table.moving td.c.on{cursor:grab}
     </div>
     <div class="mgrid" id="mGrid"></div>
     <div class="mfoot">
-      <span>Il giorno scelto apre la Settimana 1</span>
+      <span id="mHint">Il giorno scelto apre la Settimana 1</span>
       <button id="mClose">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="ntModal">
+  <div class="sheet bk">
+    <div class="mhead"><b id="ntTitle">Nota</b><button id="ntClose">✕</button></div>
+    <textarea id="ntText" spellcheck="false" style="height:110px"
+      placeholder="Aula, docente, capitolo da leggere…"></textarea>
+    <div class="mfoot">
+      <button id="ntDel">Rimuovi nota</button>
+      <button id="ntSave">Salva</button>
     </div>
   </div>
 </div>
@@ -381,7 +408,7 @@ table.moving td.c.on{cursor:grab}
     <div class="mhead"><b>Backup del piano</b><button id="bkClose">✕</button></div>
     <p style="font-size:12.5px;color:var(--tx2);margin:0 0 10px;line-height:1.5">
       Copia questo testo e conservalo. Per ripristinare, incollalo qui e tocca Ripristina.</p>
-    <textarea id="bkText" spellcheck="false"></textarea>
+    <textarea id="bkText" spellcheck="false" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px"></textarea>
     <div class="mfoot">
       <button id="bkCopy">Copia</button>
       <button id="bkRestore">Ripristina</button>
@@ -407,6 +434,7 @@ const MESIL=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","A
              "Settembre","Ottobre","Novembre","Dicembre"];
 /* slot da 30 minuti: indice = ora*2 (+1 per la mezz'ora). 12 = 06:00, 47 = 23:30 */
 const HOURS=(()=>{const a=[];for(let s=12;s<=47;s++)a.push(s);return a;})();
+const ROW=32;                    /* altezza di uno slot in pixel, uguale al CSS */
 const slotHour=s=>Math.floor(s/2);
 const isHalf=s=>s%2===1;
 const slotLabel=s=>isHalf(s)?"":String(slotHour(s));
@@ -864,7 +892,7 @@ function normCustom(){
 }
 function voci(){
   normCustom();
-  return state.custom.map(c=>({id:c.id,name:c.name,
+  return state.custom.map(c=>({id:c.id,name:c.name,cfu:c.cfu||0,
     short:c.name.length>17?c.name.slice(0,16)+"…":c.name}));
 }
 function delVoce(id){
@@ -946,7 +974,7 @@ function controls(){
 
 function picklist(){
   const box=document.getElementById("picklist");box.innerHTML="";
-  const all=courses();
+  const all=courses().concat(voci());
   const seguite=all.filter(o=>state.follow[o.id]);
   const list=(state.showAll||!seguite.length)?all:seguite;
 
@@ -1034,15 +1062,16 @@ function vedit(){
     ? voci().find(o=>o.id===state.brush) : null;
   box.className="vedit"+(sel?" open":"");
   if(!sel)return;
-  const inp=document.getElementById("vName"),del=document.getElementById("vDel");
-  inp.value=sel.name;
+  const inp=document.getElementById("vName"),del=document.getElementById("vDel"),
+        cf=document.getElementById("vCfu");
+  inp.value=sel.name;cf.value=sel.cfu||"";
   del.className="";del.textContent="Elimina";
   document.getElementById("vRen").onclick=()=>{
     const nv=inp.value.trim();
     if(!nv)return;
     normCustom();
     const c=state.custom.find(x=>x.id===sel.id);
-    if(c){c.name=nv;save("Voce rinominata");commit();render();}
+    if(c){c.name=nv;c.cfu=+cf.value||0;save("Voce aggiornata");commit();render();}
   };
   del.onclick=()=>{
     if(del.className==="armed"){
@@ -1057,6 +1086,7 @@ function vedit(){
 function status(){
   const m=map(),el=document.getElementById("status");
   const clip=state.clip?'<span style="color:var(--tx3)"> — appunti: '+state.clip.label+" ("+hrs(state.clip.hours)+")</span>":"";
+  if(state.mode==="note"){el.innerHTML="<b>NOTA</b> · tocca un blocco per scrivere aula, docente, capitolo"+clip;return;}
   if(state.mode==="move"){el.innerHTML="<b>SPOSTA</b> · trascina un blocco per riposizionarlo"+clip;return;}
   if(state.erase){el.innerHTML="Cancella slot — tocca o trascina per svuotare."+clip;return;}
   if(!state.brush||!m[state.brush]){el.innerHTML="Scegli una materia o una voce."+clip;return;}
@@ -1111,7 +1141,7 @@ function weekData(p){
   panelDates(p).forEach((d,i)=>{
     HOURS.forEach(hr=>{
       const v=state.cells[ck(iso(d),hr)];
-      if(v)out[i+"."+hr]={i:v.i,a:v.a};
+      if(v)out[i+"."+hr]=v.n?{i:v.i,a:v.a,n:v.n}:{i:v.i,a:v.a};
     });
   });
   return out;
@@ -1128,7 +1158,7 @@ function pasteWeek(p){
   dates.forEach(d=>HOURS.forEach(hr=>delete state.cells[ck(iso(d),hr)]));
   Object.keys(state.clip.data).forEach(k=>{
     const q=k.split("."),v=state.clip.data[k];
-    state.cells[ck(iso(dates[+q[0]]),+q[1])]={i:v.i,a:v.a};
+    state.cells[ck(iso(dates[+q[0]]),+q[1])]=v.n?{i:v.i,a:v.a,n:v.n}:{i:v.i,a:v.a};
   });
   save("Incollata nella settimana "+(p+1));commit();panels();picklist();
 }
@@ -1161,6 +1191,15 @@ function buildPanel(p,m){
     state.mode=state.mode==="move"?"paint":"move";state.erase=false;
     save();tools();status();panels();
   };
+  const nt=document.createElement("button");
+  nt.innerHTML="<i style='box-shadow:inset 0 0 0 1.3px currentColor;border-radius:2px'></i>Nota";
+  if(state.mode==="note")nt.className="act mv";
+  nt.title="Tocca un blocco per scrivere una nota";
+  nt.onclick=()=>{
+    state.mode=state.mode==="note"?"paint":"note";state.erase=false;
+    save();tools();status();panels();
+  };
+
   const er=document.createElement("button");
   er.innerHTML="<i style='opacity:.4;background:repeating-linear-gradient(45deg,currentColor,currentColor 2px,transparent 2px,transparent 4px)'></i>Cancella slot";
   if(state.erase)er.className="act";
@@ -1193,7 +1232,7 @@ function buildPanel(p,m){
     if(armed==="w"+p){armed=null;clearTimeout(armTmr);wipeWeek(p);}
     else{armed="w"+p;panels();clearTimeout(armTmr);armTmr=setTimeout(()=>{armed=null;panels();},4000);}
   };
-  acts.appendChild(mv);acts.appendChild(er);acts.appendChild(sep);
+  acts.appendChild(mv);acts.appendChild(nt);acts.appendChild(er);acts.appendChild(sep);
   acts.appendChild(copy);acts.appendChild(paste);acts.appendChild(wipe);acts.appendChild(cal);
   hd.appendChild(acts);sec.appendChild(hd);
 
@@ -1211,6 +1250,22 @@ function buildPanel(p,m){
   const th=document.createElement("thead");th.innerHTML="<tr>"+head+"</tr>";t.appendChild(th);
 
   const tb=document.createElement("tbody");
+
+  /* scadenze del giorno, in cima alla griglia */
+  if(dates.some(d=>examsOn(iso(d)).length)){
+    const er=document.createElement("tr");er.className="exline";
+    const lb=document.createElement("td");lb.className="lab";lb.textContent="Scad.";er.appendChild(lb);
+    for(let d=state.from;d<=state.to;d++){
+      const td=document.createElement("td");
+      examsOn(iso(dates[d])).forEach(x=>{
+        const q=document.createElement("span");q.className="tag";q.textContent=x.t;
+        td.appendChild(q);
+      });
+      er.appendChild(td);
+    }
+    tb.appendChild(er);
+  }
+
   HOURS.forEach(s=>{
     const row=document.createElement("tr");
     const lb=document.createElement("td");lb.className="hr";lb.textContent=slotLabel(s);row.appendChild(lb);
@@ -1271,13 +1326,24 @@ function cell(td,m){
   const o=m[v.i],a=actOf(v.a);
   td.classList.add("on");
   td.style.background=o.color;
-  const prev=state.cells[ck(td.dataset.date,+td.dataset.h-1)];
-  if(prev&&prev.i===v.i&&prev.a===v.a)td.classList.add("cont");
-  const em=document.createElement("em");
-  em.style.color=ink(o.color);
-  em.innerHTML="<b>"+o.short.toUpperCase()+"</b><s>"+a.n+"</s>";
-  td.appendChild(em);
-  td.setAttribute("aria-label",o.name+", "+a.n);
+  const date=td.dataset.date,sl=+td.dataset.h;
+  const prev=state.cells[ck(date,sl-1)];
+  if(prev&&prev.i===v.i&&prev.a===v.a){td.classList.add("cont");}
+  else{
+    /* primo slot del blocco: il testo occupa tutta la durata */
+    let len=1;
+    while(true){
+      const n=state.cells[ck(date,sl+len)];
+      if(n&&n.i===v.i&&n.a===v.a)len++;else break;
+    }
+    const em=document.createElement("em");
+    em.style.color=ink(o.color);
+    em.style.height=(ROW*len-3)+"px";
+    const note=v.n?"<q>"+v.n.replace(/</g,"&lt;")+"</q>":"";
+    em.innerHTML="<b>"+o.short.toUpperCase()+"</b><s>"+a.n+"</s>"+note;
+    td.appendChild(em);
+  }
+  td.setAttribute("aria-label",o.name+", "+a.n+(v.n?", nota: "+v.n:""));
 }
 function redrawDay(dateIso){
   const m=map();
@@ -1298,10 +1364,15 @@ function runAt(dateIso,hr){
   let s=hr,e=hr;
   while(true){const p=state.cells[ck(dateIso,s-1)];if(p&&p.i===v.i&&p.a===v.a)s--;else break;}
   while(true){const n=state.cells[ck(dateIso,e+1)];if(n&&n.i===v.i&&n.a===v.a)e++;else break;}
-  return {i:v.i,a:v.a,start:s,len:e-s+1};
+  const head=state.cells[ck(dateIso,s)];
+  return {i:v.i,a:v.a,n:head&&head.n,start:s,len:e-s+1};
 }
 function placeRun(dateIso,start,r){
-  for(let k=0;k<r.len;k++)state.cells[ck(dateIso,start+k)]={i:r.i,a:r.a};
+  for(let k=0;k<r.len;k++){
+    const c={i:r.i,a:r.a};
+    if(k===0&&r.n)c.n=r.n;
+    state.cells[ck(dateIso,start+k)]=c;
+  }
 }
 function clearRun(dateIso,start,len){
   for(let k=0;k<len;k++)delete state.cells[ck(dateIso,start+k)];
@@ -1312,6 +1383,12 @@ function wire(t){
     const td=e.target.closest("td.c");if(!td)return;
     e.preventDefault();
 
+    if(state.mode==="note"){
+      const r=runAt(td.dataset.date,+td.dataset.h);
+      if(!r){toast("Tocca un blocco già piazzato");return;}
+      openNote(td.dataset.date,r.start);
+      return;
+    }
     if(state.mode==="move"){
       const r=runAt(td.dataset.date,+td.dataset.h);
       if(!r)return;
@@ -1376,6 +1453,8 @@ function openMonth(d){
 }
 function month(){
   document.getElementById("mTitle").textContent=MESIL[mMonth.getMonth()]+" "+mMonth.getFullYear();
+  document.getElementById("mHint").textContent=monthPick
+    ? "Tocca il giorno della scadenza" : "Il giorno scelto apre la Settimana 1";
   const g=document.getElementById("mGrid");g.innerHTML="";
   DSH.forEach(x=>{const e=document.createElement("div");e.className="dh";e.textContent=x[0];g.appendChild(e);});
 
@@ -1398,6 +1477,11 @@ function month(){
       ? '<span class="dots">'+colors.map(c=>'<i style="background:'+c+'"></i>').join("")+"</span>"
       : '<span class="dots"></span>');
     b2.onclick=()=>{
+      if(monthPick){
+        const cb=monthPick;monthPick=null;
+        document.getElementById("modal").classList.remove("open");
+        cb(day);return;
+      }
       state.anchor[state.ctx]=iso(monday(day));
       document.getElementById("modal").classList.remove("open");
       save("Settimana 1: "+fmt(monday(day)));
@@ -1409,9 +1493,10 @@ function month(){
 }
 document.getElementById("mPrev").onclick=()=>{mMonth.setMonth(mMonth.getMonth()-1);month();};
 document.getElementById("mNext").onclick=()=>{mMonth.setMonth(mMonth.getMonth()+1);month();};
-document.getElementById("mClose").onclick=()=>document.getElementById("modal").classList.remove("open");
+document.getElementById("mClose").onclick=()=>{
+  monthPick=null;document.getElementById("modal").classList.remove("open");};
 document.getElementById("modal").onclick=e=>{
-  if(e.target.id==="modal")document.getElementById("modal").classList.remove("open");
+  if(e.target.id==="modal"){monthPick=null;document.getElementById("modal").classList.remove("open");}
 };
 
 /* ============================================================
@@ -1496,13 +1581,53 @@ document.getElementById("addBtn").onclick=()=>{
   const i=document.getElementById("newName"),v=i.value.trim();
   if(!v){i.focus();return;}
   normCustom();
+  const cf=document.getElementById("newCfu");
   const id="x:"+Date.now().toString(36);
-  state.custom.push({id:id,name:v});state.brush=id;state.erase=false;
-  i.value="";save();commit();render();
+  state.custom.push({id:id,name:v,cfu:+cf.value||0});
+  state.follow[id]=1;state.brush=id;state.erase=false;
+  i.value="";cf.value="";save();commit();render();
 };
 document.getElementById("newName").addEventListener("keydown",e=>{
   if(e.key==="Enter")document.getElementById("addBtn").click();
 });
+let monthPick=null;
+let noteAt=null;
+function openNote(dateIso,slot){
+  noteAt={d:dateIso,s:slot};
+  const v=state.cells[ck(dateIso,slot)]||{};
+  const m=map(),o=m[v.i];
+  document.getElementById("ntTitle").textContent=
+    (o?o.name:"Nota")+" · "+fmt(parse(dateIso))+" "+slotHour(slot)+(isHalf(slot)?":30":":00");
+  document.getElementById("ntText").value=v.n||"";
+  document.getElementById("ntModal").classList.add("open");
+  setTimeout(()=>document.getElementById("ntText").focus(),50);
+}
+function closeNote(){document.getElementById("ntModal").classList.remove("open");noteAt=null;}
+document.getElementById("ntClose").onclick=closeNote;
+document.getElementById("ntModal").onclick=e=>{if(e.target.id==="ntModal")closeNote();};
+document.getElementById("ntSave").onclick=()=>{
+  if(!noteAt)return;
+  const k=ck(noteAt.d,noteAt.s),v=state.cells[k];
+  if(v){
+    const t=document.getElementById("ntText").value.trim();
+    if(t)v.n=t;else delete v.n;
+    save("Nota salvata");commit();
+  }
+  const d=noteAt.d;closeNote();redrawDay(d);
+};
+document.getElementById("ntDel").onclick=()=>{
+  if(!noteAt)return;
+  const v=state.cells[ck(noteAt.d,noteAt.s)];
+  if(v){delete v.n;save("Nota rimossa");commit();}
+  const d=noteAt.d;closeNote();redrawDay(d);
+};
+
+document.getElementById("exPick").onclick=()=>{
+  monthPick=day=>{document.getElementById("exDate").value=iso(day);};
+  openMonth(document.getElementById("exDate").value
+    ? parse(document.getElementById("exDate").value) : new Date());
+};
+
 document.getElementById("exAdd").onclick=()=>{
   const d=document.getElementById("exDate"),t=document.getElementById("exText");
   if(!d.value){d.focus();return;}
