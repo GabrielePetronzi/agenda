@@ -62,8 +62,43 @@ button:focus-visible,select:focus-visible,td:focus-visible,input:focus-visible{
   border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;padding:9px;resize:vertical}
 
 /* materie */
+.secline{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.filt{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.filt button{background:var(--panel);border:0;border-right:1px solid var(--line);color:var(--tx3);
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;padding:6px 10px;cursor:pointer}
+.filt button:last-child{border-right:0}
+.filt button[aria-pressed="true"]{background:var(--sel);color:var(--tx)}
 .picklist{border:1px solid var(--line);border-radius:10px;background:var(--panel);
-  max-height:250px;overflow-y:auto}
+  max-height:300px;overflow-y:auto}
+.fol{width:19px;height:19px;flex:0 0 19px;border-radius:5px;cursor:pointer;
+  box-shadow:inset 0 0 0 1.5px var(--tx3);position:relative}
+.fol.on{background:var(--tx);box-shadow:none}
+.fol.on::after{content:"";position:absolute;left:6px;top:2.5px;width:5px;height:10px;
+  border:solid var(--panel);border-width:0 2px 2px 0;transform:rotate(42deg)}
+.pnm .bar{display:block;height:3px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
+.pnm .bar i{display:block;height:100%;opacity:.9}
+.ph u{display:block;text-decoration:none;font-size:9px;color:var(--tx3);margin-top:3px}
+.vedit{display:none;gap:6px;margin-top:8px}
+.vedit.open{display:flex}
+.vedit input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--tx);
+  padding:9px 10px;border-radius:8px;font-size:13.5px;font-family:"IBM Plex Sans",sans-serif}
+.vedit button{border:1px solid var(--line);background:var(--panel);color:var(--tx2);padding:9px 12px;
+  border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;cursor:pointer}
+.vedit button:hover{color:var(--tx)}
+#vDel.armed{border-color:var(--warn);color:var(--warn)}
+.exrow{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line2)}
+.exrow .d{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--tx2);flex:0 0 auto}
+.exrow .t{flex:1;min-width:0;font-size:13.5px}
+.exrow .cd{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--tx3);flex:0 0 auto}
+.exrow .cd.soon{color:var(--warn)}
+.exrow button{background:none;border:0;color:var(--tx3);cursor:pointer;font-size:14px;padding:2px 6px}
+.exrow button:hover{color:var(--warn)}
+th.exam u::after{content:" ●";color:var(--warn)}
+.weeknav button.today{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;border:1px solid var(--line);padding:6px 10px}
+td.tot{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--tx3);text-align:center;
+  padding:6px 0 0;border:0}
+td.tot b{color:var(--tx2);font-weight:500}
 .prow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;
   border:0;border-bottom:1px solid var(--line2);padding:9px 10px;cursor:pointer;color:inherit}
 .prow:last-child{border-bottom:0}
@@ -198,6 +233,7 @@ table.moving td.c.on{cursor:grab}
 .day.out{color:var(--tx3);background:transparent}
 .day.today{color:var(--accent);border-color:var(--accent)}
 .day.inview{background:var(--sel)}
+.day.exam{box-shadow:inset 0 0 0 1.5px var(--warn)}
 .day .dots{display:flex;gap:2px;height:5px}
 .day .dots i{width:4px;height:4px;border-radius:50%;display:block}
 .mfoot{margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -210,6 +246,16 @@ table.moving td.c.on{cursor:grab}
   letter-spacing:.1em;padding:7px 13px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{
+  :root{--bg:#fff;--panel:#fff;--panel2:#f4f4f4;--cell:#fff;--tx:#000;--tx2:#444;--tx3:#777;
+        --line:#bbb;--line2:#ddd}
+  .top,.sync,.diag,.sec,.status,.weeknav,.pacts,.modal,.toast{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .panel{break-inside:avoid;page-break-inside:avoid;border-top:1px solid #999;margin-top:12px;padding-top:12px}
+  td.c.on{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  td.c em s{color:#000!important}
+  table{min-width:0}
+}
 </style>
 </head>
 <body>
@@ -239,10 +285,26 @@ table.moving td.c.on{cursor:grab}
       <button id="addBtn">Aggiungi</button>
     </div>
     <div class="tools" id="voci" style="margin-top:8px"></div>
+    <div class="vedit" id="vedit">
+      <input id="vName" type="text" maxlength="46" aria-label="Rinomina voce">
+      <button id="vRen">Rinomina</button>
+      <button id="vDel">Elimina</button>
+    </div>
   </div>
 
   <div class="sec">
-    <p class="lbl">Materie Aggiunte</p>
+    <p class="lbl">Esami e scadenze</p>
+    <div class="adder">
+      <input id="exDate" type="date" style="flex:0 0 auto" aria-label="Data">
+      <input id="exText" type="text" maxlength="46" placeholder="Esame, consegna, colloquio…">
+      <button id="exAdd">Aggiungi</button>
+    </div>
+    <div id="exList"></div>
+  </div>
+
+  <div class="sec">
+    <div class="secline"><p class="lbl" style="margin:0">Materie Aggiunte</p>
+      <div class="filt" id="pickbar"></div></div>
     <div class="picklist" id="picklist"></div>
   </div>
 
@@ -256,6 +318,7 @@ table.moving td.c.on{cursor:grab}
   <div class="weeknav">
     <button id="wPrev" aria-label="Settimana precedente">‹</button>
     <div class="mid"><b id="wRange"></b><span id="wCount"></span></div>
+    <button id="wToday" class="today" aria-label="Vai a oggi">Oggi</button>
     <button id="wNext" aria-label="Settimana successiva">›</button>
   </div>
 
@@ -273,6 +336,19 @@ table.moving td.c.on{cursor:grab}
     <div class="mfoot">
       <span>Il giorno scelto apre la Settimana 1</span>
       <button id="mClose">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="cfModal">
+  <div class="sheet">
+    <div class="mhead"><b>Versioni diverse</b></div>
+    <p id="cfInfo" style="font-size:13px;color:var(--tx2);line-height:1.55;margin:0 0 6px"></p>
+    <p style="font-size:12.5px;color:var(--tx3);line-height:1.5;margin:0">
+      Scegli quale tenere: l'altra viene sostituita. Se non sei sicuro, chiudi e fai prima un Backup.</p>
+    <div class="mfoot">
+      <button id="cfMine">Tieni questa</button>
+      <button id="cfTheirs">Prendi l'altra</button>
     </div>
   </div>
 </div>
@@ -420,6 +496,7 @@ const SWATCHES=["#6E8BFF","#5FA8D3","#63C2C2","#4FB3A0","#82B356","#B0A24E",
    ============================================================ */
 const KEY="piano-6272-v5";
 let state={v:2,theme:"dark",year:1,ctx:"1",from:0,to:6,act:"LEZ",brush:null,erase:false,mode:"paint",
+           follow:{},exams:[],showAll:false,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
 let painting=false,val=null,openColor=null,armed=null,armTmr=null,mMonth=null,drag=null;
 
@@ -450,7 +527,7 @@ function panelDates(p){
    b) storage dell'artifact: se presente, scritto con throttle
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
-const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip"];
+const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","follow","exams","showAll"];
 const LSKEY="piano-6272-local";
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
         localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
@@ -581,6 +658,7 @@ async function ghPull(loud){
     const f=g.files&&g.files["piano.json"];
     if(f&&f.content){
       const d=JSON.parse(f.content);
+      gh.knownTs=d.ts||0;
       if((d.ts||0)>(sv.ts||0)){
         adopt(d);sv.ts=d.ts;
         const p=payload(),b=body(p);
@@ -594,16 +672,50 @@ async function ghPull(loud){
   }catch(e){gh.err=e.message||"errore";if(loud)toast("Sync: "+gh.err);}
   gh.busy=false;updateSync();
 }
-async function ghPush(loud){
+async function ghPush(loud,force){
   if(!gh.on||gh.busy)return;
   gh.busy=true;
   try{
     await ghFind();
+    /* controlla che nessun altro dispositivo abbia scritto nel frattempo */
+    if(!force){
+      const g=await ghApi("/gists/"+gh.gist);
+      const f=g.files&&g.files["piano.json"];
+      if(f&&f.content){
+        const d=JSON.parse(f.content);
+        const rts=d.ts||0;
+        if(gh.knownTs&&rts>gh.knownTs&&rts!==sv.ts){
+          gh.busy=false;
+          conflict(d,rts);      /* chiede all'utente quale versione tenere */
+          return;
+        }
+        gh.knownTs=rts;
+      }
+    }
     await ghApi("/gists/"+gh.gist,{method:"PATCH",body:JSON.stringify({
       files:{"piano.json":{content:payload()}}})});
+    gh.knownTs=sv.ts;
     gh.err="";if(loud)toast("Sincronizzato");
   }catch(e){gh.err=e.message||"errore";if(loud)toast("Sync: "+gh.err);}
   gh.busy=false;updateSync();
+}
+/* due dispositivi hanno modificato: nessuna delle due copie viene persa in silenzio */
+function conflict(remote,rts){
+  const el=document.getElementById("cfModal");
+  document.getElementById("cfInfo").textContent=
+    "Sull'altro dispositivo il piano è stato modificato il "+
+    new Date(rts).toLocaleString("it-IT")+
+    ", qui il "+new Date(sv.ts).toLocaleString("it-IT")+".";
+  document.getElementById("cfMine").onclick=()=>{
+    el.classList.remove("open");ghPush(true,true);
+  };
+  document.getElementById("cfTheirs").onclick=()=>{
+    el.classList.remove("open");
+    adopt(remote);sv.ts=rts;gh.knownTs=rts;
+    const pl=payload();if(sv.local&&lsSet(pl))sv.localSaved=body(pl);
+    histInit();render();toast("Presa la versione dell'altro dispositivo");
+  };
+  el.classList.add("open");
 }
 function ghSchedule(){
   if(!gh.on)return;
@@ -618,7 +730,7 @@ document.addEventListener("visibilitychange",()=>{
 /* ============================================================
    3c. CRONOLOGIA — annulla / rifai
    ============================================================ */
-const HKEYS=["cells","colors","custom"];
+const HKEYS=["cells","colors","custom","follow","exams"];
 let hist={past:[],future:[],cur:null};
 
 function snap(){const o={};HKEYS.forEach(k=>o[k]=state[k]);return JSON.stringify(o);}
@@ -664,6 +776,8 @@ window.addEventListener("keydown",e=>{
 
 function adopt(d){
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
+  state.follow=state.follow||{};state.exams=state.exams||[];
+  normCustom();
   migrate(d);
 }
 async function load(){
@@ -742,8 +856,23 @@ function courses(){
   });
   return out;
 }
+/* le voci personali hanno un id stabile: rinominarle o eliminarne una
+   non sposta le altre e non rompe gli slot già piazzati */
+function normCustom(){
+  state.custom=(state.custom||[]).map((c,i)=>
+    typeof c==="string"?{id:"x:"+i,name:c}:c);
+}
 function voci(){
-  return state.custom.map((n,i)=>({id:"x:"+i,name:n,short:n.length>17?n.slice(0,16)+"…":n}));
+  normCustom();
+  return state.custom.map(c=>({id:c.id,name:c.name,
+    short:c.name.length>17?c.name.slice(0,16)+"…":c.name}));
+}
+function delVoce(id){
+  normCustom();
+  state.custom=state.custom.filter(c=>c.id!==id);
+  Object.keys(state.cells).forEach(k=>{if(state.cells[k].i===id)delete state.cells[k];});
+  delete state.colors[id];
+  if(state.brush===id)state.brush=null;
 }
 function items(){
   const all=courses().concat(voci());
@@ -770,6 +899,18 @@ function countPanel(p){
   });
   return out;
 }
+/* ore pianificate sull'intero semestre, non solo nei 4 pannelli a schermo */
+function totalCtx(id){
+  const pre=state.year+"."+state.ctx+".";
+  let n=0;
+  Object.keys(state.cells).forEach(k=>{
+    if(k.indexOf(pre)===0&&state.cells[k].i===id)n++;
+  });
+  return n;
+}
+/* 1 CFU = 25 ore di lavoro complessivo dello studente */
+const targetH=cfu=>cfu?cfu*25:0;
+
 function totalVisible(id){
   let n=0;
   for(let p=0;p<PANELS;p++){const c=countPanel(p);if(c[id])n+=c[id].tot;}
@@ -805,31 +946,57 @@ function controls(){
 
 function picklist(){
   const box=document.getElementById("picklist");box.innerHTML="";
-  const list=courses();
+  const all=courses();
+  const seguite=all.filter(o=>state.follow[o.id]);
+  const list=(state.showAll||!seguite.length)?all:seguite;
+
+  /* intestazione con filtro */
+  const bar=document.getElementById("pickbar");
+  bar.innerHTML="";
+  if(seguite.length){
+    [["Seguite",false],["Tutte",true]].forEach(([lab,v])=>{
+      const t=document.createElement("button");
+      t.textContent=lab+(v?" ("+all.length+")":" ("+seguite.length+")");
+      t.setAttribute("aria-pressed",!!state.showAll===v);
+      t.onclick=()=>{state.showAll=v;save();picklist();};
+      bar.appendChild(t);
+    });
+  }
+
   if(!list.length){box.innerHTML='<p class="empty" style="padding:12px">Nessuna materia per questa selezione.</p>';return;}
-  list.forEach((o,i)=>{
-    o.color=state.colors[o.id]||PAL[i%PAL.length];
-    const h=totalVisible(o.id);
+  list.forEach(o=>{
+    o.color=state.colors[o.id]||PAL[all.indexOf(o)%PAL.length];
+    const h=totalCtx(o.id),tgt=targetH(o.cfu);
     const b=document.createElement("button");
     b.className="prow"+(state.brush===o.id?" sel":"");
     b.setAttribute("aria-pressed",state.brush===o.id);
-    b.innerHTML='<span class="swatch" style="background:'+o.color+'"></span>'+
-      '<span class="pnm">'+o.name+"</span>"+
-      '<span class="ph">'+(h?hrs(h):"—")+"</span>";
+    const pct=tgt?Math.min(100,Math.round((h/2)/tgt*100)):0;
+    b.innerHTML='<span class="fol'+(state.follow[o.id]?" on":"")+'" role="button" '+
+        'aria-label="Segui questa materia" title="Seguo questa materia"></span>'+
+      '<span class="swatch" style="background:'+o.color+'"></span>'+
+      '<span class="pnm">'+o.name+
+        (tgt?'<span class="bar"><i style="width:'+pct+'%;background:'+o.color+'"></i></span>':"")+
+      "</span>"+
+      '<span class="ph">'+(h?hrs(h):"—")+(tgt?'<u>su '+tgt+" h</u>":"")+"</span>";
     b.onclick=()=>{state.brush=o.id;state.erase=false;save();picklist();tools();status();};
     b.querySelector(".swatch").onclick=e=>{
       e.stopPropagation();openColor=openColor===o.id?null:o.id;picklist();
+    };
+    b.querySelector(".fol").onclick=e=>{
+      e.stopPropagation();
+      if(state.follow[o.id])delete state.follow[o.id];else state.follow[o.id]=1;
+      save();commit();picklist();
     };
     box.appendChild(b);
 
     const pick=document.createElement("div");
     pick.className="picker"+(openColor===o.id?" open":"");
     SWATCHES.forEach(hex=>{
-      const s=document.createElement("button");
-      s.style.background=hex;s.setAttribute("aria-label",hex);
-      s.setAttribute("aria-pressed",o.color.toLowerCase()===hex.toLowerCase());
-      s.onclick=()=>{state.colors[o.id]=hex;save("Colore aggiornato");commit();render();};
-      pick.appendChild(s);
+      const sw=document.createElement("button");
+      sw.style.background=hex;sw.setAttribute("aria-label",hex);
+      sw.setAttribute("aria-pressed",o.color.toLowerCase()===hex.toLowerCase());
+      sw.onclick=()=>{state.colors[o.id]=hex;save("Colore aggiornato");commit();render();};
+      pick.appendChild(sw);
     });
     const inp=document.createElement("input");
     inp.type="color";inp.value=o.color;inp.setAttribute("aria-label","Colore personalizzato");
@@ -858,6 +1025,33 @@ function tools(){
     b.onclick=()=>{state.brush=o.id;state.erase=false;save();picklist();tools();status();};
     v.appendChild(b);
   });
+  vedit();
+}
+/* pannello di rinomina/eliminazione della voce selezionata */
+function vedit(){
+  const box=document.getElementById("vedit");
+  const sel=state.brush&&state.brush.indexOf("x:")===0
+    ? voci().find(o=>o.id===state.brush) : null;
+  box.className="vedit"+(sel?" open":"");
+  if(!sel)return;
+  const inp=document.getElementById("vName"),del=document.getElementById("vDel");
+  inp.value=sel.name;
+  del.className="";del.textContent="Elimina";
+  document.getElementById("vRen").onclick=()=>{
+    const nv=inp.value.trim();
+    if(!nv)return;
+    normCustom();
+    const c=state.custom.find(x=>x.id===sel.id);
+    if(c){c.name=nv;save("Voce rinominata");commit();render();}
+  };
+  del.onclick=()=>{
+    if(del.className==="armed"){
+      delVoce(sel.id);save("Voce eliminata");commit();render();
+    }else{
+      del.className="armed";del.textContent="Confermi?";
+      setTimeout(()=>{if(del.className==="armed"){del.className="";del.textContent="Elimina";}},4000);
+    }
+  };
 }
 
 function status(){
@@ -875,10 +1069,40 @@ function weeknav(){
   document.getElementById("wCount").textContent=CTX[state.ctx].name+" · settimane 1–"+PANELS;
   document.getElementById("wPrev").onclick=()=>{shift(-7);};
   document.getElementById("wNext").onclick=()=>{shift(7);};
+  document.getElementById("wToday").onclick=()=>{
+    state.anchor[state.ctx]=iso(monday(new Date()));
+    save();weeknav();panels();picklist();
+  };
 }
 function shift(days){
   state.anchor[state.ctx]=iso(addDays(anchorDate(),days));
   save();weeknav();panels();picklist();
+}
+
+/* ---------- esami e scadenze ---------- */
+function examsOn(dateIso){return (state.exams||[]).filter(x=>x.d===dateIso);}
+function daysTo(dateIso){
+  const a=parse(dateIso),b=new Date();b.setHours(0,0,0,0);
+  return Math.round((a-b)/86400000);
+}
+function examList(){
+  const box=document.getElementById("exList");box.innerHTML="";
+  const list=(state.exams||[]).slice().sort((a,b)=>a.d<b.d?-1:1);
+  if(!list.length){box.innerHTML='<p class="empty">Nessuna scadenza segnata.</p>';return;}
+  list.forEach(x=>{
+    const n=daysTo(x.d),r=document.createElement("div");r.className="exrow";
+    const cd=n<0?"passato":(n===0?"oggi":(n===1?"domani":"fra "+n+" giorni"));
+    r.innerHTML='<span class="d">'+fmt(parse(x.d))+"</span>"+
+      '<span class="t">'+x.t+"</span>"+
+      '<span class="cd'+(n>=0&&n<=7?" soon":"")+'">'+cd+"</span>";
+    const del=document.createElement("button");
+    del.textContent="✕";del.title="Elimina";
+    del.onclick=()=>{
+      state.exams=state.exams.filter(y=>y!==x);
+      save("Scadenza eliminata");commit();examList();panels();
+    };
+    r.appendChild(del);box.appendChild(r);
+  });
 }
 
 /* ---------- copia / incolla ---------- */
@@ -979,8 +1203,10 @@ function buildPanel(p,m){
   if(state.mode==="move")t.classList.add("moving");
   let head='<th class="hc"></th>';
   for(let d=state.from;d<=state.to;d++){
-    const cls=(d>4?"we ":"")+(iso(dates[d])===TODAY?"today":"");
-    head+='<th class="'+cls+'"><u>'+DSH[d]+"</u><s>"+dates[d].getDate()+"</s></th>";
+    const ex=examsOn(iso(dates[d]));
+    const cls=(d>4?"we ":"")+(iso(dates[d])===TODAY?"today ":"")+(ex.length?"exam":"");
+    head+='<th class="'+cls+'" title="'+(ex.map(x=>x.t).join(", ")||"")+'">'+
+      "<u>"+DSH[d]+"</u><s>"+dates[d].getDate()+"</s></th>";
   }
   const th=document.createElement("thead");th.innerHTML="<tr>"+head+"</tr>";t.appendChild(th);
 
@@ -997,7 +1223,21 @@ function buildPanel(p,m){
     }
     tb.appendChild(row);
   });
-  t.appendChild(tb);gw.appendChild(t);sec.appendChild(gw);
+  t.appendChild(tb);
+
+  /* totale ore per giorno */
+  const tf=document.createElement("tfoot"),tr=document.createElement("tr");
+  const sp=document.createElement("td");sp.className="tot";tr.appendChild(sp);
+  for(let d=state.from;d<=state.to;d++){
+    let n=0;
+    HOURS.forEach(sl=>{const v=state.cells[ck(iso(dates[d]),sl)];if(v&&m[v.i])n++;});
+    const td=document.createElement("td");td.className="tot";
+    td.innerHTML=n?"<b>"+hrs(n)+"</b>":"–";
+    tr.appendChild(td);
+  }
+  tf.appendChild(tr);t.appendChild(tf);
+
+  gw.appendChild(t);sec.appendChild(gw);
   wire(t);
 
   /* riepilogo del pannello */
@@ -1150,8 +1390,10 @@ function month(){
     HOURS.forEach(hr=>{const v=state.cells[ck(key,hr)];if(v&&m[v.i])set.add(m[v.i].color);});
     const colors=[...set].slice(0,4);
     const b2=document.createElement("button");
+    const ex=examsOn(key);
     b2.className="day"+(day.getMonth()===mMonth.getMonth()?"":" out")+
-      (key===TODAY?" today":"")+(day>=a&&day<=b?" inview":"");
+      (key===TODAY?" today":"")+(day>=a&&day<=b?" inview":"")+(ex.length?" exam":"");
+    if(ex.length)b2.title=ex.map(x=>x.t).join(", ");
     b2.innerHTML=day.getDate()+(colors.length
       ? '<span class="dots">'+colors.map(c=>'<i style="background:'+c+'"></i>').join("")+"</span>"
       : '<span class="dots"></span>');
@@ -1253,12 +1495,26 @@ document.getElementById("syOff").onclick=()=>{
 document.getElementById("addBtn").onclick=()=>{
   const i=document.getElementById("newName"),v=i.value.trim();
   if(!v){i.focus();return;}
-  state.custom.push(v);state.brush="x:"+(state.custom.length-1);state.erase=false;
+  normCustom();
+  const id="x:"+Date.now().toString(36);
+  state.custom.push({id:id,name:v});state.brush=id;state.erase=false;
   i.value="";save();commit();render();
 };
 document.getElementById("newName").addEventListener("keydown",e=>{
   if(e.key==="Enter")document.getElementById("addBtn").click();
 });
+document.getElementById("exAdd").onclick=()=>{
+  const d=document.getElementById("exDate"),t=document.getElementById("exText");
+  if(!d.value){d.focus();return;}
+  if(!t.value.trim()){t.focus();return;}
+  state.exams=state.exams||[];
+  state.exams.push({d:d.value,t:t.value.trim()});
+  t.value="";save("Scadenza aggiunta");commit();examList();panels();
+};
+document.getElementById("exText").addEventListener("keydown",e=>{
+  if(e.key==="Enter")document.getElementById("exAdd").click();
+});
+
 document.getElementById("undoBtn").onclick=()=>undo();
 document.getElementById("redoBtn").onclick=()=>redo();
 document.getElementById("theme").onclick=()=>{
@@ -1266,7 +1522,7 @@ document.getElementById("theme").onclick=()=>{
   document.documentElement.setAttribute("data-theme",state.theme);save();
 };
 
-function render(){controls();picklist();tools();weeknav();panels();status();}
+function render(){controls();picklist();tools();examList();weeknav();panels();status();}
 (async()=>{await load();render();histInit();})();
 </script>
 </body>
