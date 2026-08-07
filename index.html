@@ -36,7 +36,8 @@ body{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;-webkit-fon
 .seg button:hover{color:var(--tx)}
 .icon{appearance:none;width:36px;height:34px;border-radius:8px;border:1px solid var(--line);
   background:var(--panel);color:var(--tx2);cursor:pointer;font-size:14px}
-.icon:hover{color:var(--tx)}
+.icon:hover:not(:disabled){color:var(--tx)}
+.icon:disabled{opacity:.28;cursor:default}
 .range{display:flex;align-items:center;gap:5px}
 .range span{color:var(--tx3);font-size:12px}
 select{appearance:none;background:var(--panel);border:1px solid var(--line);color:var(--tx);
@@ -220,6 +221,8 @@ table.moving td.c.on{cursor:grab}
     <div class="grow"><p class="lbl">Giorni</p>
       <div class="range"><select id="dFrom"></select><span>&rarr;</span><select id="dTo"></select></div>
     </div>
+    <button class="icon" id="undoBtn" title="Annulla (Ctrl/Cmd+Z)" aria-label="Annulla">↶</button>
+    <button class="icon" id="redoBtn" title="Rifai (Ctrl/Cmd+Y)" aria-label="Rifai">↷</button>
     <button class="icon" id="theme" title="Cambia tema" aria-label="Cambia tema">◐</button>
   </div>
   <p class="sync" id="sync"><i></i><span>Pronto</span>
@@ -612,6 +615,53 @@ document.addEventListener("visibilitychange",()=>{
   if(!document.hidden&&gh.on&&Date.now()-gh.lastPull>20000)ghPull();
 });
 
+/* ============================================================
+   3c. CRONOLOGIA — annulla / rifai
+   ============================================================ */
+const HKEYS=["cells","colors","custom"];
+let hist={past:[],future:[],cur:null};
+
+function snap(){const o={};HKEYS.forEach(k=>o[k]=state[k]);return JSON.stringify(o);}
+function histInit(){hist.cur=snap();hist.past=[];hist.future=[];histUI();}
+function commit(){
+  const s=snap();
+  if(s===hist.cur)return;
+  hist.past.push(hist.cur);
+  if(hist.past.length>80)hist.past.shift();
+  hist.cur=s;hist.future=[];
+  histUI();
+}
+function applySnap(s){
+  const o=JSON.parse(s);
+  HKEYS.forEach(k=>{if(o[k]!==undefined)state[k]=o[k];});
+  hist.cur=s;save();render();histUI();
+}
+function undo(){
+  if(!hist.past.length){toast("Niente da annullare");return;}
+  hist.future.push(hist.cur);
+  applySnap(hist.past.pop());
+  toast("Annullato");
+}
+function redo(){
+  if(!hist.future.length){toast("Niente da rifare");return;}
+  hist.past.push(hist.cur);
+  applySnap(hist.future.pop());
+  toast("Rifatto");
+}
+function histUI(){
+  const u=document.getElementById("undoBtn"),r=document.getElementById("redoBtn");
+  if(u)u.disabled=!hist.past.length;
+  if(r)r.disabled=!hist.future.length;
+}
+window.addEventListener("keydown",e=>{
+  if(!(e.metaKey||e.ctrlKey))return;
+  const tag=(e.target.tagName||"").toLowerCase();
+  if(tag==="input"||tag==="textarea")return;   /* lascia l'annulla nativo nei campi */
+  const k=(e.key||"").toLowerCase();
+  if(k==="z"&&!e.shiftKey){e.preventDefault();undo();}
+  else if(k==="y"||(k==="z"&&e.shiftKey)){e.preventDefault();redo();}
+});
+
 function adopt(d){
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
   migrate(d);
@@ -778,12 +828,12 @@ function picklist(){
       const s=document.createElement("button");
       s.style.background=hex;s.setAttribute("aria-label",hex);
       s.setAttribute("aria-pressed",o.color.toLowerCase()===hex.toLowerCase());
-      s.onclick=()=>{state.colors[o.id]=hex;save("Colore aggiornato");render();};
+      s.onclick=()=>{state.colors[o.id]=hex;save("Colore aggiornato");commit();render();};
       pick.appendChild(s);
     });
     const inp=document.createElement("input");
     inp.type="color";inp.value=o.color;inp.setAttribute("aria-label","Colore personalizzato");
-    inp.onchange=()=>{state.colors[o.id]=inp.value;save("Colore aggiornato");render();};
+    inp.onchange=()=>{state.colors[o.id]=inp.value;save("Colore aggiornato");commit();render();};
     pick.appendChild(inp);
     box.appendChild(pick);
   });
@@ -856,11 +906,11 @@ function pasteWeek(p){
     const q=k.split("."),v=state.clip.data[k];
     state.cells[ck(iso(dates[+q[0]]),+q[1])]={i:v.i,a:v.a};
   });
-  save("Incollata nella settimana "+(p+1));panels();picklist();
+  save("Incollata nella settimana "+(p+1));commit();panels();picklist();
 }
 function wipeWeek(p){
   panelDates(p).forEach(d=>HOURS.forEach(hr=>delete state.cells[ck(iso(d),hr)]));
-  save("Settimana "+(p+1)+" svuotata");panels();picklist();
+  save("Settimana "+(p+1)+" svuotata");commit();panels();picklist();
 }
 
 /* ---------- pannelli ---------- */
@@ -1068,12 +1118,12 @@ function wire(t){
     if(state.mode==="move"||(!state.brush&&!state.erase))return;
     const cur=state.cells[ck(td.dataset.date,+td.dataset.h)];
     val=(state.erase||(cur&&cur.i===state.brush&&cur.a===state.act))?null:{i:state.brush,a:state.act};
-    put(td);
+    put(td);commit();
   });
 }
 ["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,()=>{
-  if(drag){drag=null;save();panels();picklist();}
-  if(painting){painting=false;panels();picklist();}
+  if(drag){drag=null;save();commit();panels();picklist();}
+  if(painting){painting=false;commit();panels();picklist();}
 }));
 
 /* ============================================================
@@ -1156,7 +1206,7 @@ document.getElementById("bkRestore").onclick=()=>{
     const d=JSON.parse(document.getElementById("bkText").value);
     DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
     document.getElementById("bkModal").classList.remove("open");
-    save("Piano ripristinato");render();
+    save("Piano ripristinato");histInit();render();
   }catch(e){toast("Testo non valido");}
 };
 
@@ -1204,18 +1254,20 @@ document.getElementById("addBtn").onclick=()=>{
   const i=document.getElementById("newName"),v=i.value.trim();
   if(!v){i.focus();return;}
   state.custom.push(v);state.brush="x:"+(state.custom.length-1);state.erase=false;
-  i.value="";save();render();
+  i.value="";save();commit();render();
 };
 document.getElementById("newName").addEventListener("keydown",e=>{
   if(e.key==="Enter")document.getElementById("addBtn").click();
 });
+document.getElementById("undoBtn").onclick=()=>undo();
+document.getElementById("redoBtn").onclick=()=>redo();
 document.getElementById("theme").onclick=()=>{
   state.theme=state.theme==="dark"?"light":"dark";
   document.documentElement.setAttribute("data-theme",state.theme);save();
 };
 
 function render(){controls();picklist();tools();weeknav();panels();status();}
-(async()=>{await load();render();})();
+(async()=>{await load();render();histInit();})();
 </script>
 </body>
 </html>
