@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piano settimanale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;450;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0D0F13; --panel:#141720; --panel2:#191D27; --cell:#11141B;
+  --tx:#E7E9EE; --tx2:#8D95A6; --tx3:#5C6474;
+  --line:#242936; --line2:#1B202B; --sel:#2B3143; --accent:#6E8BFF; --warn:#E4726E; --ok:#5FBF8F;
+}
+html[data-theme="light"]{
+  --bg:#FBFBFA; --panel:#FFFFFF; --panel2:#F4F5F7; --cell:#FFFFFF;
+  --tx:#14161B; --tx2:#666D7A; --tx3:#9AA1AD;
+  --line:#E2E4E8; --line2:#EEF0F3; --sel:#EDF0F8; --accent:#2B5CE6; --warn:#C0392B; --ok:#2E8B57;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx)}
+body{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:16px 14px 70px}
+.lbl{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--tx3);margin:0 0 8px}
+.sec{margin-bottom:18px}
+
+/* barra alta */
+.top{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.top .grow{flex:1}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:2px}
+.seg button{appearance:none;background:none;border:0;cursor:pointer;color:var(--tx2);
+  font-family:"IBM Plex Mono",monospace;font-size:12px;padding:6px 11px;border-radius:6px}
+.seg button[aria-pressed="true"]{background:var(--sel);color:var(--tx)}
+.seg button:hover{color:var(--tx)}
+.icon{appearance:none;width:36px;height:34px;border-radius:8px;border:1px solid var(--line);
+  background:var(--panel);color:var(--tx2);cursor:pointer;font-size:14px}
+.icon:hover{color:var(--tx)}
+.range{display:flex;align-items:center;gap:5px}
+.range span{color:var(--tx3);font-size:12px}
+select{appearance:none;background:var(--panel);border:1px solid var(--line);color:var(--tx);
+  font-family:"IBM Plex Mono",monospace;font-size:12px;padding:7px 9px;border-radius:8px}
+button:focus-visible,select:focus-visible,td:focus-visible,input:focus-visible{
+  outline:2px solid var(--accent);outline-offset:1px}
+.sync{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);margin:0 0 20px;display:flex;align-items:center;gap:6px}
+.sync i{width:6px;height:6px;border-radius:50%;background:var(--tx3);display:block}
+.sync.ok i{background:var(--ok)}
+.sync.wait i{background:var(--accent)}
+.sync.err{color:var(--warn)}.sync.err i{background:var(--warn)}
+.sync button{margin-left:auto;background:var(--panel);border:1px solid var(--line);color:var(--tx2);
+  border-radius:7px;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;padding:6px 10px;cursor:pointer}
+.sync button+button{margin-left:6px}
+.sync button:hover{color:var(--tx);border-color:var(--tx3)}
+.diag{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--warn);
+  margin:-14px 0 18px;word-break:break-word;display:none}
+.diag.show{display:block}
+.bk textarea{width:100%;height:180px;background:var(--cell);color:var(--tx);border:1px solid var(--line);
+  border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;padding:9px;resize:vertical}
+
+/* materie */
+.picklist{border:1px solid var(--line);border-radius:10px;background:var(--panel);
+  max-height:250px;overflow-y:auto}
+.prow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;
+  border:0;border-bottom:1px solid var(--line2);padding:9px 10px;cursor:pointer;color:inherit}
+.prow:last-child{border-bottom:0}
+.prow:hover{background:var(--panel2)}
+.prow.sel{background:var(--sel)}
+.swatch{width:20px;height:20px;flex:0 0 20px;border-radius:6px;border:0;cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+.pnm{flex:1;min-width:0;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;
+  letter-spacing:.05em;text-transform:uppercase;line-height:1.3}
+.ph{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--tx3);flex:0 0 auto}
+.picker{display:none;gap:7px;flex-wrap:wrap;align-items:center;padding:4px 10px 12px 40px;
+  border-bottom:1px solid var(--line2);background:var(--panel2)}
+.picker.open{display:flex}
+.picker button{width:21px;height:21px;border-radius:6px;border:0;cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+.picker button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--panel2),0 0 0 3.5px var(--tx)}
+.picker input[type=color]{width:25px;height:25px;padding:0;border:1px solid var(--line);
+  border-radius:6px;background:var(--panel);cursor:pointer}
+
+/* attività e voci */
+.tools{display:flex;flex-wrap:wrap;gap:6px}
+.tool{appearance:none;cursor:pointer;background:var(--panel);border:1px solid var(--line);
+  color:var(--tx2);border-radius:8px;padding:10px 14px;font-size:13.5px;display:flex;
+  align-items:center;gap:9px;min-height:40px}
+.tool:hover{color:var(--tx);border-color:var(--tx3)}
+.tool[aria-pressed="true"]{background:var(--sel);color:var(--tx);border-color:var(--tx3)}
+.tool i{width:13px;height:13px;border-radius:3px;background:currentColor;display:block;flex:0 0 13px}
+.tool.o7 i{box-shadow:none}
+.tool.move[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.status{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--tx2);margin:14px 0 16px;min-height:15px}
+.status b{color:var(--tx);font-weight:500;letter-spacing:.04em}
+.adder{display:flex;gap:6px;margin-top:8px}
+.adder input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--tx);
+  padding:9px 10px;border-radius:8px;font-size:13.5px;font-family:"IBM Plex Sans",sans-serif}
+.adder input::placeholder{color:var(--tx3)}
+.adder button{border:1px solid var(--line);background:var(--panel);color:var(--tx);padding:9px 14px;
+  border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:12px;cursor:pointer}
+
+/* navigatore */
+.weeknav{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:16px}
+.weeknav button{appearance:none;background:none;border:0;color:var(--tx2);cursor:pointer;
+  font-size:17px;padding:4px 10px;border-radius:6px}
+.weeknav button:hover{color:var(--tx);background:var(--panel2)}
+.weeknav .mid{text-align:center;font-family:"IBM Plex Mono",monospace}
+.weeknav .mid b{display:block;font-size:12.5px;font-weight:500;letter-spacing:.04em}
+.weeknav .mid span{display:block;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--tx3);margin-top:3px}
+
+/* pannelli */
+.panel{padding-top:18px;border-top:1px solid var(--line);margin-top:18px}
+.panel:first-of-type{border-top:0;margin-top:0;padding-top:0}
+.phead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.phead b{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:500;letter-spacing:.05em}
+.phead u{text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:9px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin-left:8px}
+.pacts{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;flex:0 0 auto}
+.pacts button{background:var(--panel);border:1px solid var(--line);color:var(--tx2);border-radius:8px;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;padding:9px 13px;cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;gap:7px;min-height:36px}
+.pacts button:hover:not(:disabled){color:var(--tx);border-color:var(--tx3)}
+.pacts button:disabled{opacity:.3;cursor:default}
+.pacts button.armed{border-color:var(--warn);color:var(--warn)}
+.pacts button.act{background:var(--sel);color:var(--tx);border-color:var(--tx3)}
+.pacts button.act.mv{border-color:var(--accent);color:var(--accent)}
+.pacts button i{width:12px;height:12px;border-radius:3px;display:block;flex:0 0 12px}
+.pacts .sep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
+
+.gwrap{overflow-x:auto;margin:0 -14px;padding:0 14px 2px}
+table{border-collapse:collapse;table-layout:fixed;width:100%;min-width:460px;
+  touch-action:none;user-select:none;-webkit-user-select:none}
+th{padding:0 0 7px;text-align:center;font-weight:500;border:0;vertical-align:bottom}
+th.hc{width:34px;border:0}
+th u{display:block;text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:9px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--tx3);line-height:1.2}
+th s{display:block;text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:11.5px;
+  color:var(--tx2);margin-top:2px;line-height:1.2}
+th.today u,th.today s{color:var(--accent)}
+td.hr{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--tx3);text-align:right;
+  padding:0 7px 0 0;vertical-align:middle;height:26px;line-height:1;border:0;white-space:nowrap}
+td.c{background:var(--cell);height:26px;padding:0;vertical-align:top;cursor:pointer;
+  border:1px solid var(--line2)}
+td.c.half{border-top-style:dotted}
+td.c.mark{border-top-color:var(--line);border-top-style:solid}
+td.c.we{background:var(--panel2)}
+td.c.on{border-color:rgba(0,0,0,.3)}
+td.c em{display:block;font-style:normal;padding:2px 5px 0;overflow:hidden}
+td.c em b{display:block;font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;
+  letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  line-height:1.1}
+td.c em s{display:block;text-decoration:none;font-size:8.5px;opacity:.8;line-height:1.15;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.c.cont em{display:none}
+table.moving td.c.on{cursor:grab}
+
+/* riepilogo di pannello */
+.psum{margin-top:10px;border-top:1px solid var(--line2);padding-top:10px}
+.psum .tt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+.psum .tt span{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3)}
+.srow{display:flex;gap:9px;align-items:flex-start;padding:8px 2px;border-bottom:1px solid var(--line2)}
+.srow:last-child{border-bottom:0}
+.srow .dot{width:7px;height:28px;border-radius:3px;flex:0 0 7px;margin-top:1px}
+.srow .body{flex:1;min-width:0}
+.srow .body>b{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;
+  letter-spacing:.05em;text-transform:uppercase;line-height:1.3}
+.acts{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.acts span{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--tx2);
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+.acts span u{text-decoration:none;color:var(--tx)}
+.srow .tot{font-family:"IBM Plex Mono",monospace;text-align:right;white-space:nowrap;flex:0 0 auto;
+  font-size:12.5px;color:var(--tx)}
+.empty{color:var(--tx3);font-size:12px;padding:4px 2px;font-family:"IBM Plex Mono",monospace}
+
+/* calendario */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
+  align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal.open{display:flex}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  width:100%;max-width:400px;padding:16px;max-height:90vh;overflow-y:auto}
+.mhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mhead b{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;letter-spacing:.05em}
+.mhead button{background:none;border:0;color:var(--tx2);font-size:17px;cursor:pointer;
+  padding:4px 10px;border-radius:6px}
+.mhead button:hover{color:var(--tx);background:var(--panel2)}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.mgrid .dh{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);text-align:center;padding-bottom:5px}
+.day{aspect-ratio:1;border:1px solid var(--line2);background:var(--cell);border-radius:7px;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--tx);padding:0}
+.day:hover{border-color:var(--tx3)}
+.day.out{color:var(--tx3);background:transparent}
+.day.today{color:var(--accent);border-color:var(--accent)}
+.day.inview{background:var(--sel)}
+.day .dots{display:flex;gap:2px;height:5px}
+.day .dots i{width:4px;height:4px;border-radius:50%;display:block}
+.mfoot{margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mfoot span{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--tx3)}
+.mfoot button{background:var(--panel2);border:1px solid var(--line);color:var(--tx);border-radius:8px;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;padding:7px 12px;cursor:pointer}
+
+.toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--panel);
+  border:1px solid var(--line);color:var(--tx2);font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  letter-spacing:.1em;padding:7px 13px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div><p class="lbl">Anno</p><div class="seg" id="segYear"></div></div>
+    <div><p class="lbl">Semestre</p><div class="seg" id="segCtx"></div></div>
+    <div class="grow"><p class="lbl">Giorni</p>
+      <div class="range"><select id="dFrom"></select><span>&rarr;</span><select id="dTo"></select></div>
+    </div>
+    <button class="icon" id="theme" title="Cambia tema" aria-label="Cambia tema">◐</button>
+  </div>
+  <p class="sync" id="sync"><i></i><span>Pronto</span>
+    <button id="saveNow">Salva ora</button>
+    <button id="backup">Backup</button>
+  </p>
+
+  <p class="diag" id="diag"></p>
+
+  <div class="sec">
+    <p class="lbl">Nuove Materie/Attività</p>
+    <div class="adder">
+      <input id="newName" type="text" maxlength="46" placeholder="Nuova Materia, Lavoro, …">
+      <button id="addBtn">Aggiungi</button>
+    </div>
+    <div class="tools" id="voci" style="margin-top:8px"></div>
+  </div>
+
+  <div class="sec">
+    <p class="lbl">Materie Aggiunte</p>
+    <div class="picklist" id="picklist"></div>
+  </div>
+
+  <div class="sec">
+    <p class="lbl">Tipo di attività</p>
+    <div class="tools" id="tools"></div>
+  </div>
+
+  <p class="status" id="status"></p>
+
+  <div class="weeknav">
+    <button id="wPrev" aria-label="Settimana precedente">‹</button>
+    <div class="mid"><b id="wRange"></b><span id="wCount"></span></div>
+    <button id="wNext" aria-label="Settimana successiva">›</button>
+  </div>
+
+  <div id="panels"></div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="mhead">
+      <button id="mPrev" aria-label="Mese precedente">‹</button>
+      <b id="mTitle"></b>
+      <button id="mNext" aria-label="Mese successivo">›</button>
+    </div>
+    <div class="mgrid" id="mGrid"></div>
+    <div class="mfoot">
+      <span>Il giorno scelto apre la Settimana 1</span>
+      <button id="mClose">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="bkModal">
+  <div class="sheet bk">
+    <div class="mhead"><b>Backup del piano</b><button id="bkClose">✕</button></div>
+    <p style="font-size:12.5px;color:var(--tx2);margin:0 0 10px;line-height:1.5">
+      Copia questo testo e conservalo. Per ripristinare, incollalo qui e tocca Ripristina.</p>
+    <textarea id="bkText" spellcheck="false"></textarea>
+    <div class="mfoot">
+      <button id="bkCopy">Copia</button>
+      <button id="bkRestore">Ripristina</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Salvato</div>
+
+<script>
+/* ============================================================
+   1. DATI
+   ============================================================ */
+const PANELS=4;
+const CTX={
+  "1":{label:"1", name:"Semestre 1", start:"2026-09-14"},
+  "2":{label:"2", name:"Semestre 2", start:"2027-02-08"},
+  "S":{label:"Sessione", name:"Sessione d'esame", start:"2026-12-07"}
+};
+const DSH=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+const MESI=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+const MESIL=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto",
+             "Settembre","Ottobre","Novembre","Dicembre"];
+/* slot da 30 minuti: indice = ora*2 (+1 per la mezz'ora). 12 = 06:00, 47 = 23:30 */
+const HOURS=(()=>{const a=[];for(let s=12;s<=47;s++)a.push(s);return a;})();
+const slotHour=s=>Math.floor(s/2);
+const isHalf=s=>s%2===1;
+const slotLabel=s=>isHalf(s)?"":String(slotHour(s));
+/* conversione slot → ore, con la virgola solo quando serve */
+const hrs=n=>{const v=n/2;return (v%1?v.toFixed(1).replace(".",","):String(v))+" h";};
+const ACTS=[
+  {k:"LEZ",n:"Lezione",o:1},
+  {k:"LET",n:"Lettura",o:.84},
+  {k:"SCH",n:"Schema",o:.70},
+  {k:"ESE",n:"Esercizi",o:.58},
+  {k:"LAB",n:"Laboratorio",o:.46},
+  {k:"PRO",n:"Progetto",o:.34},
+  {k:"RIP",n:"Ripasso",o:.18}
+];
+
+const COURSES={
+ 1:[
+  {c:"16764",n:"Storia dell'educazione",k:"Storia educ.",p:1,u:10},
+  {c:"C8772",n:"Sociologia generale e fondamenti della ricerca sociale",k:"Sociologia gen.",p:1,u:10},
+  {c:"03079",n:"Psicologia dello sviluppo",k:"Psic. sviluppo",p:1,u:10},
+  {c:"26338",n:"Idoneità lingua inglese B — 1",k:"Inglese B",p:1,u:6},
+  {c:"13220",n:"Pedagogia generale e sociale",k:"Pedagogia gen.",p:2,u:10},
+  {c:"C8773",n:"Antropologia culturale e sociale",k:"Antropologia",p:2,u:10}
+ ],
+ 2:[
+  {c:"94162",n:"Elementi di didattica innovativa per la scuola e l'extrascuola",k:"Didattica innov.",p:1,u:8},
+  {c:"00870",n:"Psicologia sociale",k:"Psic. sociale",p:1,u:8},
+  {c:"C8783",n:"Educazione inclusiva nella scuola e nel territorio",k:"Educ. inclusiva",p:1,u:8},
+  {c:"C8782",n:"Pedagogia dell'inclusione e della marginalità",k:"Ped. inclusione",p:1,u:8},
+  {c:"73378",n:"Genere e culture della scienza",k:"Genere scienza",p:1,u:8},
+  {c:"C8780",n:"Geografia del mondo contemporaneo",k:"Geografia",p:1,u:8},
+  {c:"C8779",n:"Storia del mondo contemporaneo nel XIX e XX secolo",k:"Storia contemp.",p:1,u:8},
+  {c:"B8521",n:"Storia, patrimonio, cittadinanza",k:"Storia patrim.",p:1,u:8},
+  {c:"16692",n:"Laboratorio di informatica",k:"Lab. informatica",p:1,u:1},
+  {c:"C8775",n:"Laboratorio propedeutico all'attività di tirocinio",k:"Lab. tirocinio",p:1,u:3},
+  {c:"15579",n:"Pedagogia interculturale",k:"Ped. intercult.",p:2,u:8},
+  {c:"61359",n:"Psicologia dei gruppi e di comunità",k:"Psic. gruppi",p:2,u:8},
+  {c:"02517",n:"Sociologia dell'educazione",k:"Soc. educazione",p:2,u:8},
+  {c:"C8776",n:"Sociologia delle differenze e delle disuguaglianze",k:"Soc. differenze",p:2,u:8},
+  {c:"99505",n:"Compiti di sviluppo psicologici in adolescenza",k:"Adolescenza",p:2,u:8},
+  {c:"42972",n:"Diritto dei servizi sociali",k:"Diritto servizi",p:2,u:8},
+  {c:"94411",n:"Citizenship education and active participation",k:"Citizenship",p:2,u:4},
+  {c:"94410",n:"History and culture of European cities",k:"Eur. cities",p:2,u:4},
+  {c:"94414",n:"Gender studies in education",k:"Gender studies",p:2,u:4},
+  {c:"94413",n:"Intercultural pedagogy",k:"Intercult. ped.",p:2,u:4}
+ ],
+ 3:[
+  {c:"C8876",n:"Agency e mondi digitali",k:"Agency digitali",p:1,u:8},
+  {c:"94109",n:"Ambienti digitali, musei e educazione al patrimonio culturale",k:"Ambienti digit.",p:1,u:8},
+  {c:"B3448",n:"Metodologie dell'osservazione e della riflessività pedagogica",k:"Metod. osserv.",p:1,u:8},
+  {c:"03084",n:"Psicologia clinica",k:"Psic. clinica",p:1,u:8},
+  {c:"94244",n:"Psicologia del lavoro e dell'orientamento",k:"Psic. lavoro",p:1,u:8},
+  {c:"C8783",n:"Educazione inclusiva nella scuola e nel territorio",k:"Educ. inclusiva",p:1,u:8},
+  {c:"C8782",n:"Pedagogia dell'inclusione e della marginalità",k:"Ped. inclusione",p:1,u:8},
+  {c:"00870",n:"Psicologia sociale",k:"Psic. sociale",p:1,u:8},
+  {c:"73378",n:"Genere e culture della scienza",k:"Genere scienza",p:1,u:8},
+  {c:"C8780",n:"Geografia del mondo contemporaneo",k:"Geografia",p:1,u:8},
+  {c:"C8779",n:"Storia del mondo contemporaneo nel XIX e XX secolo",k:"Storia contemp.",p:1,u:8},
+  {c:"B8521",n:"Storia, patrimonio, cittadinanza",k:"Storia patrim.",p:1,u:8},
+  {c:"15349",n:"Tirocinio",k:"Tirocinio",p:1,u:10},
+  {c:"C8875",n:"Laboratorio di formazione professionale per l'educatore socio-pedagogico",k:"Lab. formazione",p:1,u:2},
+  {c:"27281",n:"Seminari",k:"Seminari",p:1,u:1},
+  {c:"17268",n:"Prova finale",k:"Prova finale",p:1,u:3},
+  {c:"31675",n:"Progettazione e valutazione degli interventi educativi",k:"Progettazione",p:2,u:8},
+  {c:"C8786",n:"Educazione al genere, all'affettività e alla sessualità",k:"Educ. affettività",p:2,u:8},
+  {c:"C8788",n:"Media capabilities e educazione nei territori",k:"Media capabilit.",p:2,u:8},
+  {c:"94110",n:"Antropologia ed etnografia dei servizi socio-educativi",k:"Antrop. servizi",p:2,u:8},
+  {c:"C8789",n:"Sociologia delle istituzioni di welfare, della cittadinanza e del controllo sociale",k:"Soc. welfare",p:2,u:8},
+  {c:"61359",n:"Psicologia dei gruppi e di comunità",k:"Psic. gruppi",p:2,u:8},
+  {c:"02517",n:"Sociologia dell'educazione",k:"Soc. educazione",p:2,u:8},
+  {c:"99505",n:"Compiti di sviluppo psicologici in adolescenza",k:"Adolescenza",p:2,u:8},
+  {c:"42972",n:"Diritto dei servizi sociali",k:"Diritto servizi",p:2,u:8},
+  {c:"94411",n:"Citizenship education and active participation",k:"Citizenship",p:2,u:4},
+  {c:"94410",n:"History and culture of European cities",k:"Eur. cities",p:2,u:4},
+  {c:"94414",n:"Gender studies in education",k:"Gender studies",p:2,u:4},
+  {c:"94413",n:"Intercultural pedagogy",k:"Intercult. ped.",p:2,u:4}
+ ]
+};
+
+const PAL=["#6E8BFF","#4FB3A0","#E0A458","#D96C7B","#9B7FD4","#5FA8D3",
+           "#82B356","#E08A5B","#C97BB0","#63C2C2","#B0A24E","#7C8CA6"];
+const SWATCHES=["#6E8BFF","#5FA8D3","#63C2C2","#4FB3A0","#82B356","#B0A24E",
+                "#E0A458","#E08A5B","#D96C7B","#C97BB0","#9B7FD4","#7C8CA6"];
+
+/* ============================================================
+   2. STATO
+   ============================================================ */
+const KEY="piano-6272-v5";
+let state={v:2,theme:"dark",year:1,ctx:"1",from:0,to:6,act:"LEZ",brush:null,erase:false,mode:"paint",
+           custom:[],cells:{},colors:{},anchor:{},clip:null};
+let painting=false,val=null,openColor=null,armed=null,armTmr=null,mMonth=null,drag=null;
+
+
+/* ---------- date ---------- */
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parse=s=>new Date(s+"T00:00:00");
+function monday(d){const x=new Date(d);x.setDate(x.getDate()-((x.getDay()+6)%7));x.setHours(0,0,0,0);return x;}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+const fmt=d=>d.getDate()+" "+MESI[d.getMonth()];
+const TODAY=iso(new Date());
+
+function anchorDate(){
+  const a=state.anchor[state.ctx];
+  return monday(a?parse(a):parse(CTX[state.ctx].start));
+}
+function panelStart(p){return addDays(anchorDate(),7*p);}
+function panelDates(p){
+  const s=panelStart(p),out=[];
+  for(let i=0;i<7;i++)out.push(addDays(s,i));
+  return out;
+}
+
+/* ============================================================
+   3. SALVATAGGIO — due livelli indipendenti
+   a) memoria locale del browser: immediata, sincrona, sempre tentata
+   b) storage dell'artifact: se presente, scritto con throttle
+   Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
+   ============================================================ */
+const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip"];
+const LSKEY="piano-6272-local";
+let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
+        localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
+
+function payload(){const o={ts:Date.now()};DURABLE.forEach(k=>o[k]=state[k]);return JSON.stringify(o);}
+function body(p){const o=JSON.parse(p);delete o.ts;return JSON.stringify(o);}
+
+function remoteOK(){return !!(window.storage&&typeof window.storage.set==="function");}
+function localOK(){
+  try{window.localStorage.setItem("__probe__","1");window.localStorage.removeItem("__probe__");return true;}
+  catch(e){return false;}
+}
+function lsSet(p){try{window.localStorage.setItem(LSKEY,p);return true;}catch(e){sv.err=e.message||"errore locale";return false;}}
+function lsGet(){try{return window.localStorage.getItem(LSKEY);}catch(e){return null;}}
+
+function syncUI(cls,txt){
+  const el=document.getElementById("sync");
+  el.className="sync "+cls;
+  el.querySelector("span").textContent=txt;
+}
+function hhmm(){return new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});}
+function updateSync(){
+  if(!sv.local&&!sv.remote){syncUI("err","Nessun salvataggio possibile — tocca qui");return;}
+  const where=sv.local&&sv.remote?"doppio":(sv.remote?"artifact":"locale");
+  if(sv.dirty)syncUI("wait","Da salvare");
+  else syncUI("ok","Salvato "+hhmm()+" · "+where);
+}
+function toast(m){
+  const t=document.getElementById("toast");
+  t.textContent=m;t.classList.add("show");
+  clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),1400);
+}
+
+function save(msg){
+  sv.touched=true;
+  const p=payload(),b=body(p);
+  if(b===sv.localSaved&&b===sv.remoteSaved){if(msg)toast(msg);return;}
+
+  /* livello a: subito, senza attese */
+  if(sv.local&&b!==sv.localSaved){
+    if(lsSet(p))sv.localSaved=b;
+    else sv.local=false;
+  }
+  /* livello b: in coda */
+  if(sv.remote&&b!==sv.remoteSaved){sv.dirty=true;if(msg)sv.msg=msg;schedule();}
+  else if(msg)toast(msg);
+  updateSync();
+}
+function schedule(extra){
+  clearTimeout(sv.timer);
+  const wait=Math.max(700,2000-(Date.now()-sv.last))+(extra||0);
+  sv.timer=setTimeout(()=>flush(),wait);
+}
+async function flush(silent){
+  if(!sv.remote||sv.busy||!sv.dirty)return;
+  const p=payload(),b=body(p);
+  if(b===sv.remoteSaved){sv.dirty=false;updateSync();return;}
+  sv.busy=true;
+  try{
+    await window.storage.set(KEY,p);
+    sv.remoteSaved=b;sv.dirty=false;sv.last=Date.now();sv.fails=0;sv.err="";sv.busy=false;
+    updateSync();
+    if(sv.msg&&!silent)toast(sv.msg);
+    sv.msg=null;
+  }catch(e){
+    sv.busy=false;sv.fails++;
+    sv.err=(e&&(e.message||e.toString()))||"errore sconosciuto";
+    console.warn("Scrittura artifact rimandata:",e);
+    if(sv.fails>=3&&!sv.local)syncUI("err","Non salvato ("+sv.fails+") — tocca qui");
+    schedule(Math.min(15000,800*sv.fails));
+  }
+}
+document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(sv.timer);flush(true);}});
+window.addEventListener("pagehide",()=>{clearTimeout(sv.timer);flush(true);});
+
+function adopt(d){
+  DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
+  migrate(d);
+}
+async function load(){
+  sv.local=localOK();sv.remote=remoteOK();
+  let R=null,L=null;
+  if(sv.remote){try{const r=await window.storage.get(KEY);if(r&&r.value)R=JSON.parse(r.value);}catch(e){}}
+  if(sv.local){const s=lsGet();if(s){try{L=JSON.parse(s);}catch(e){}}}
+  const pick=(R&&L)?(((R.ts||0)>=(L.ts||0))?R:L):(R||L);
+  if(pick){
+    adopt(pick);
+    const b=body(payload());
+    if(R)sv.remoteSaved=b;
+    if(L)sv.localSaved=b;
+    /* allinea il livello che era vuoto */
+    if(sv.local&&!L){if(lsSet(payload()))sv.localSaved=b;}
+    if(sv.remote&&!R){sv.dirty=true;schedule();}
+  }
+  updateSync();
+  if(!sv.remote)watchRemote();
+}
+/* lo storage dell'artifact a volte compare dopo il caricamento: lo aspetto */
+function watchRemote(){
+  let n=0;
+  const t=setInterval(()=>{
+    if(remoteOK()){
+      clearInterval(t);sv.remote=true;
+      if(sv.touched){sv.dirty=true;schedule();}
+      else load();
+      updateSync();
+    }else if(++n>40)clearInterval(t);
+  },500);
+}
+/* converte i vecchi dati: chiave per indice di settimana → per data,
+   poi slot orari → slot da mezz'ora (un'ora piena diventa due mezze) */
+function migrate(d){
+  if(!d.cells)return;
+  let moved=0;const out={};
+  Object.keys(d.cells).forEach(k=>{
+    const p=k.split(".");
+    if(p.length===5&&/^\d+$/.test(p[2])){
+      const base=monday(parse(CTX[p[1]]?CTX[p[1]].start:CTX["1"].start));
+      const day=addDays(base,7*(+p[2])+(+p[3]));
+      out[p[0]+"."+p[1]+"."+iso(day)+"."+p[4]]=d.cells[k];moved++;
+    }else out[k]=d.cells[k];
+  });
+  Object.keys(out).forEach(k=>{if(out[k].a==="STU")out[k].a="LET";});
+
+  if(!d.v||d.v<2){
+    const half={};
+    Object.keys(out).forEach(k=>{
+      const p=k.split(".");
+      const h=+p[p.length-1],pre=p.slice(0,-1).join(".");
+      if(h>=6&&h<=23){
+        half[pre+"."+(h*2)]=out[k];
+        half[pre+"."+(h*2+1)]={i:out[k].i,a:out[k].a};
+      }else half[k]=out[k];
+    });
+    state.cells=half;moved++;
+  }else state.cells=out;
+
+  state.v=2;
+  if(moved)save();
+}
+
+/* ============================================================
+   4. MODELLO
+   ============================================================ */
+function courses(){
+  const out=[],seen=new Set();
+  COURSES[state.year].filter(c=>state.ctx==="S"||c.p===+state.ctx).forEach(c=>{
+    if(seen.has(c.c))return;seen.add(c.c);
+    out.push({id:"c:"+c.c,name:c.n,short:c.k,cfu:c.u});
+  });
+  return out;
+}
+function voci(){
+  return state.custom.map((n,i)=>({id:"x:"+i,name:n,short:n.length>17?n.slice(0,16)+"…":n}));
+}
+function items(){
+  const all=courses().concat(voci());
+  all.forEach((o,i)=>o.color=state.colors[o.id]||PAL[i%PAL.length]);
+  return all;
+}
+const map=()=>{const m={};items().forEach(o=>m[o.id]=o);return m;};
+const ck=(dateIso,h)=>state.year+"."+state.ctx+"."+dateIso+"."+h;
+const actOf=k=>ACTS.find(a=>a.k===k)||ACTS[0];
+const rgb=h=>{const n=parseInt(h.slice(1),16);return [n>>16,(n>>8)&255,n&255];};
+const rgba=(h,o)=>{const c=rgb(h);return "rgba("+c[0]+","+c[1]+","+c[2]+","+o+")";};
+function ink(h){const c=rgb(h);return (.299*c[0]+.587*c[1]+.114*c[2])/255>.62?"#0D0F13":"#FFFFFF";}
+
+function countPanel(p){
+  const out={},m=map();
+  panelDates(p).forEach(d=>{
+    const k=iso(d);
+    HOURS.forEach(hr=>{
+      const v=state.cells[ck(k,hr)];
+      if(!v||!m[v.i])return;
+      out[v.i]=out[v.i]||{tot:0};
+      out[v.i][v.a]=(out[v.i][v.a]||0)+1;out[v.i].tot++;
+    });
+  });
+  return out;
+}
+function totalVisible(id){
+  let n=0;
+  for(let p=0;p<PANELS;p++){const c=countPanel(p);if(c[id])n+=c[id].tot;}
+  return n;
+}
+
+/* ============================================================
+   5. RENDER
+   ============================================================ */
+function controls(){
+  document.documentElement.setAttribute("data-theme",state.theme);
+  const y=document.getElementById("segYear"),p=document.getElementById("segCtx");
+  y.innerHTML="";p.innerHTML="";
+  [1,2,3].forEach(v=>{
+    const b=document.createElement("button");
+    b.textContent=["I","II","III"][v-1];b.setAttribute("aria-pressed",state.year===v);
+    b.onclick=()=>{state.year=v;state.brush=null;save();render();};y.appendChild(b);
+  });
+  Object.keys(CTX).forEach(k=>{
+    const b=document.createElement("button");
+    b.textContent=CTX[k].label;b.setAttribute("aria-pressed",state.ctx===k);
+    b.onclick=()=>{state.ctx=k;state.brush=null;save();render();};p.appendChild(b);
+  });
+  const f=document.getElementById("dFrom"),t=document.getElementById("dTo");
+  f.innerHTML="";t.innerHTML="";
+  DSH.forEach((d,i)=>{
+    f.appendChild(new Option(d,i,false,state.from===i));
+    t.appendChild(new Option(d,i,false,state.to===i));
+  });
+  f.onchange=()=>{state.from=+f.value;if(state.to<state.from)state.to=state.from;save();render();};
+  t.onchange=()=>{state.to=+t.value;if(state.from>state.to)state.from=state.to;save();render();};
+}
+
+function picklist(){
+  const box=document.getElementById("picklist");box.innerHTML="";
+  const list=courses();
+  if(!list.length){box.innerHTML='<p class="empty" style="padding:12px">Nessuna materia per questa selezione.</p>';return;}
+  list.forEach((o,i)=>{
+    o.color=state.colors[o.id]||PAL[i%PAL.length];
+    const h=totalVisible(o.id);
+    const b=document.createElement("button");
+    b.className="prow"+(state.brush===o.id?" sel":"");
+    b.setAttribute("aria-pressed",state.brush===o.id);
+    b.innerHTML='<span class="swatch" style="background:'+o.color+'"></span>'+
+      '<span class="pnm">'+o.name+"</span>"+
+      '<span class="ph">'+(h?hrs(h):"—")+"</span>";
+    b.onclick=()=>{state.brush=o.id;state.erase=false;save();picklist();tools();status();};
+    b.querySelector(".swatch").onclick=e=>{
+      e.stopPropagation();openColor=openColor===o.id?null:o.id;picklist();
+    };
+    box.appendChild(b);
+
+    const pick=document.createElement("div");
+    pick.className="picker"+(openColor===o.id?" open":"");
+    SWATCHES.forEach(hex=>{
+      const s=document.createElement("button");
+      s.style.background=hex;s.setAttribute("aria-label",hex);
+      s.setAttribute("aria-pressed",o.color.toLowerCase()===hex.toLowerCase());
+      s.onclick=()=>{state.colors[o.id]=hex;save("Colore aggiornato");render();};
+      pick.appendChild(s);
+    });
+    const inp=document.createElement("input");
+    inp.type="color";inp.value=o.color;inp.setAttribute("aria-label","Colore personalizzato");
+    inp.onchange=()=>{state.colors[o.id]=inp.value;save("Colore aggiornato");render();};
+    pick.appendChild(inp);
+    box.appendChild(pick);
+  });
+}
+
+function tools(){
+  const box=document.getElementById("tools");box.innerHTML="";
+  ACTS.forEach((a,i)=>{
+    const b=document.createElement("button");
+    b.className="tool o"+(i+1);
+    b.setAttribute("aria-pressed",state.mode==="paint"&&!state.erase&&state.act===a.k);
+    b.innerHTML="<i></i>"+a.n;
+    b.onclick=()=>{state.act=a.k;state.erase=false;state.mode="paint";save();tools();status();panels();};
+    box.appendChild(b);
+  });
+  const v=document.getElementById("voci");v.innerHTML="";
+  const m=map();
+  voci().forEach(o=>{
+    const b=document.createElement("button");
+    b.className="tool";b.setAttribute("aria-pressed",state.brush===o.id);
+    b.innerHTML='<i style="background:'+m[o.id].color+'"></i>'+o.name;
+    b.onclick=()=>{state.brush=o.id;state.erase=false;save();picklist();tools();status();};
+    v.appendChild(b);
+  });
+}
+
+function status(){
+  const m=map(),el=document.getElementById("status");
+  const clip=state.clip?'<span style="color:var(--tx3)"> — appunti: '+state.clip.label+" ("+hrs(state.clip.hours)+")</span>":"";
+  if(state.mode==="move"){el.innerHTML="<b>SPOSTA</b> · trascina un blocco per riposizionarlo"+clip;return;}
+  if(state.erase){el.innerHTML="Cancella slot — tocca o trascina per svuotare."+clip;return;}
+  if(!state.brush||!m[state.brush]){el.innerHTML="Scegli una materia o una voce."+clip;return;}
+  el.innerHTML="<b>"+m[state.brush].name.toUpperCase()+"</b> · "+actOf(state.act).n+clip;
+}
+
+function weeknav(){
+  const a=panelStart(0),b=addDays(panelStart(PANELS-1),6);
+  document.getElementById("wRange").textContent=fmt(a)+" – "+fmt(b)+" "+b.getFullYear();
+  document.getElementById("wCount").textContent=CTX[state.ctx].name+" · settimane 1–"+PANELS;
+  document.getElementById("wPrev").onclick=()=>{shift(-7);};
+  document.getElementById("wNext").onclick=()=>{shift(7);};
+}
+function shift(days){
+  state.anchor[state.ctx]=iso(addDays(anchorDate(),days));
+  save();weeknav();panels();picklist();
+}
+
+/* ---------- copia / incolla ---------- */
+function weekData(p){
+  const out={};
+  panelDates(p).forEach((d,i)=>{
+    HOURS.forEach(hr=>{
+      const v=state.cells[ck(iso(d),hr)];
+      if(v)out[i+"."+hr]={i:v.i,a:v.a};
+    });
+  });
+  return out;
+}
+function copyWeek(p){
+  const data=weekData(p),n=Object.keys(data).length;
+  if(!n){toast("Settimana vuota, niente da copiare");return;}
+  state.clip={data:data,label:"Settimana "+(p+1)+" · "+fmt(panelStart(p)),hours:n};
+  save("Copiate "+hrs(n));panels();status();
+}
+function pasteWeek(p){
+  if(!state.clip)return;
+  const dates=panelDates(p);
+  dates.forEach(d=>HOURS.forEach(hr=>delete state.cells[ck(iso(d),hr)]));
+  Object.keys(state.clip.data).forEach(k=>{
+    const q=k.split("."),v=state.clip.data[k];
+    state.cells[ck(iso(dates[+q[0]]),+q[1])]={i:v.i,a:v.a};
+  });
+  save("Incollata nella settimana "+(p+1));panels();picklist();
+}
+function wipeWeek(p){
+  panelDates(p).forEach(d=>HOURS.forEach(hr=>delete state.cells[ck(iso(d),hr)]));
+  save("Settimana "+(p+1)+" svuotata");panels();picklist();
+}
+
+/* ---------- pannelli ---------- */
+function panels(){
+  const box=document.getElementById("panels");box.innerHTML="";
+  const m=map();
+  for(let p=0;p<PANELS;p++)box.appendChild(buildPanel(p,m));
+}
+
+function buildPanel(p,m){
+  const dates=panelDates(p);
+  const sec=document.createElement("section");sec.className="panel";
+
+  const hd=document.createElement("div");hd.className="phead";
+  hd.innerHTML="<div><b>Settimana "+(p+1)+"</b><u>"+fmt(dates[0])+" – "+fmt(dates[6])+"</u></div>";
+
+  const acts=document.createElement("div");acts.className="pacts";
+
+  const mv=document.createElement("button");
+  mv.innerHTML="<i style='box-shadow:inset 0 0 0 1.3px currentColor'></i>Sposta";
+  if(state.mode==="move")mv.className="act mv";
+  mv.title="Trascina un blocco per riposizionarlo";
+  mv.onclick=()=>{
+    state.mode=state.mode==="move"?"paint":"move";state.erase=false;
+    save();tools();status();panels();
+  };
+  const er=document.createElement("button");
+  er.innerHTML="<i style='opacity:.4;background:repeating-linear-gradient(45deg,currentColor,currentColor 2px,transparent 2px,transparent 4px)'></i>Cancella slot";
+  if(state.erase)er.className="act";
+  er.onclick=()=>{
+    state.erase=!state.erase;state.mode="paint";
+    save();tools();status();panels();
+  };
+
+  const sep=document.createElement("span");sep.className="sep";
+
+  const cal=document.createElement("button");
+  cal.textContent="Calendario";cal.title="Scegli il giorno di partenza";
+  cal.onclick=()=>openMonth(dates[0]);
+  const copy=document.createElement("button");
+  copy.textContent="Copia";copy.onclick=()=>copyWeek(p);
+  const paste=document.createElement("button");
+  const has=Object.keys(weekData(p)).length>0;
+  if(!state.clip){paste.textContent="Incolla";paste.disabled=true;}
+  else if(armed==="p"+p){paste.textContent="Sovrascrivo?";paste.className="armed";}
+  else{paste.textContent="Incolla";paste.title="Incolla "+state.clip.label;}
+  paste.onclick=()=>{
+    if(!state.clip)return;
+    if(!has||armed==="p"+p){armed=null;clearTimeout(armTmr);pasteWeek(p);}
+    else{armed="p"+p;panels();clearTimeout(armTmr);armTmr=setTimeout(()=>{armed=null;panels();},4000);}
+  };
+  const wipe=document.createElement("button");
+  if(armed==="w"+p){wipe.textContent="Confermi?";wipe.className="armed";}
+  else wipe.textContent="Svuota";
+  wipe.onclick=()=>{
+    if(armed==="w"+p){armed=null;clearTimeout(armTmr);wipeWeek(p);}
+    else{armed="w"+p;panels();clearTimeout(armTmr);armTmr=setTimeout(()=>{armed=null;panels();},4000);}
+  };
+  acts.appendChild(mv);acts.appendChild(er);acts.appendChild(sep);
+  acts.appendChild(copy);acts.appendChild(paste);acts.appendChild(wipe);acts.appendChild(cal);
+  hd.appendChild(acts);sec.appendChild(hd);
+
+  /* griglia */
+  const gw=document.createElement("div");gw.className="gwrap";
+  const t=document.createElement("table");
+  if(state.mode==="move")t.classList.add("moving");
+  let head='<th class="hc"></th>';
+  for(let d=state.from;d<=state.to;d++){
+    const cls=(d>4?"we ":"")+(iso(dates[d])===TODAY?"today":"");
+    head+='<th class="'+cls+'"><u>'+DSH[d]+"</u><s>"+dates[d].getDate()+"</s></th>";
+  }
+  const th=document.createElement("thead");th.innerHTML="<tr>"+head+"</tr>";t.appendChild(th);
+
+  const tb=document.createElement("tbody");
+  HOURS.forEach(s=>{
+    const row=document.createElement("tr");
+    const lb=document.createElement("td");lb.className="hr";lb.textContent=slotLabel(s);row.appendChild(lb);
+    for(let d=state.from;d<=state.to;d++){
+      const c=document.createElement("td");
+      c.tabIndex=0;c.dataset.date=iso(dates[d]);c.dataset.h=s;c.dataset.d=d;
+      c.dataset.half=isHalf(s);
+      c.dataset.mark=(!isHalf(s)&&slotHour(s)%3===0);
+      cell(c,m);row.appendChild(c);
+    }
+    tb.appendChild(row);
+  });
+  t.appendChild(tb);gw.appendChild(t);sec.appendChild(gw);
+  wire(t);
+
+  /* riepilogo del pannello */
+  const c=countPanel(p),ids=Object.keys(c).filter(i=>m[i]).sort((a,b)=>c[b].tot-c[a].tot);
+  let grand=0;ids.forEach(i=>grand+=c[i].tot);
+  const sum=document.createElement("div");sum.className="psum";
+  const tt=document.createElement("div");tt.className="tt";
+  tt.innerHTML='<p class="lbl" style="margin:0">Ore settimana '+(p+1)+"</p><span>"+hrs(grand)+"</span>";
+  sum.appendChild(tt);
+  if(!ids.length){
+    const e=document.createElement("p");e.className="empty";e.textContent="Nessuna ora pianificata.";
+    sum.appendChild(e);
+  }else ids.forEach(id=>{
+    const o=m[id],k=c[id],r=document.createElement("div");r.className="srow";
+    const chips=ACTS.filter(a=>k[a.k]).map(a=>"<span>"+a.n+" <u>"+hrs(k[a.k])+"</u></span>").join("");
+    r.innerHTML='<span class="dot" style="background:'+o.color+'"></span>'+
+      '<span class="body"><b>'+o.name+'</b><span class="acts">'+chips+"</span></span>"+
+      '<span class="tot">'+hrs(k.tot)+"</span>";
+    sum.appendChild(r);
+  });
+  sec.appendChild(sum);
+  return sec;
+}
+
+function cell(td,m){
+  const v=state.cells[ck(td.dataset.date,+td.dataset.h)];
+  td.className="c"+(+td.dataset.d>4?" we":"")+(td.dataset.mark==="true"?" mark":"")+
+    (td.dataset.half==="true"?" half":"");
+  td.innerHTML="";td.style.background="";
+  if(!v||!m[v.i]){td.setAttribute("aria-label","libero");return;}
+  const o=m[v.i],a=actOf(v.a);
+  td.classList.add("on");
+  td.style.background=o.color;
+  const prev=state.cells[ck(td.dataset.date,+td.dataset.h-1)];
+  if(prev&&prev.i===v.i&&prev.a===v.a)td.classList.add("cont");
+  const em=document.createElement("em");
+  em.style.color=ink(o.color);
+  em.innerHTML="<b>"+o.short.toUpperCase()+"</b><s>"+a.n+"</s>";
+  td.appendChild(em);
+  td.setAttribute("aria-label",o.name+", "+a.n);
+}
+function redrawDay(dateIso){
+  const m=map();
+  document.querySelectorAll('td.c[data-date="'+dateIso+'"]').forEach(td=>cell(td,m));
+}
+
+/* ---------- interazione ---------- */
+function put(td){
+  const k=ck(td.dataset.date,+td.dataset.h);
+  if(val===null)delete state.cells[k];else state.cells[k]={i:val.i,a:val.a};
+  redrawDay(td.dataset.date);
+  save();
+}
+
+/* estrae il blocco contiguo (stessa materia e attività) che contiene la cella */
+function runAt(dateIso,hr){
+  const v=state.cells[ck(dateIso,hr)];if(!v)return null;
+  let s=hr,e=hr;
+  while(true){const p=state.cells[ck(dateIso,s-1)];if(p&&p.i===v.i&&p.a===v.a)s--;else break;}
+  while(true){const n=state.cells[ck(dateIso,e+1)];if(n&&n.i===v.i&&n.a===v.a)e++;else break;}
+  return {i:v.i,a:v.a,start:s,len:e-s+1};
+}
+function placeRun(dateIso,start,r){
+  for(let k=0;k<r.len;k++)state.cells[ck(dateIso,start+k)]={i:r.i,a:r.a};
+}
+function clearRun(dateIso,start,len){
+  for(let k=0;k<len;k++)delete state.cells[ck(dateIso,start+k)];
+}
+
+function wire(t){
+  t.addEventListener("pointerdown",e=>{
+    const td=e.target.closest("td.c");if(!td)return;
+    e.preventDefault();
+
+    if(state.mode==="move"){
+      const r=runAt(td.dataset.date,+td.dataset.h);
+      if(!r)return;
+      clearRun(td.dataset.date,r.start,r.len);
+      drag={run:r,off:(+td.dataset.h)-r.start,date:td.dataset.date,start:r.start};
+      placeRun(drag.date,drag.start,r);
+      redrawDay(drag.date);
+      return;
+    }
+
+    if(!state.brush&&!state.erase){
+      document.getElementById("status").innerHTML="<b>Scegli prima una materia</b> dall'elenco in alto.";
+      return;
+    }
+    const cur=state.cells[ck(td.dataset.date,+td.dataset.h)];
+    if(state.erase||!state.brush)val=null;
+    else if(cur&&cur.i===state.brush&&cur.a===state.act)val=null;
+    else val={i:state.brush,a:state.act};
+    painting=true;put(td);
+  });
+
+  t.addEventListener("pointermove",e=>{
+    if(!painting&&!drag)return;
+    const el=document.elementFromPoint(e.clientX,e.clientY);
+    const td=el&&el.closest&&el.closest("td.c");
+    if(!td)return;
+    if(drag){
+      const maxStart=HOURS[HOURS.length-1]-drag.run.len+1;
+      let ns=(+td.dataset.h)-drag.off;
+      ns=Math.max(HOURS[0],Math.min(maxStart,ns));
+      if(td.dataset.date===drag.date&&ns===drag.start)return;
+      clearRun(drag.date,drag.start,drag.run.len);
+      const old=drag.date;
+      drag.date=td.dataset.date;drag.start=ns;
+      placeRun(drag.date,drag.start,drag.run);
+      redrawDay(old);redrawDay(drag.date);
+    }else put(td);
+  });
+
+  t.addEventListener("keydown",e=>{
+    if(e.key!==" "&&e.key!=="Enter")return;
+    const td=e.target.closest("td.c");if(!td)return;
+    e.preventDefault();
+    if(state.mode==="move"||(!state.brush&&!state.erase))return;
+    const cur=state.cells[ck(td.dataset.date,+td.dataset.h)];
+    val=(state.erase||(cur&&cur.i===state.brush&&cur.a===state.act))?null:{i:state.brush,a:state.act};
+    put(td);
+  });
+}
+["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,()=>{
+  if(drag){drag=null;save();panels();picklist();}
+  if(painting){painting=false;panels();picklist();}
+}));
+
+/* ============================================================
+   6. CALENDARIO
+   ============================================================ */
+function openMonth(d){
+  mMonth=new Date(d.getFullYear(),d.getMonth(),1);
+  document.getElementById("modal").classList.add("open");
+  month();
+}
+function month(){
+  document.getElementById("mTitle").textContent=MESIL[mMonth.getMonth()]+" "+mMonth.getFullYear();
+  const g=document.getElementById("mGrid");g.innerHTML="";
+  DSH.forEach(x=>{const e=document.createElement("div");e.className="dh";e.textContent=x[0];g.appendChild(e);});
+
+  const m=map();
+  const a=panelStart(0),b=addDays(panelStart(PANELS-1),6);
+  const first=new Date(mMonth),lead=(first.getDay()+6)%7;
+  const start=addDays(first,-lead);
+
+  for(let i=0;i<42;i++){
+    const day=addDays(start,i),key=iso(day);
+    const set=new Set();
+    HOURS.forEach(hr=>{const v=state.cells[ck(key,hr)];if(v&&m[v.i])set.add(m[v.i].color);});
+    const colors=[...set].slice(0,4);
+    const b2=document.createElement("button");
+    b2.className="day"+(day.getMonth()===mMonth.getMonth()?"":" out")+
+      (key===TODAY?" today":"")+(day>=a&&day<=b?" inview":"");
+    b2.innerHTML=day.getDate()+(colors.length
+      ? '<span class="dots">'+colors.map(c=>'<i style="background:'+c+'"></i>').join("")+"</span>"
+      : '<span class="dots"></span>');
+    b2.onclick=()=>{
+      state.anchor[state.ctx]=iso(monday(day));
+      document.getElementById("modal").classList.remove("open");
+      save("Settimana 1: "+fmt(monday(day)));
+      weeknav();panels();picklist();
+      document.querySelector(".weeknav").scrollIntoView({behavior:"smooth",block:"start"});
+    };
+    g.appendChild(b2);
+  }
+}
+document.getElementById("mPrev").onclick=()=>{mMonth.setMonth(mMonth.getMonth()-1);month();};
+document.getElementById("mNext").onclick=()=>{mMonth.setMonth(mMonth.getMonth()+1);month();};
+document.getElementById("mClose").onclick=()=>document.getElementById("modal").classList.remove("open");
+document.getElementById("modal").onclick=e=>{
+  if(e.target.id==="modal")document.getElementById("modal").classList.remove("open");
+};
+
+/* ============================================================
+   7. AVVIO
+   ============================================================ */
+/* ---------- diagnostica e backup ---------- */
+document.getElementById("sync").onclick=e=>{
+  if(e.target.tagName==="BUTTON")return;
+  const d=document.getElementById("diag");
+  const parts=[];
+  parts.push("Memoria del browser: "+(sv.local?"attiva":"non disponibile"));
+  parts.push("Storage artifact: "+(sv.remote?"attivo":"non disponibile in questa vista"));
+  if(sv.err)parts.push("Ultimo errore: "+sv.err);
+  if(!sv.local&&!sv.remote)parts.push("Usa Backup per copiare il piano e non perderlo.");
+  d.textContent=parts.join(" · ");
+  d.classList.toggle("show");
+};
+document.getElementById("saveNow").onclick=()=>{
+  const p=payload(),b=body(p);
+  let done=false;
+  if(sv.local&&lsSet(p)){sv.localSaved=b;done=true;}
+  if(sv.remote){sv.dirty=true;clearTimeout(sv.timer);flush();done=true;}
+  updateSync();
+  toast(done?"Salvato":"Nessun salvataggio possibile");
+};
+document.getElementById("backup").onclick=()=>{
+  document.getElementById("bkText").value=payload();
+  document.getElementById("bkModal").classList.add("open");
+};
+document.getElementById("bkClose").onclick=()=>document.getElementById("bkModal").classList.remove("open");
+document.getElementById("bkModal").onclick=e=>{
+  if(e.target.id==="bkModal")e.currentTarget.classList.remove("open");
+};
+document.getElementById("bkCopy").onclick=async()=>{
+  const t=document.getElementById("bkText");
+  t.select();
+  try{await navigator.clipboard.writeText(t.value);toast("Copiato");}
+  catch(e){toast("Seleziona e copia a mano");}
+};
+document.getElementById("bkRestore").onclick=()=>{
+  try{
+    const d=JSON.parse(document.getElementById("bkText").value);
+    DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
+    document.getElementById("bkModal").classList.remove("open");
+    save("Piano ripristinato");render();
+  }catch(e){toast("Testo non valido");}
+};
+
+document.getElementById("addBtn").onclick=()=>{
+  const i=document.getElementById("newName"),v=i.value.trim();
+  if(!v){i.focus();return;}
+  state.custom.push(v);state.brush="x:"+(state.custom.length-1);state.erase=false;
+  i.value="";save();render();
+};
+document.getElementById("newName").addEventListener("keydown",e=>{
+  if(e.key==="Enter")document.getElementById("addBtn").click();
+});
+document.getElementById("theme").onclick=()=>{
+  state.theme=state.theme==="dark"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",state.theme);save();
+};
+
+function render(){controls();picklist();tools();weeknav();panels();status();}
+(async()=>{await load();render();})();
+</script>
+</body>
+</html>
