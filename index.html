@@ -78,7 +78,9 @@ button:focus-visible,select:focus-visible,td:focus-visible,input:focus-visible{
 .pnm .bar{display:block;height:3px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
 .pnm .bar i{display:block;height:100%;opacity:.9}
 .ph u{display:block;text-decoration:none;font-size:9px;color:var(--tx3);margin-top:3px}
-.vedit{display:none;gap:6px;margin-top:8px}
+.vedit{display:none;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.vedit input.dt{flex:0 0 auto;font-family:"IBM Plex Mono",monospace;font-size:12px}
+.vedit button#vPick{font-size:15px;padding:9px 11px}
 .vedit.open{display:flex}
 .adder input.cfu,.vedit input.cfu{flex:0 0 78px;width:78px;text-align:center;
   font-family:"IBM Plex Mono",monospace;font-size:12.5px}
@@ -128,11 +130,11 @@ td.tot b{color:var(--tx2);font-weight:500}
 /* attività e voci */
 .tools{display:flex;flex-wrap:wrap;gap:6px}
 .tool{appearance:none;cursor:pointer;background:var(--panel);border:1px solid var(--line);
-  color:var(--tx2);border-radius:9px;padding:12px 16px;font-size:15px;display:flex;
-  align-items:center;gap:10px;min-height:46px}
+  color:var(--tx2);border-radius:9px;padding:10px 14px;font-size:13.5px;display:flex;
+  align-items:center;gap:9px;min-height:41px}
 .tool:hover{color:var(--tx);border-color:var(--tx3)}
 .tool[aria-pressed="true"]{background:var(--sel);color:var(--tx);border-color:var(--tx3)}
-.tool i{width:14px;height:14px;border-radius:3px;background:currentColor;display:block;flex:0 0 14px}
+.tool i{width:13px;height:13px;border-radius:3px;background:currentColor;display:block;flex:0 0 13px}
 .tool.o7 i{box-shadow:none}
 .tool.move[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
 .status{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--tx2);margin:14px 0 16px;min-height:15px}
@@ -164,15 +166,15 @@ td.tot b{color:var(--tx2);font-weight:500}
 .phead u{text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:9px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin-left:8px}
 .pacts{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;flex:0 0 auto}
-.pacts button{background:var(--panel);border:1px solid var(--line);color:var(--tx2);border-radius:9px;
-  font-family:"IBM Plex Mono",monospace;font-size:13px;padding:10px 15px;cursor:pointer;white-space:nowrap;
-  display:flex;align-items:center;gap:8px;min-height:42px}
+.pacts button{background:var(--panel);border:1px solid var(--line);color:var(--tx2);border-radius:8px;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:8px 12px;cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;gap:7px;min-height:36px}
 .pacts button:hover:not(:disabled){color:var(--tx);border-color:var(--tx3)}
 .pacts button:disabled{opacity:.3;cursor:default}
 .pacts button.armed{border-color:var(--warn);color:var(--warn)}
 .pacts button.act{background:var(--sel);color:var(--tx);border-color:var(--tx3)}
 .pacts button.act.mv{border-color:var(--accent);color:var(--accent)}
-.pacts button i{width:13px;height:13px;border-radius:3px;display:block;flex:0 0 13px}
+.pacts button i{width:12px;height:12px;border-radius:3px;display:block;flex:0 0 12px}
 .pacts .sep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
 
 .gwrap{overflow-x:auto;margin:0 -14px;padding:0 14px 2px}
@@ -298,12 +300,6 @@ table.moving td.c.on{cursor:grab}
       <button id="addBtn">Aggiungi</button>
     </div>
     <div class="tools" id="voci" style="margin-top:8px"></div>
-    <div class="vedit" id="vedit">
-      <input id="vName" type="text" maxlength="46" aria-label="Rinomina voce">
-      <input id="vCfu" type="number" min="0" max="40" placeholder="CFU" class="cfu" aria-label="CFU">
-      <button id="vRen">Salva</button>
-      <button id="vDel">Elimina</button>
-    </div>
   </div>
 
   <div class="sec">
@@ -321,6 +317,14 @@ table.moving td.c.on{cursor:grab}
     <div class="secline"><p class="lbl" style="margin:0">Materie Aggiunte</p>
       <div class="filt" id="pickbar"></div></div>
     <div class="picklist" id="picklist"></div>
+    <div class="vedit" id="vedit">
+      <input id="vName" type="text" maxlength="60" aria-label="Nome">
+      <input id="vCfu" type="number" min="0" max="40" placeholder="CFU" class="cfu" aria-label="CFU">
+      <input id="vDate" type="date" class="dt" aria-label="Scadenza">
+      <button id="vPick" title="Scegli dal calendario">▦</button>
+      <button id="vRen">Salva</button>
+      <button id="vDel">Elimina</button>
+    </div>
   </div>
 
   <div class="sec">
@@ -524,7 +528,7 @@ const SWATCHES=["#6E8BFF","#5FA8D3","#63C2C2","#4FB3A0","#82B356","#B0A24E",
    ============================================================ */
 const KEY="piano-6272-v5";
 let state={v:2,theme:"dark",year:1,ctx:"1",from:0,to:6,act:"LEZ",brush:null,erase:false,mode:"paint",
-           follow:{},exams:[],showAll:false,
+           follow:{},exams:[],showAll:false,over:{},
            custom:[],cells:{},colors:{},anchor:{},clip:null};
 let painting=false,val=null,openColor=null,armed=null,armTmr=null,mMonth=null,drag=null;
 
@@ -555,7 +559,7 @@ function panelDates(p){
    b) storage dell'artifact: se presente, scritto con throttle
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
-const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","follow","exams","showAll"];
+const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","follow","exams","showAll","over"];
 const LSKEY="piano-6272-local";
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
         localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
@@ -758,7 +762,7 @@ document.addEventListener("visibilitychange",()=>{
 /* ============================================================
    3c. CRONOLOGIA — annulla / rifai
    ============================================================ */
-const HKEYS=["cells","colors","custom","follow","exams"];
+const HKEYS=["cells","colors","custom","follow","exams","over"];
 let hist={past:[],future:[],cur:null};
 
 function snap(){const o={};HKEYS.forEach(k=>o[k]=state[k]);return JSON.stringify(o);}
@@ -876,13 +880,26 @@ function migrate(d){
 /* ============================================================
    4. MODELLO
    ============================================================ */
+const shortOf=n=>n.length>17?n.slice(0,16)+"…":n;
 function courses(){
   const out=[],seen=new Set();
+  state.over=state.over||{};
   COURSES[state.year].filter(c=>state.ctx==="S"||c.p===+state.ctx).forEach(c=>{
     if(seen.has(c.c))return;seen.add(c.c);
-    out.push({id:"c:"+c.c,name:c.n,short:c.k,cfu:c.u});
+    const id="c:"+c.c,ov=state.over[id]||{};
+    out.push({id:id,name:ov.n||c.n,short:ov.n?shortOf(ov.n):c.k,
+      cfu:(ov.c!=null?ov.c:c.u),date:ov.d||"",kind:"c"});
   });
   return out;
+}
+/* tiene allineata la scadenza di una materia con l'elenco delle scadenze */
+function syncExam(id,name,date){
+  state.exams=state.exams||[];
+  const i=state.exams.findIndex(x=>x.mid===id);
+  if(date){
+    if(i>=0){state.exams[i].d=date;state.exams[i].t=name;}
+    else state.exams.push({mid:id,d:date,t:name});
+  }else if(i>=0)state.exams.splice(i,1);
 }
 /* le voci personali hanno un id stabile: rinominarle o eliminarne una
    non sposta le altre e non rompe gli slot già piazzati */
@@ -892,8 +909,8 @@ function normCustom(){
 }
 function voci(){
   normCustom();
-  return state.custom.map(c=>({id:c.id,name:c.name,cfu:c.cfu||0,
-    short:c.name.length>17?c.name.slice(0,16)+"…":c.name}));
+  return state.custom.map(c=>({id:c.id,name:c.name,cfu:c.cfu||0,date:c.d||"",
+    short:shortOf(c.name),kind:"x"}));
 }
 function delVoce(id){
   normCustom();
@@ -1055,30 +1072,47 @@ function tools(){
   });
   vedit();
 }
-/* pannello di rinomina/eliminazione della voce selezionata */
+/* pannello di modifica: nome, CFU e scadenza della materia selezionata */
 function vedit(){
   const box=document.getElementById("vedit");
-  const sel=state.brush&&state.brush.indexOf("x:")===0
-    ? voci().find(o=>o.id===state.brush) : null;
+  const sel=state.brush?items().find(o=>o.id===state.brush):null;
   box.className="vedit"+(sel?" open":"");
   if(!sel)return;
-  const inp=document.getElementById("vName"),del=document.getElementById("vDel"),
-        cf=document.getElementById("vCfu");
-  inp.value=sel.name;cf.value=sel.cfu||"";
-  del.className="";del.textContent="Elimina";
+  const custom=sel.id.indexOf("x:")===0;
+  const inp=document.getElementById("vName"),cf=document.getElementById("vCfu"),
+        dt=document.getElementById("vDate"),del=document.getElementById("vDel");
+  inp.value=sel.name;cf.value=sel.cfu||"";dt.value=sel.date||"";
+  del.className="";del.textContent=custom?"Elimina":"Ripristina";
+  del.title=custom?"Elimina la voce":"Torna al nome e ai CFU del piano didattico";
+
+  document.getElementById("vPick").onclick=()=>{
+    monthPick=day=>{dt.value=iso(day);};
+    openMonth(dt.value?parse(dt.value):new Date());
+  };
   document.getElementById("vRen").onclick=()=>{
     const nv=inp.value.trim();
     if(!nv)return;
-    normCustom();
-    const c=state.custom.find(x=>x.id===sel.id);
-    if(c){c.name=nv;c.cfu=+cf.value||0;save("Voce aggiornata");commit();render();}
+    if(custom){
+      normCustom();
+      const c=state.custom.find(x=>x.id===sel.id);
+      if(c){c.name=nv;c.cfu=+cf.value||0;c.d=dt.value||"";}
+    }else{
+      state.over=state.over||{};
+      state.over[sel.id]={n:nv,c:(cf.value===""?null:+cf.value),d:dt.value||""};
+    }
+    syncExam(sel.id,nv,dt.value||"");
+    save("Materia aggiornata");commit();render();
   };
   del.onclick=()=>{
     if(del.className==="armed"){
-      delVoce(sel.id);save("Voce eliminata");commit();render();
+      if(custom)delVoce(sel.id);
+      else{delete state.over[sel.id];}
+      syncExam(sel.id,"","");
+      save(custom?"Voce eliminata":"Ripristinata");commit();render();
     }else{
       del.className="armed";del.textContent="Confermi?";
-      setTimeout(()=>{if(del.className==="armed"){del.className="";del.textContent="Elimina";}},4000);
+      setTimeout(()=>{if(del.className==="armed"){
+        del.className="";del.textContent=custom?"Elimina":"Ripristina";}},4000);
     }
   };
 }
