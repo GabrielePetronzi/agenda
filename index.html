@@ -202,8 +202,11 @@ td.c em b{display:block;font-family:"IBM Plex Mono",monospace;font-size:11.5px;f
   line-height:1.15}
 td.c em s{display:block;text-decoration:none;font-size:12px;opacity:.88;line-height:1.2;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-td.c em q{display:block;quotes:none;font-size:10.5px;opacity:.78;line-height:1.25;margin-top:3px;
-  white-space:pre-wrap;overflow:hidden}
+td.c em s i{font-style:normal;opacity:.9}
+input.noteEdit{position:absolute;left:5px;right:5px;top:19px;z-index:3;pointer-events:auto;
+  background:rgba(0,0,0,.16);border:0;border-bottom:1px solid currentColor;border-radius:3px;
+  font-family:"IBM Plex Sans",sans-serif;font-size:12px;padding:1px 4px;outline:none}
+html[data-theme="light"] input.noteEdit{background:rgba(255,255,255,.35)}
 td.c em .pin{position:absolute;right:5px;top:4px;font-size:9px;opacity:.7}
 td.c.cont em{display:none}
 table.moving td.c.on{cursor:grab}
@@ -353,18 +356,6 @@ table.moving td.c.on{cursor:grab}
     <div class="mfoot">
       <span id="mHint">Il giorno scelto apre la Settimana 1</span>
       <button id="mClose">Chiudi</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal" id="ntModal">
-  <div class="sheet bk">
-    <div class="mhead"><b id="ntTitle">Nota</b><button id="ntClose">✕</button></div>
-    <textarea id="ntText" spellcheck="false" style="height:110px"
-      placeholder="Aula, docente, capitolo da leggere…"></textarea>
-    <div class="mfoot">
-      <button id="ntDel">Rimuovi nota</button>
-      <button id="ntSave">Salva</button>
     </div>
   </div>
 </div>
@@ -529,6 +520,7 @@ let state={v:2,theme:"dark",year:1,ctx:"1",from:0,to:6,act:"LEZ",brush:null,eras
            follow:{},exams:[],showAll:false,over:{},
            custom:[],cells:{},colors:{},anchor:{},clip:null};
 let painting=false,val=null,openColor=null,armed=null,armTmr=null,mMonth=null,drag=null;
+let lastTap={sig:null,t:0},tapUndo=null;
 
 
 /* ---------- date ---------- */
@@ -1114,7 +1106,6 @@ function vedit(){
 function status(){
   const m=map(),el=document.getElementById("status");
   const clip=state.clip?'<span style="color:var(--tx3)"> — appunti: '+state.clip.label+" ("+hrs(state.clip.hours)+")</span>":"";
-  if(state.mode==="note"){el.innerHTML="<b>NOTA</b> · tocca un blocco per scrivere aula, docente, capitolo"+clip;return;}
   if(state.mode==="move"){el.innerHTML="<b>SPOSTA</b> · trascina un blocco per riposizionarlo"+clip;return;}
   if(state.erase){el.innerHTML="Cancella slot — tocca o trascina per svuotare."+clip;return;}
   if(!state.brush||!m[state.brush]){el.innerHTML="Scegli una materia o una voce."+clip;return;}
@@ -1219,15 +1210,6 @@ function buildPanel(p,m){
     state.mode=state.mode==="move"?"paint":"move";state.erase=false;
     save();tools();status();panels();
   };
-  const nt=document.createElement("button");
-  nt.innerHTML="<i style='box-shadow:inset 0 0 0 1.3px currentColor;border-radius:2px'></i>Nota";
-  if(state.mode==="note")nt.className="act mv";
-  nt.title="Tocca un blocco per scrivere una nota";
-  nt.onclick=()=>{
-    state.mode=state.mode==="note"?"paint":"note";state.erase=false;
-    save();tools();status();panels();
-  };
-
   const er=document.createElement("button");
   er.innerHTML="<i style='opacity:.4;background:repeating-linear-gradient(45deg,currentColor,currentColor 2px,transparent 2px,transparent 4px)'></i>Cancella slot";
   if(state.erase)er.className="act";
@@ -1260,7 +1242,7 @@ function buildPanel(p,m){
     if(armed==="w"+p){armed=null;clearTimeout(armTmr);wipeWeek(p);}
     else{armed="w"+p;panels();clearTimeout(armTmr);armTmr=setTimeout(()=>{armed=null;panels();},4000);}
   };
-  acts.appendChild(mv);acts.appendChild(nt);acts.appendChild(er);acts.appendChild(sep);
+  acts.appendChild(mv);acts.appendChild(er);acts.appendChild(sep);
   acts.appendChild(copy);acts.appendChild(paste);acts.appendChild(wipe);acts.appendChild(cal);
   hd.appendChild(acts);sec.appendChild(hd);
 
@@ -1367,8 +1349,8 @@ function cell(td,m){
     const em=document.createElement("em");
     em.style.color=ink(o.color);
     em.style.height=(ROW*len-3)+"px";
-    const note=v.n?"<q>"+v.n.replace(/</g,"&lt;")+"</q>":"";
-    em.innerHTML="<b>"+o.short.toUpperCase()+"</b><s>"+a.n+"</s>"+note;
+    const note=v.n?' <i>('+v.n.replace(/</g,"&lt;")+")</i>":"";
+    em.innerHTML="<b>"+o.short.toUpperCase()+"</b><s>"+a.n+note+"</s>";
     td.appendChild(em);
   }
   td.setAttribute("aria-label",o.name+", "+a.n+(v.n?", nota: "+v.n:""));
@@ -1406,17 +1388,64 @@ function clearRun(dateIso,start,len){
   for(let k=0;k<len;k++)delete state.cells[ck(dateIso,start+k)];
 }
 
+/* scrive la nota direttamente dentro il blocco, accanto al tipo di attività */
+function editNote(dateIso,start){
+  const td=document.querySelector('td.c[data-date="'+dateIso+'"][data-h="'+start+'"]');
+  if(!td)return;
+  const v=state.cells[ck(dateIso,start)];if(!v)return;
+  const m=map(),o=m[v.i];if(!o)return;
+  if(td.querySelector("input.noteEdit"))return;
+  const inp=document.createElement("input");
+  inp.className="noteEdit";inp.maxLength=40;
+  inp.value=v.n||"";inp.placeholder="aula, capitolo…";
+  inp.style.color=ink(o.color);
+  td.appendChild(inp);
+  inp.focus();inp.select();
+  let closed=false;
+  const done=keep=>{
+    if(closed)return;closed=true;
+    if(keep){
+      const t2=inp.value.trim();
+      if(t2)v.n=t2;else delete v.n;
+      save();commit();
+    }
+    inp.remove();redrawDay(dateIso);
+  };
+  inp.addEventListener("keydown",e=>{
+    e.stopPropagation();
+    if(e.key==="Enter"){e.preventDefault();done(true);}
+    else if(e.key==="Escape"){e.preventDefault();done(false);}
+  });
+  inp.addEventListener("pointerdown",e=>e.stopPropagation());
+  inp.addEventListener("blur",()=>done(true));
+}
+
 function wire(t){
   t.addEventListener("pointerdown",e=>{
     const td=e.target.closest("td.c");if(!td)return;
     e.preventDefault();
 
-    if(state.mode==="note"){
-      const r=runAt(td.dataset.date,+td.dataset.h);
-      if(!r){toast("Tocca un blocco già piazzato");return;}
-      openNote(td.dataset.date,r.start);
-      return;
+    /* doppio tocco su un blocco: apre la scrittura della nota,
+       annullando l'effetto del primo tocco */
+    if(state.mode!=="move"){
+      const sig=td.dataset.date+"."+td.dataset.h,now=Date.now();
+      if(lastTap.sig===sig&&now-lastTap.t<450){
+        lastTap={sig:null,t:0};painting=false;
+        if(tapUndo){
+          if(tapUndo.prev)state.cells[tapUndo.k]=tapUndo.prev;
+          else delete state.cells[tapUndo.k];
+          tapUndo=null;redrawDay(td.dataset.date);
+        }
+        const r=runAt(td.dataset.date,+td.dataset.h);
+        if(r)editNote(td.dataset.date,r.start);
+        else toast("Il doppio tocco scrive la nota su un blocco già piazzato");
+        return;
+      }
+      lastTap={sig:sig,t:now};
+      const kk=ck(td.dataset.date,+td.dataset.h),cc=state.cells[kk];
+      tapUndo={k:kk,prev:cc?JSON.parse(JSON.stringify(cc)):null};
     }
+
     if(state.mode==="move"){
       const r=runAt(td.dataset.date,+td.dataset.h);
       if(!r)return;
@@ -1619,37 +1648,6 @@ document.getElementById("newName").addEventListener("keydown",e=>{
   if(e.key==="Enter")document.getElementById("addBtn").click();
 });
 let monthPick=null;
-let noteAt=null;
-function openNote(dateIso,slot){
-  noteAt={d:dateIso,s:slot};
-  const v=state.cells[ck(dateIso,slot)]||{};
-  const m=map(),o=m[v.i];
-  document.getElementById("ntTitle").textContent=
-    (o?o.name:"Nota")+" · "+fmt(parse(dateIso))+" "+slotHour(slot)+(isHalf(slot)?":30":":00");
-  document.getElementById("ntText").value=v.n||"";
-  document.getElementById("ntModal").classList.add("open");
-  setTimeout(()=>document.getElementById("ntText").focus(),50);
-}
-function closeNote(){document.getElementById("ntModal").classList.remove("open");noteAt=null;}
-document.getElementById("ntClose").onclick=closeNote;
-document.getElementById("ntModal").onclick=e=>{if(e.target.id==="ntModal")closeNote();};
-document.getElementById("ntSave").onclick=()=>{
-  if(!noteAt)return;
-  const k=ck(noteAt.d,noteAt.s),v=state.cells[k];
-  if(v){
-    const t=document.getElementById("ntText").value.trim();
-    if(t)v.n=t;else delete v.n;
-    save("Nota salvata");commit();
-  }
-  const d=noteAt.d;closeNote();redrawDay(d);
-};
-document.getElementById("ntDel").onclick=()=>{
-  if(!noteAt)return;
-  const v=state.cells[ck(noteAt.d,noteAt.s)];
-  if(v){delete v.n;save("Nota rimossa");commit();}
-  const d=noteAt.d;closeNote();redrawDay(d);
-};
-
 document.getElementById("exAdd").onclick=()=>{
   const d=document.getElementById("exDate"),t=document.getElementById("exText");
   if(!d.value){d.focus();return;}
