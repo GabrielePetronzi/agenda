@@ -190,6 +190,21 @@ table.moving{outline:2px solid var(--accent);outline-offset:2px}
   font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
   padding:7px 12px;border-radius:0 0 8px 8px;margin:0 auto 10px;width:fit-content;display:none}
 .modeflag.on{display:block}
+.selbar{display:none}
+.selbar.on{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px;
+  padding:9px 12px;border:1px solid var(--accent);border-radius:9px;background:var(--panel)}
+.selbar b{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:500;color:var(--accent)}
+.selbar span{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--tx3)}
+td.c.selblk{box-shadow:inset 0 0 0 2px var(--accent)}
+.rsz{position:absolute;left:0;right:0;bottom:-2px;height:9px;z-index:6;cursor:ns-resize;
+  pointer-events:auto}
+.rsz::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:3px;
+  width:22px;height:2px;border-radius:2px;background:rgba(255,255,255,.45);opacity:0}
+.rsz:hover::after{opacity:1}
+.nowline{position:absolute;left:0;right:0;height:0;z-index:7;pointer-events:none;
+  border-top:2px solid var(--accent)}
+.nowline::before{content:"";position:absolute;left:-4px;top:-5px;width:8px;height:8px;
+  border-radius:50%;background:var(--accent)}
 .phead b{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:500;letter-spacing:.05em}
 .phead u{text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:9px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin-left:8px}
@@ -386,6 +401,7 @@ table.moving td.c.on{cursor:grab}
   </div>
 
   <p class="modeflag" id="modeflag"></p>
+  <div class="selbar" id="selbar"></div>
   <div id="panels"></div>
 
   <div class="sum" id="semSum">
@@ -598,10 +614,14 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    ============================================================ */
 const KEY="piano-6272-v5";
 let state={v:4,theme:"dark",year:1,ctx:"1",from:0,to:6,act:"LEZ",brush:null,erase:false,mode:"paint",
-           exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,
+           exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
 let painting=false,val=null,openColor=null,armed=null,armTmr=null,mMonth=null,drag=null;
 let lastTap={sig:null,t:0},tapUndo=null,editId=null;
+let selRuns={};          /* chiave "data.inizio" → blocco selezionato */
+let cursor=null;         /* ultima cella toccata: è qui che incolla */
+let rz=null;             /* ridimensionamento in corso */
+let selCache=null;
 
 
 /* ---------- date ---------- */
@@ -630,7 +650,7 @@ function panelDates(p){
    b) storage dell'artifact: se presente, scritto con throttle
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
-const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen"];
+const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip"];
 const LSKEY="piano-6272-local";
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
         localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
@@ -875,6 +895,17 @@ window.addEventListener("keydown",e=>{
   const k=(e.key||"").toLowerCase();
   if(k==="z"&&!e.shiftKey){e.preventDefault();undo();}
   else if(k==="y"||(k==="z"&&e.shiftKey)){e.preventDefault();redo();}
+  else if(k==="c"){e.preventDefault();copyBlocks();}
+  else if(k==="v"){e.preventDefault();pasteBlocks();}
+});
+/* fuori dai modificatori: Esc annulla la selezione, Canc elimina i blocchi scelti */
+window.addEventListener("keydown",e=>{
+  const tag=(e.target.tagName||"").toLowerCase();
+  if(tag==="input"||tag==="textarea")return;
+  if(e.key==="Escape"){clearSel();}
+  else if((e.key==="Delete"||e.key==="Backspace")&&Object.keys(selRuns).length){
+    e.preventDefault();deleteSel();
+  }
 });
 
 function adopt(d){
@@ -1022,9 +1053,13 @@ function delVoce(id){
   delete state.colors[id];
   if(state.brush===id)state.brush=null;
 }
+/* il ripasso può stare in griglia anche senza materia: voce grigia di servizio */
+const GENID="_gen";
 function items(){
   const all=allCourses().concat(voci());
-  all.forEach(o=>o.color=state.colors[o.id]||autoColor(o.id));
+  all.push({id:GENID,name:"Ripasso libero",short:"Ripasso",cfu:0,date:"",kind:"g"});
+  all.forEach(o=>o.color=state.colors[o.id]||
+    (o.id===GENID?"#7C8CA6":autoColor(o.id)));
   return all;
 }
 const map=()=>{const m={};items().forEach(o=>m[o.id]=o);return m;};
@@ -1251,7 +1286,12 @@ function status(){
   const clip=state.clip?'<span style="color:var(--tx3)"> — appunti: '+state.clip.label+" ("+hrs(state.clip.hours)+")</span>":"";
   if(state.mode==="move"){el.innerHTML="<b>SPOSTA</b> · trascina un blocco per riposizionarlo"+clip;return;}
   if(state.erase){el.innerHTML="Cancella slot — tocca o trascina per svuotare."+clip;return;}
-  if(!state.brush||!m[state.brush]){el.innerHTML="Scegli una materia o una voce."+clip;return;}
+  if(!state.brush||!m[state.brush]){
+    el.innerHTML=state.act==="RIP"
+      ? "<b>RIPASSO LIBERO</b> · senza materia, in grigio"+clip
+      : "Scegli una materia o una voce."+clip;
+    return;
+  }
   el.innerHTML="<b>"+m[state.brush].name.toUpperCase()+"</b> · "+actOf(state.act).n+clip;
 }
 
@@ -1331,6 +1371,23 @@ function pasteWeek(p){
   });
   save("Incollata nella settimana "+(p+1));commit();panels();picklist();semSummary();
 }
+/* ---------- linea dell'ora corrente ---------- */
+function nowLine(){
+  document.querySelectorAll(".nowline").forEach(el=>el.remove());
+  const n=new Date(),h=n.getHours();
+  if(h<6)return;
+  const sl=h*PERQ+(n.getMinutes()>=30?1:0);
+  const frac=(n.getMinutes()%30)/30;
+  document.querySelectorAll('td.c[data-date="'+iso(n)+'"][data-h="'+sl+'"]').forEach(td=>{
+    const ln=document.createElement("span");
+    ln.className="nowline";
+    ln.style.top=(frac*ROW)+"px";
+    ln.title="Adesso: "+String(h).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");
+    td.appendChild(ln);
+  });
+}
+setInterval(nowLine,60000);
+
 /* ---------- riepilogo del semestre ---------- */
 function semSummary(){
   const box=document.getElementById("semBody");
@@ -1430,9 +1487,11 @@ function wipeWeek(p){
 
 /* ---------- pannelli ---------- */
 function panels(){
+  selCache=selMembers();
   const box=document.getElementById("panels");box.innerHTML="";
   const m=map();
   for(let p=0;p<PANELS;p++)box.appendChild(buildPanel(p,m));
+  nowLine();
 }
 
 function buildPanel(p,m){
@@ -1613,6 +1672,7 @@ function buildPanel(p,m){
 }
 
 function cell(td,m){
+  if(selCache===null)selCache=selMembers();
   const v=state.cells[ck(td.dataset.date,+td.dataset.h)];
   td.className="c"+(+td.dataset.d>4?" we":"")+(td.dataset.mark==="true"?" mark":"")+
     (td.dataset.half==="true"?" half":"");
@@ -1638,10 +1698,18 @@ function cell(td,m){
     em.innerHTML="<b>"+o.short.toUpperCase()+"</b><s>"+a.n+note+"</s>";
     td.appendChild(em);
   }
+  /* maniglia per allungare il blocco, nell'ultimo slot */
+  const nxt=state.cells[ck(date,sl+1)];
+  if(!(nxt&&nxt.i===v.i&&nxt.a===v.a)&&state.mode!=="move"){
+    const gr=document.createElement("span");gr.className="rsz";
+    gr.title="Trascina per allungare o accorciare";
+    td.appendChild(gr);
+  }
+  if(selCache&&selCache.has(date+"."+sl))td.classList.add("selblk");
   td.setAttribute("aria-label",o.name+", "+a.n+(v.n?", nota: "+v.n:""));
 }
 function redrawDay(dateIso){
-  const m=map();
+  const m=map();selCache=selMembers();
   document.querySelectorAll('td.c[data-date="'+dateIso+'"]').forEach(td=>cell(td,m));
 }
 
@@ -1671,6 +1739,89 @@ function placeRun(dateIso,start,r){
 }
 function clearRun(dateIso,start,len){
   for(let k=0;k<len;k++)delete state.cells[ck(dateIso,start+k)];
+}
+
+/* ============================================================
+   selezione multipla di blocchi, copia/incolla, ridimensionamento
+   ============================================================ */
+
+function selKey(d,st){return d+"."+st;}
+function selMembers(){
+  const set=new Set();
+  Object.keys(selRuns).forEach(k=>{
+    const r=selRuns[k];
+    for(let i=0;i<r.len;i++)set.add(r.date+"."+(r.start+i));
+  });
+  return set;
+}
+function toggleSel(dateIso,slot){
+  const r=runAt(dateIso,slot);
+  if(!r)return false;
+  const k=selKey(dateIso,r.start);
+  if(selRuns[k])delete selRuns[k];
+  else selRuns[k]={date:dateIso,start:r.start,len:r.len,i:r.i,a:r.a,n:r.n};
+  redrawDay(dateIso);selInfo();
+  return true;
+}
+function clearSel(){
+  const days=new Set(Object.keys(selRuns).map(k=>selRuns[k].date));
+  selRuns={};days.forEach(d=>redrawDay(d));selInfo();
+}
+function selInfo(){
+  const n=Object.keys(selRuns).length;
+  const el=document.getElementById("selbar");
+  if(!n){el.className="selbar";el.innerHTML="";return;}
+  let tot=0;Object.keys(selRuns).forEach(k=>tot+=selRuns[k].len);
+  el.className="selbar on";
+  el.innerHTML="<b>"+n+(n===1?" blocco":" blocchi")+" · "+hrs(tot)+"</b>"+
+    "<span>copia ⌘C · incolla ⌘V · elimina ⌫ · esci Esc</span>";
+}
+
+/* copia i blocchi selezionati con le posizioni relative */
+function copyBlocks(){
+  const keys=Object.keys(selRuns);
+  if(!keys.length){toast("Nessun blocco selezionato");return;}
+  const runs=keys.map(k=>selRuns[k]);
+  let minDay=null,minSlot=null;
+  runs.forEach(r=>{
+    const t=parse(r.date).getTime();
+    if(minDay===null||t<minDay)minDay=t;
+    if(minSlot===null||r.start<minSlot)minSlot=r.start;
+  });
+  state.blockClip=runs.map(r=>({
+    dd:Math.round((parse(r.date)-minDay)/86400000),
+    ds:r.start-minSlot,len:r.len,i:r.i,a:r.a,n:r.n
+  }));
+  save();toast("Copiati "+runs.length+(runs.length===1?" blocco":" blocchi"));
+}
+function pasteBlocks(){
+  if(!state.blockClip||!state.blockClip.length){toast("Niente da incollare");return;}
+  if(!cursor){toast("Tocca prima una cella dove incollare");return;}
+  const base=parse(cursor.date),days=new Set();
+  state.blockClip.forEach(b=>{
+    const d=iso(addDays(base,b.dd));
+    const st=cursor.slot+b.ds;
+    for(let i=0;i<b.len;i++){
+      const sl=st+i;
+      if(sl<HOURS[0]||sl>HOURS[HOURS.length-1])continue;
+      const c={i:b.i,a:b.a};
+      if(i===0&&b.n)c.n=b.n;
+      state.cells[ck(d,sl)]=c;
+    }
+    days.add(d);
+  });
+  save("Incollati "+state.blockClip.length+" blocchi");commit();
+  panels();picklist();semSummary();
+}
+function deleteSel(){
+  const keys=Object.keys(selRuns);
+  if(!keys.length)return;
+  keys.forEach(k=>{
+    const r=selRuns[k];
+    for(let i=0;i<r.len;i++)delete state.cells[ck(r.date,r.start+i)];
+  });
+  selRuns={};
+  save("Blocchi eliminati");commit();panels();picklist();semSummary();
 }
 
 /* scrive la nota direttamente dentro il blocco, accanto al tipo di attività */
@@ -1707,8 +1858,25 @@ function editNote(dateIso,start){
 
 function wire(t){
   t.addEventListener("pointerdown",e=>{
+    /* maniglia: allunga o accorcia il blocco */
+    if(e.target.classList&&e.target.classList.contains("rsz")){
+      const td0=e.target.closest("td.c");
+      const r=runAt(td0.dataset.date,+td0.dataset.h);
+      if(r){
+        e.preventDefault();e.stopPropagation();
+        rz={date:td0.dataset.date,start:r.start,len:r.len,i:r.i,a:r.a,n:r.n};
+      }
+      return;
+    }
     const td=e.target.closest("td.c");if(!td)return;
     e.preventDefault();
+    cursor={date:td.dataset.date,slot:+td.dataset.h};
+
+    /* con Ctrl o Cmd si seleziona il blocco invece di disegnare */
+    if(e.ctrlKey||e.metaKey){
+      if(!toggleSel(td.dataset.date,+td.dataset.h))toast("Nessun blocco qui");
+      return;
+    }
 
     /* doppio tocco su un blocco: apre la scrittura della nota,
        annullando l'effetto del primo tocco */
@@ -1741,18 +1909,36 @@ function wire(t){
       return;
     }
 
-    if(!state.brush&&!state.erase){
-      document.getElementById("status").innerHTML="<b>Scegli prima una materia</b> dall'elenco in alto.";
+    if(!state.brush&&!state.erase&&state.act!=="RIP"){
+      document.getElementById("status").innerHTML=
+        "<b>Scegli prima una materia</b> dall'elenco in alto — il Ripasso si può piazzare anche senza.";
       return;
     }
+    const brush=state.brush||(state.act==="RIP"?GENID:null);
     const cur=state.cells[ck(td.dataset.date,+td.dataset.h)];
-    if(state.erase||!state.brush)val=null;
-    else if(cur&&cur.i===state.brush&&cur.a===state.act)val=null;
-    else val={i:state.brush,a:state.act};
+    if(state.erase||!brush)val=null;
+    else if(cur&&cur.i===brush&&cur.a===state.act)val=null;
+    else val={i:brush,a:state.act};
     painting=true;put(td);
   });
 
   t.addEventListener("pointermove",e=>{
+    if(rz){
+      const el=document.elementFromPoint(e.clientX,e.clientY);
+      const td=el&&el.closest&&el.closest("td.c");
+      if(!td||td.dataset.date!==rz.date)return;
+      let nl=(+td.dataset.h)-rz.start+1;
+      nl=Math.max(1,Math.min(HOURS[HOURS.length-1]-rz.start+1,nl));
+      if(nl===rz.len)return;
+      for(let i=0;i<Math.max(nl,rz.len);i++)delete state.cells[ck(rz.date,rz.start+i)];
+      for(let i=0;i<nl;i++){
+        const c={i:rz.i,a:rz.a};
+        if(i===0&&rz.n)c.n=rz.n;
+        state.cells[ck(rz.date,rz.start+i)]=c;
+      }
+      rz.len=nl;redrawDay(rz.date);
+      return;
+    }
     if(!painting&&!drag)return;
     const el=document.elementFromPoint(e.clientX,e.clientY);
     const td=el&&el.closest&&el.closest("td.c");
@@ -1774,9 +1960,10 @@ function wire(t){
     if(e.key!==" "&&e.key!=="Enter")return;
     const td=e.target.closest("td.c");if(!td)return;
     e.preventDefault();
-    if(state.mode==="move"||(!state.brush&&!state.erase))return;
+    const brush=state.brush||(state.act==="RIP"?GENID:null);
+    if(state.mode==="move"||(!brush&&!state.erase))return;
     const cur=state.cells[ck(td.dataset.date,+td.dataset.h)];
-    val=(state.erase||(cur&&cur.i===state.brush&&cur.a===state.act))?null:{i:state.brush,a:state.act};
+    val=(state.erase||(cur&&cur.i===brush&&cur.a===state.act))?null:{i:brush,a:state.act};
     put(td);commit();
   });
 }
@@ -1789,6 +1976,7 @@ function reportOverwrite(){
   overwritten={};
 }
 ["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,()=>{
+  if(rz){rz=null;save();commit();panels();picklist();semSummary();}
   if(drag){drag=null;save();commit();panels();picklist();semSummary();}
   if(painting){painting=false;commit();reportOverwrite();panels();picklist();semSummary();}
 }));
@@ -2003,7 +2191,7 @@ document.getElementById("theme").onclick=()=>{
 };
 
 function render(){
-  controls();picklist();tools();examList();weeknav();panels();status();modeFlag();
+  controls();picklist();tools();examList();weeknav();panels();status();modeFlag();selInfo();
   document.querySelector("#semToggle .chev").textContent=state.semOpen?"⌄":"›";
   semSummary();
 }
