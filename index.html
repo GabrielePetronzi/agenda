@@ -90,6 +90,9 @@ button:focus-visible,select:focus-visible,td:focus-visible,input:focus-visible{
   background:var(--panel2);border-bottom:1px solid var(--line2)}
 .vedit input.dt{flex:0 0 auto;font-family:"IBM Plex Mono",monospace;font-size:12px}
 .vedit.open{display:flex}
+.adder input.tm,.vedit input.tm{flex:0 0 auto;font-family:"IBM Plex Mono",monospace;font-size:12px}
+input[type=time]{color-scheme:dark}
+html[data-theme="light"] input[type=time]{color-scheme:light}
 .adder input.cfu,.vedit input.cfu{flex:0 0 78px;width:78px;text-align:center;
   font-family:"IBM Plex Mono",monospace;font-size:12.5px}
 .vedit input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--tx);
@@ -108,6 +111,11 @@ tr.exline td.lab{border:0;background:none;font-family:"IBM Plex Mono",monospace;
   letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);text-align:right;padding-right:6px}
 tr.exline .tag{display:block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;line-height:1.25;
   color:var(--warn);padding:4px 5px;white-space:normal;word-break:break-word}
+.exmark{position:absolute;left:0;right:0;top:-1px;z-index:5;pointer-events:none}
+.exmark i{display:block;height:2px;background:var(--warn)}
+.exmark b{display:block;font-family:"IBM Plex Mono",monospace;font-size:8.5px;font-weight:600;
+  color:#fff;background:var(--warn);padding:1px 4px;border-radius:0 0 4px 0;width:fit-content;
+  max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .exrow button{background:none;border:0;color:var(--tx3);cursor:pointer;font-size:14px;padding:2px 6px}
 .exrow button:hover{color:var(--warn)}
 th.exam u::after{content:" ●";color:var(--warn)}
@@ -122,7 +130,10 @@ td.tot b{color:var(--tx2);font-weight:500}
 .prow:hover{background:var(--panel2)}
 .prow.sel{background:var(--sel)}
 .swatch{width:20px;height:20px;flex:0 0 20px;border-radius:6px;border:0;cursor:pointer;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);position:relative}
+.swatch.clash::after{content:"!";position:absolute;right:-5px;top:-6px;width:13px;height:13px;
+  border-radius:50%;background:var(--warn);color:#fff;font-family:"IBM Plex Mono",monospace;
+  font-size:9px;line-height:13px;text-align:center}
 .pnm{flex:1;min-width:0;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;
   letter-spacing:.05em;text-transform:uppercase;line-height:1.3}
 .ph{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--tx3);flex:0 0 auto}
@@ -343,6 +354,7 @@ table.moving td.c.on{cursor:grab}
     <p class="lbl">Esami e scadenze</p>
     <div class="adder">
       <input id="exDate" type="date" style="flex:0 0 auto" aria-label="Data">
+      <input id="exTime" type="time" class="tm" aria-label="Ora (facoltativa)">
       <input id="exText" type="text" maxlength="46" placeholder="Esame, consegna, colloquio…">
       <button id="exAdd">Aggiungi</button>
     </div>
@@ -573,9 +585,13 @@ const COURSES={
 };
 
 const PAL=["#6E8BFF","#4FB3A0","#E0A458","#D96C7B","#9B7FD4","#5FA8D3",
-           "#82B356","#E08A5B","#C97BB0","#63C2C2","#B0A24E","#7C8CA6"];
-const SWATCHES=["#6E8BFF","#5FA8D3","#63C2C2","#4FB3A0","#82B356","#B0A24E",
-                "#E0A458","#E08A5B","#D96C7B","#C97BB0","#9B7FD4","#7C8CA6"];
+           "#82B356","#E08A5B","#C97BB0","#63C2C2","#B0A24E","#7C8CA6",
+           "#8FA4E8","#3F8F7E","#C98A3C","#B85566","#7C63B8","#4A8FBE",
+           "#6B9440","#BF6E44","#A85F93","#4EA5A5"];
+const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
+                "#4FB3A0","#3F8F7E","#82B356","#6B9440","#B0A24E","#E0A458",
+                "#C98A3C","#E08A5B","#BF6E44","#D96C7B","#B85566","#C97BB0",
+                "#A85F93","#9B7FD4","#7C63B8","#7C8CA6"];
 
 /* ============================================================
    2. STATO
@@ -979,12 +995,13 @@ function courses(){
   return out;
 }
 /* tiene allineata la scadenza di una materia con l'elenco delle scadenze */
-function syncExam(id,name,date){
+function syncExam(id,name,date,hm){
   state.exams=state.exams||[];
   const i=state.exams.findIndex(x=>x.mid===id);
   if(date){
-    if(i>=0){state.exams[i].d=date;state.exams[i].t=name;}
-    else state.exams.push({mid:id,d:date,t:name});
+    const rec={mid:id,d:date,t:name};
+    if(hm)rec.hm=hm;
+    if(i>=0)state.exams[i]=rec;else state.exams.push(rec);
   }else if(i>=0)state.exams.splice(i,1);
 }
 /* le voci personali hanno un id stabile: rinominarle o eliminarne una
@@ -1075,10 +1092,23 @@ function controls(){
   t.onchange=()=>{state.to=+t.value;if(state.from>state.to)state.from=state.to;save();render();};
 }
 
+/* materie del semestre che condividono lo stesso colore */
+function colorClashes(){
+  const seen={},clash={};
+  courses().concat(voci()).forEach(o=>{
+    const c=(state.colors[o.id]||autoColor(o.id)).toLowerCase();
+    if(seen[c]){
+      clash[o.id]=seen[c];
+      clash[seen[c].id]=o;
+    }else seen[c]=o;
+  });
+  return clash;
+}
 function picklist(){
   const box=document.getElementById("picklist");box.innerHTML="";
   const q=(state.q||"").trim().toLowerCase();
   const inCtx=courses().concat(voci());
+  const clash=colorClashes();
   /* con la ricerca attiva pesca in tutto il piano, non solo nel semestre corrente */
   const list=q
     ? items().filter(o=>o.name.toLowerCase().indexOf(q)>=0)
@@ -1100,7 +1130,9 @@ function picklist(){
     b.className="prow"+(state.brush===o.id?" sel":"");
     b.setAttribute("aria-pressed",state.brush===o.id);
     const tag=(q&&o.kind==="c")?'<em>'+["I","II","III"][o.year-1]+" · sem "+o.sem+"</em>":"";
-    b.innerHTML='<span class="swatch" style="background:'+o.color+'"></span>'+
+    const cl=clash[o.id];
+    b.innerHTML='<span class="swatch'+(cl?" clash":"")+'" style="background:'+o.color+'"'+
+      (cl?' title="Stesso colore di '+cl.name.replace(/"/g,"")+'"':"")+"></span>"+
       '<span class="pnm">'+o.name+tag+
         (tgt?'<span class="bar"><i style="width:'+Math.max(h?2:0,pct)+'%;background:'+o.color+'"></i></span>':"")+
       "</span>"+
@@ -1147,6 +1179,10 @@ function editForm(o){
   cf.value=o.cfu||"";cf.setAttribute("aria-label","CFU");
   const dt=document.createElement("input");
   dt.type="date";dt.className="dt";dt.value=o.date||"";dt.setAttribute("aria-label","Scadenza");
+  const tmEl=document.createElement("input");
+  tmEl.type="time";tmEl.className="tm";tmEl.setAttribute("aria-label","Ora della scadenza");
+  const ex0=(state.exams||[]).find(x=>x.mid===o.id);
+  tmEl.value=(ex0&&ex0.hm)||"";
 
   const ok=document.createElement("button");ok.textContent="Salva";
   ok.onclick=()=>{
@@ -1159,7 +1195,7 @@ function editForm(o){
       state.over=state.over||{};
       state.over[o.id]={n:nv,c:(cf.value===""?null:+cf.value),d:dt.value||""};
     }
-    syncExam(o.id,nv,dt.value||"");
+    syncExam(o.id,nv,dt.value||"",tmEl.value||"");
     editId=null;save("Materia aggiornata");commit();render();
   };
   const del=document.createElement("button");
@@ -1179,7 +1215,7 @@ function editForm(o){
   const cl=document.createElement("button");cl.textContent="Chiudi";
   cl.onclick=()=>{editId=null;picklist();};
 
-  [nm,cf,dt,ok,del,cl].forEach(el=>wrap.appendChild(el));
+  [nm,cf,dt,tmEl,ok,del,cl].forEach(el=>wrap.appendChild(el));
   return wrap;
 }
 
@@ -1237,6 +1273,13 @@ function shift(days){
 
 /* ---------- esami e scadenze ---------- */
 function examsOn(dateIso){return (state.exams||[]).filter(x=>x.d===dateIso);}
+/* slot in cui cade una scadenza con ora */
+function examSlot(x){
+  if(!x.hm)return null;
+  const p=x.hm.split(":"),h=+p[0],mi=+p[1]||0;
+  const sl=h*PERQ+(mi>=30?1:0);
+  return (sl>=HOURS[0]&&sl<=HOURS[HOURS.length-1])?sl:null;
+}
 function daysTo(dateIso){
   const a=parse(dateIso),b=new Date();b.setHours(0,0,0,0);
   return Math.round((a-b)/86400000);
@@ -1248,7 +1291,7 @@ function examList(){
   list.forEach(x=>{
     const n=daysTo(x.d),r=document.createElement("div");r.className="exrow";
     const cd=n<0?"passato":(n===0?"oggi":(n===1?"domani":"fra "+n+" giorni"));
-    r.innerHTML='<span class="d">'+fmt(parse(x.d))+"</span>"+
+    r.innerHTML='<span class="d">'+fmt(parse(x.d))+(x.hm?" · "+x.hm:"")+"</span>"+
       '<span class="t">'+x.t+"</span>"+
       '<span class="cd'+(n>=0&&n<=7?" soon":"")+'">'+cd+"</span>";
     const del=document.createElement("button");
@@ -1489,12 +1532,13 @@ function buildPanel(p,m){
   const tb=document.createElement("tbody");
 
   /* scadenze del giorno, in cima alla griglia */
-  if(dates.some(d=>examsOn(iso(d)).length)){
+  const allDay=d=>examsOn(iso(d)).filter(x=>examSlot(x)===null);
+  if(dates.some(d=>allDay(d).length)){
     const er=document.createElement("tr");er.className="exline";
     const lb=document.createElement("td");lb.className="lab";lb.textContent="Scad.";er.appendChild(lb);
     for(let d=state.from;d<=state.to;d++){
       const td=document.createElement("td");
-      examsOn(iso(dates[d])).forEach(x=>{
+      allDay(dates[d]).forEach(x=>{
         const q=document.createElement("span");q.className="tag";q.textContent=x.t;
         td.appendChild(q);
       });
@@ -1516,6 +1560,20 @@ function buildPanel(p,m){
     tb.appendChild(row);
   });
   t.appendChild(tb);
+
+  /* scadenze con ora: riga rossa nello slot corrispondente */
+  dates.forEach((d,di)=>{
+    if(di<state.from||di>state.to)return;
+    examsOn(iso(d)).forEach(x=>{
+      const sl=examSlot(x);if(sl===null)return;
+      const td=t.querySelector('td.c[data-date="'+iso(d)+'"][data-h="'+sl+'"]');
+      if(!td)return;
+      const mk=document.createElement("span");
+      mk.className="exmark";mk.title=x.t+" · "+x.hm;
+      mk.innerHTML="<i></i><b>"+x.hm+" "+x.t+"</b>";
+      td.appendChild(mk);
+    });
+  });
 
   /* totale ore per giorno */
   const tf=document.createElement("tfoot"),tr=document.createElement("tr");
@@ -1722,9 +1780,17 @@ function wire(t){
     put(td);commit();
   });
 }
+function reportOverwrite(){
+  const ids=Object.keys(overwritten);
+  if(!ids.length)return;
+  const m=map();
+  const txt=ids.map(i=>(m[i]?m[i].short:"?")+" "+hrs(overwritten[i])).join(", ");
+  toast("Sostituito: "+txt+" — annulla con Z");
+  overwritten={};
+}
 ["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,()=>{
   if(drag){drag=null;save();commit();panels();picklist();semSummary();}
-  if(painting){painting=false;commit();panels();picklist();semSummary();}
+  if(painting){painting=false;commit();reportOverwrite();panels();picklist();semSummary();}
 }));
 
 /* ============================================================
@@ -1880,8 +1946,11 @@ document.getElementById("exAdd").onclick=()=>{
   if(!d.value){d.focus();return;}
   if(!t.value.trim()){t.focus();return;}
   state.exams=state.exams||[];
-  state.exams.push({d:d.value,t:t.value.trim()});
-  t.value="";save("Scadenza aggiunta");commit();examList();panels();
+  const tm=document.getElementById("exTime");
+  const rec={d:d.value,t:t.value.trim()};
+  if(tm.value)rec.hm=tm.value;
+  state.exams.push(rec);
+  t.value="";tm.value="";save("Scadenza aggiunta");commit();examList();panels();
 };
 document.getElementById("exText").addEventListener("keydown",e=>{
   if(e.key==="Enter")document.getElementById("exAdd").click();
