@@ -14,9 +14,9 @@
   --line:#242936; --line2:#1B202B; --sel:#2B3143; --accent:#6E8BFF; --warn:#E4726E; --ok:#5FBF8F;
 }
 html[data-theme="light"]{
-  --bg:#FBFBFA; --panel:#FFFFFF; --panel2:#F4F5F7; --cell:#FFFFFF;
-  --tx:#14161B; --tx2:#666D7A; --tx3:#9AA1AD;
-  --line:#E2E4E8; --line2:#EEF0F3; --sel:#EDF0F8; --accent:#2B5CE6; --warn:#C0392B; --ok:#2E8B57;
+  --bg:#F3EFE6; --panel:#FBF8F1; --panel2:#EAE5D9; --cell:#FCFAF5;
+  --tx:#2E2A23; --tx2:#6B6357; --tx3:#9B9384;
+  --line:#DAD2C2; --line2:#E9E3D6; --sel:#E4DCC9; --accent:#3D6AA8; --warn:#A8443C; --ok:#4A7C59;
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--tx)}
@@ -40,6 +40,8 @@ body{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;-webkit-fon
 .icon:disabled{opacity:.28;cursor:default}
 .range{display:flex;align-items:center;gap:5px}
 .range span{color:var(--tx3);font-size:12px}
+input[type=date]{color-scheme:dark}
+html[data-theme="light"] input[type=date]{color-scheme:light}
 select{appearance:none;background:var(--panel);border:1px solid var(--line);color:var(--tx);
   font-family:"IBM Plex Mono",monospace;font-size:12px;padding:7px 9px;border-radius:8px}
 button:focus-visible,select:focus-visible,td:focus-visible,input:focus-visible{
@@ -80,7 +82,6 @@ button:focus-visible,select:focus-visible,td:focus-visible,input:focus-visible{
 .ph u{display:block;text-decoration:none;font-size:9px;color:var(--tx3);margin-top:3px}
 .vedit{display:none;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center}
 .vedit input.dt{flex:0 0 auto;font-family:"IBM Plex Mono",monospace;font-size:12px}
-.vedit button#vPick{font-size:15px;padding:9px 11px}
 .vedit.open{display:flex}
 .adder input.cfu,.vedit input.cfu{flex:0 0 78px;width:78px;text-align:center;
   font-family:"IBM Plex Mono",monospace;font-size:12.5px}
@@ -143,7 +144,6 @@ td.tot b{color:var(--tx2);font-weight:500}
 .adder input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--tx);
   padding:9px 10px;border-radius:8px;font-size:13.5px;font-family:"IBM Plex Sans",sans-serif}
 .adder input::placeholder{color:var(--tx3)}
-.adder button#exPick{flex:0 0 auto;font-size:15px;padding:9px 12px}
 .adder button{border:1px solid var(--line);background:var(--panel);color:var(--tx);padding:9px 14px;
   border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:12px;cursor:pointer}
 
@@ -306,7 +306,6 @@ table.moving td.c.on{cursor:grab}
     <p class="lbl">Esami e scadenze</p>
     <div class="adder">
       <input id="exDate" type="date" style="flex:0 0 auto" aria-label="Data">
-      <button id="exPick" title="Scegli dal calendario">▦</button>
       <input id="exText" type="text" maxlength="46" placeholder="Esame, consegna, colloquio…">
       <button id="exAdd">Aggiungi</button>
     </div>
@@ -321,7 +320,6 @@ table.moving td.c.on{cursor:grab}
       <input id="vName" type="text" maxlength="60" aria-label="Nome">
       <input id="vCfu" type="number" min="0" max="40" placeholder="CFU" class="cfu" aria-label="CFU">
       <input id="vDate" type="date" class="dt" aria-label="Scadenza">
-      <button id="vPick" title="Scegli dal calendario">▦</button>
       <button id="vRen">Salva</button>
       <button id="vDel">Elimina</button>
     </div>
@@ -1085,10 +1083,6 @@ function vedit(){
   del.className="";del.textContent=custom?"Elimina":"Ripristina";
   del.title=custom?"Elimina la voce":"Torna al nome e ai CFU del piano didattico";
 
-  document.getElementById("vPick").onclick=()=>{
-    monthPick=day=>{dt.value=iso(day);};
-    openMonth(dt.value?parse(dt.value):new Date());
-  };
   document.getElementById("vRen").onclick=()=>{
     const nv=inp.value.trim();
     if(!nv)return;
@@ -1654,12 +1648,6 @@ document.getElementById("ntDel").onclick=()=>{
   const v=state.cells[ck(noteAt.d,noteAt.s)];
   if(v){delete v.n;save("Nota rimossa");commit();}
   const d=noteAt.d;closeNote();redrawDay(d);
-};
-
-document.getElementById("exPick").onclick=()=>{
-  monthPick=day=>{document.getElementById("exDate").value=iso(day);};
-  openMonth(document.getElementById("exDate").value
-    ? parse(document.getElementById("exDate").value) : new Date());
 };
 
 document.getElementById("exAdd").onclick=()=>{
