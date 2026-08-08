@@ -65,22 +65,29 @@ button:focus-visible,select:focus-visible,td:focus-visible,input:focus-visible{
 
 /* materie */
 .secline{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
-.filt{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.filt button{background:var(--panel);border:0;border-right:1px solid var(--line);color:var(--tx3);
-  font-family:"IBM Plex Mono",monospace;font-size:10.5px;padding:6px 10px;cursor:pointer}
-.filt button:last-child{border-right:0}
-.filt button[aria-pressed="true"]{background:var(--sel);color:var(--tx)}
+.pinfo{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--tx3)}
+.searchbox{display:flex;gap:6px;margin-bottom:8px}
+.searchbox input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--tx);
+  padding:10px 12px;border-radius:8px;font-size:14px;font-family:"IBM Plex Sans",sans-serif;
+  -webkit-appearance:none}
+.searchbox input::placeholder{color:var(--tx3)}
+.searchbox button{border:1px solid var(--line);background:var(--panel);color:var(--tx3);
+  border-radius:8px;padding:0 12px;cursor:pointer;font-size:13px}
+.searchbox button:hover{color:var(--tx)}
+.pnm em{font-style:normal;display:inline-block;margin-left:8px;font-family:"IBM Plex Mono",monospace;
+  font-size:9px;letter-spacing:.08em;color:var(--tx3);vertical-align:middle}
 .picklist{border:1px solid var(--line);border-radius:10px;background:var(--panel);
-  max-height:300px;overflow-y:auto}
-.fol{width:19px;height:19px;flex:0 0 19px;border-radius:5px;cursor:pointer;
-  box-shadow:inset 0 0 0 1.5px var(--tx3);position:relative}
-.fol.on{background:var(--tx);box-shadow:none}
-.fol.on::after{content:"";position:absolute;left:6px;top:2.5px;width:5px;height:10px;
-  border:solid var(--panel);border-width:0 2px 2px 0;transform:rotate(42deg)}
-.pnm .bar{display:block;height:3px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
-.pnm .bar i{display:block;height:100%;opacity:.9}
+  max-height:340px;overflow-y:auto}
+.picklist.grow{max-height:60vh}
+@media (min-width:760px){.picklist{max-height:440px}}
+.pnm .bar{display:block;height:5px;border-radius:3px;background:var(--panel2);margin-top:7px;
+  overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
+.pnm .bar i{display:block;height:100%;min-width:3px;border-radius:3px}
 .ph u{display:block;text-decoration:none;font-size:9px;color:var(--tx3);margin-top:3px}
-.vedit{display:none;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.pen{flex:0 0 auto;color:var(--tx3);cursor:pointer;font-size:14px;padding:2px 4px;border-radius:5px}
+.pen:hover,.pen.on{color:var(--tx);background:var(--panel2)}
+.vedit{display:none;gap:6px;padding:10px 10px 12px;flex-wrap:wrap;align-items:center;
+  background:var(--panel2);border-bottom:1px solid var(--line2)}
 .vedit input.dt{flex:0 0 auto;font-family:"IBM Plex Mono",monospace;font-size:12px}
 .vedit.open{display:flex}
 .adder input.cfu,.vedit input.cfu{flex:0 0 78px;width:78px;text-align:center;
@@ -162,6 +169,16 @@ td.tot b{color:var(--tx2);font-weight:500}
 .panel{padding-top:18px;border-top:1px solid var(--line);margin-top:18px}
 .panel:first-of-type{border-top:0;margin-top:0;padding-top:0}
 .phead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.ptitle{background:none;border:0;color:inherit;cursor:pointer;text-align:left;padding:4px 0;
+  display:flex;align-items:baseline;gap:7px;flex:1;min-width:0}
+.ptitle .chev{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--tx3)}
+.ptitle:hover .chev{color:var(--tx)}
+.closedline{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3);margin:0 0 4px 20px}
+table.moving{outline:2px solid var(--accent);outline-offset:2px}
+.modeflag{position:sticky;top:0;z-index:20;background:var(--accent);color:#fff;
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  padding:7px 12px;border-radius:0 0 8px 8px;margin:0 auto 10px;width:fit-content;display:none}
+.modeflag.on{display:block}
 .phead b{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:500;letter-spacing:.05em}
 .phead u{text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:9px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin-left:8px}
@@ -187,12 +204,17 @@ th u{display:block;text-decoration:none;font-family:"IBM Plex Mono",monospace;fo
 th s{display:block;text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:11.5px;
   color:var(--tx2);margin-top:2px;line-height:1.2}
 th.today u,th.today s{color:var(--accent)}
+th[data-date]{cursor:pointer;border-radius:6px}
+th[data-date]:hover u,th[data-date]:hover s{color:var(--tx)}
 td.hr{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3);text-align:right;
-  padding:0 7px 0 0;vertical-align:middle;height:32px;line-height:1;border:0;white-space:nowrap}
+  padding:0 7px 0 0;vertical-align:top;height:32px;line-height:1;border:0;white-space:nowrap;
+  transform:translateY(-5px)}
 td.c{background:var(--cell);height:32px;padding:0;vertical-align:top;cursor:pointer;
-  border:1px solid var(--line2);position:relative}
+  border-left:1px solid var(--line2);border-right:1px solid var(--line2);
+  border-top:1px solid var(--line2);border-bottom:0;position:relative}
 td.c.half{border-top-style:dotted}
-td.c.mark{border-top-color:var(--line);border-top-style:solid}
+td.c.mark{border-top-color:var(--line)}
+tbody tr:last-child td.c{border-bottom:1px solid var(--line2)}
 td.c.we{background:var(--panel2)}
 td.c.on{border-color:rgba(0,0,0,.3)}
 td.c em{display:block;font-style:normal;padding:3px 6px 0;overflow:hidden;
@@ -212,6 +234,18 @@ td.c.cont em{display:none}
 table.moving td.c.on{cursor:grab}
 
 /* riepilogo di pannello */
+.sum{margin-top:28px;border-top:1px solid var(--line);padding-top:10px}
+.sumtoggle{background:none;border:0;color:var(--tx2);cursor:pointer;display:flex;align-items:center;
+  gap:8px;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;padding:8px 0;width:100%;text-align:left}
+.sumtoggle:hover{color:var(--tx)}
+.sumtoggle .chev{font-size:13px;color:var(--tx3)}
+.sembody{margin-top:6px}
+.sembody .tally{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:14px}
+.sembody .tally div{display:flex;flex-direction:column}
+.sembody .tally b{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:500}
+.sembody .tally span{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);margin-top:4px}
 .psum{margin-top:10px;border-top:1px solid var(--line2);padding-top:10px}
 .psum .tt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
 .psum .tt span{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3)}
@@ -316,16 +350,13 @@ table.moving td.c.on{cursor:grab}
   </div>
 
   <div class="sec">
-    <div class="secline"><p class="lbl" style="margin:0">Materie Aggiunte</p>
-      <div class="filt" id="pickbar"></div></div>
-    <div class="picklist" id="picklist"></div>
-    <div class="vedit" id="vedit">
-      <input id="vName" type="text" maxlength="60" aria-label="Nome">
-      <input id="vCfu" type="number" min="0" max="40" placeholder="CFU" class="cfu" aria-label="CFU">
-      <input id="vDate" type="date" class="dt" aria-label="Scadenza">
-      <button id="vRen">Salva</button>
-      <button id="vDel">Elimina</button>
+    <div class="secline"><p class="lbl" style="margin:0">Materie</p>
+      <span class="pinfo" id="pickinfo"></span></div>
+    <div class="searchbox">
+      <input id="q" type="search" placeholder="Cerca una materia in tutto il piano…" aria-label="Cerca materia">
+      <button id="qClear" title="Azzera ricerca">✕</button>
     </div>
+    <div class="picklist" id="picklist"></div>
   </div>
 
   <div class="sec">
@@ -342,7 +373,13 @@ table.moving td.c.on{cursor:grab}
     <button id="wNext" aria-label="Settimana successiva">›</button>
   </div>
 
+  <p class="modeflag" id="modeflag"></p>
   <div id="panels"></div>
+
+  <div class="sum" id="semSum">
+    <button class="sumtoggle" id="semToggle"><span class="chev">›</span>Riepilogo del semestre</button>
+    <div id="semBody" class="sembody"></div>
+  </div>
 </div>
 
 <div class="modal" id="modal">
@@ -357,6 +394,31 @@ table.moving td.c.on{cursor:grab}
       <span id="mHint">Il giorno scelto apre la Settimana 1</span>
       <button id="mClose">Chiudi</button>
     </div>
+  </div>
+</div>
+
+<div class="modal" id="dyModal">
+  <div class="sheet">
+    <div class="mhead"><b id="dyTitle"></b><button id="dyClose">✕</button></div>
+    <p style="font-size:12.5px;color:var(--tx2);margin:0 0 12px;line-height:1.5">
+      Copia il giorno per riprodurlo altrove, anche in un'altra settimana.</p>
+    <div class="mfoot" style="flex-wrap:wrap">
+      <button id="dyCopy">Copia giorno</button>
+      <button id="dyPaste">Incolla</button>
+      <button id="dyWipe">Svuota</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="rpModal">
+  <div class="sheet">
+    <div class="mhead"><b>Ripeti settimana</b><button id="rpClose">✕</button></div>
+    <p id="rpInfo" style="font-size:13px;color:var(--tx2);line-height:1.55;margin:0 0 12px"></p>
+    <div class="adder" style="margin:0">
+      <input id="rpN" type="number" min="1" max="30" value="3" class="cfu" aria-label="Quante settimane">
+      <span style="align-self:center;font-size:13px;color:var(--tx2)">settimane successive</span>
+    </div>
+    <div class="mfoot"><span></span><button id="rpGo">Ripeti</button></div>
   </div>
 </div>
 
@@ -426,13 +488,16 @@ const MESI=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","d
 const MESIL=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto",
              "Settembre","Ottobre","Novembre","Dicembre"];
 /* slot da 30 minuti: indice = ora*2 (+1 per la mezz'ora). 12 = 06:00, 47 = 23:30 */
-const HOURS=(()=>{const a=[];for(let s=12;s<=47;s++)a.push(s);return a;})();
+const PERQ=2;
+const HOURS=(()=>{const a=[];for(let s=6*PERQ;s<24*PERQ;s++)a.push(s);return a;})();
 const ROW=32;                    /* altezza di uno slot in pixel, uguale al CSS */
-const slotHour=s=>Math.floor(s/2);
-const isHalf=s=>s%2===1;
-const slotLabel=s=>isHalf(s)?"":String(slotHour(s));
+const slotHour=s=>Math.floor(s/PERQ);
+const slotQ=s=>s%PERQ;
+const isHalf=s=>slotQ(s)===1;
+const slotLabel=s=>slotQ(s)===0?String(slotHour(s)):"";
+const slotTime=s=>slotHour(s)+":"+(isHalf(s)?"30":"00");
 /* conversione slot → ore, con la virgola solo quando serve */
-const hrs=n=>{const v=n/2;return (v%1?v.toFixed(1).replace(".",","):String(v))+" h";};
+const hrs=n=>{const v=n/PERQ;return (v%1?v.toFixed(1).replace(".",","):String(v))+" h";};
 const ACTS=[
   {k:"LEZ",n:"Lezione",o:1},
   {k:"LET",n:"Lettura",o:.84},
@@ -516,11 +581,11 @@ const SWATCHES=["#6E8BFF","#5FA8D3","#63C2C2","#4FB3A0","#82B356","#B0A24E",
    2. STATO
    ============================================================ */
 const KEY="piano-6272-v5";
-let state={v:2,theme:"dark",year:1,ctx:"1",from:0,to:6,act:"LEZ",brush:null,erase:false,mode:"paint",
-           follow:{},exams:[],showAll:false,over:{},
+let state={v:4,theme:"dark",year:1,ctx:"1",from:0,to:6,act:"LEZ",brush:null,erase:false,mode:"paint",
+           exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
 let painting=false,val=null,openColor=null,armed=null,armTmr=null,mMonth=null,drag=null;
-let lastTap={sig:null,t:0},tapUndo=null;
+let lastTap={sig:null,t:0},tapUndo=null,editId=null;
 
 
 /* ---------- date ---------- */
@@ -549,7 +614,7 @@ function panelDates(p){
    b) storage dell'artifact: se presente, scritto con throttle
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
-const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","follow","exams","showAll","over"];
+const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen"];
 const LSKEY="piano-6272-local";
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
         localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
@@ -752,7 +817,7 @@ document.addEventListener("visibilitychange",()=>{
 /* ============================================================
    3c. CRONOLOGIA — annulla / rifai
    ============================================================ */
-const HKEYS=["cells","colors","custom","follow","exams","over"];
+const HKEYS=["cells","colors","custom","exams","over"];
 let hist={past:[],future:[],cur:null};
 
 function snap(){const o={};HKEYS.forEach(k=>o[k]=state[k]);return JSON.stringify(o);}
@@ -798,7 +863,7 @@ window.addEventListener("keydown",e=>{
 
 function adopt(d){
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
-  state.follow=state.follow||{};state.exams=state.exams||[];
+  state.exams=state.exams||[];state.collapsed=state.collapsed||{};
   normCustom();
   migrate(d);
 }
@@ -850,20 +915,32 @@ function migrate(d){
   });
   Object.keys(out).forEach(k=>{if(out[k].a==="STU")out[k].a="LET";});
 
+  state.cells=out;
+
+  /* slot da un'ora (formato originale) → mezz'ora */
   if(!d.v||d.v<2){
     const half={};
-    Object.keys(out).forEach(k=>{
-      const p=k.split(".");
-      const h=+p[p.length-1],pre=p.slice(0,-1).join(".");
+    Object.keys(state.cells).forEach(k=>{
+      const p=k.split("."),h=+p[p.length-1],pre=p.slice(0,-1).join(".");
       if(h>=6&&h<=23){
-        half[pre+"."+(h*2)]=out[k];
-        half[pre+"."+(h*2+1)]={i:out[k].i,a:out[k].a};
-      }else half[k]=out[k];
+        half[pre+"."+(h*2)]=state.cells[k];
+        half[pre+"."+(h*2+1)]={i:state.cells[k].i,a:state.cells[k].a};
+      }else half[k]=state.cells[k];
     });
     state.cells=half;moved++;
-  }else state.cells=out;
+  }
+  /* slot da un quarto d'ora → mezz'ora, tenendo il primo quarto occupato */
+  if(d.v===3){
+    const half={};
+    Object.keys(state.cells).forEach(k=>{
+      const p=k.split("."),q=+p[p.length-1],pre=p.slice(0,-1).join(".");
+      const nk=pre+"."+Math.floor(q/2);
+      if(!half[nk])half[nk]=state.cells[k];
+    });
+    state.cells=half;moved++;
+  }
 
-  state.v=2;
+  state.v=4;
   if(moved)save();
 }
 
@@ -871,6 +948,25 @@ function migrate(d){
    4. MODELLO
    ============================================================ */
 const shortOf=n=>n.length>17?n.slice(0,16)+"…":n;
+
+/* colore predefinito ricavato dall'id: resta lo stesso in ogni anno e semestre */
+function autoColor(id){
+  let h=0;for(let i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))>>>0;
+  return PAL[h%PAL.length];
+}
+/* tutte le materie del piano, di ogni anno e semestre, senza duplicati */
+function allCourses(){
+  const out=[],seen=new Set();
+  state.over=state.over||{};
+  [1,2,3].forEach(y=>COURSES[y].forEach(c=>{
+    const id="c:"+c.c;
+    if(seen.has(id))return;seen.add(id);
+    const ov=state.over[id]||{};
+    out.push({id:id,name:ov.n||c.n,short:ov.n?shortOf(ov.n):c.k,
+      cfu:(ov.c!=null?ov.c:c.u),date:ov.d||"",year:y,sem:c.p,kind:"c"});
+  }));
+  return out;
+}
 function courses(){
   const out=[],seen=new Set();
   state.over=state.over||{};
@@ -910,8 +1006,8 @@ function delVoce(id){
   if(state.brush===id)state.brush=null;
 }
 function items(){
-  const all=courses().concat(voci());
-  all.forEach((o,i)=>o.color=state.colors[o.id]||PAL[i%PAL.length]);
+  const all=allCourses().concat(voci());
+  all.forEach(o=>o.color=state.colors[o.id]||autoColor(o.id));
   return all;
 }
 const map=()=>{const m={};items().forEach(o=>m[o.id]=o);return m;};
@@ -981,46 +1077,42 @@ function controls(){
 
 function picklist(){
   const box=document.getElementById("picklist");box.innerHTML="";
-  const all=courses().concat(voci());
-  const seguite=all.filter(o=>state.follow[o.id]);
-  const list=(state.showAll||!seguite.length)?all:seguite;
+  const q=(state.q||"").trim().toLowerCase();
+  const inCtx=courses().concat(voci());
+  /* con la ricerca attiva pesca in tutto il piano, non solo nel semestre corrente */
+  const list=q
+    ? items().filter(o=>o.name.toLowerCase().indexOf(q)>=0)
+    : inCtx;
+  box.classList.toggle("grow",!!q);
 
-  /* intestazione con filtro */
-  const bar=document.getElementById("pickbar");
-  bar.innerHTML="";
-  if(seguite.length){
-    [["Seguite",false],["Tutte",true]].forEach(([lab,v])=>{
-      const t=document.createElement("button");
-      t.textContent=lab+(v?" ("+all.length+")":" ("+seguite.length+")");
-      t.setAttribute("aria-pressed",!!state.showAll===v);
-      t.onclick=()=>{state.showAll=v;save();picklist();};
-      bar.appendChild(t);
-    });
-  }
+  const info=document.getElementById("pickinfo");
+  info.textContent=q
+    ? list.length+" risultati in tutto il piano"
+    : list.length+" nel semestre";
 
-  if(!list.length){box.innerHTML='<p class="empty" style="padding:12px">Nessuna materia per questa selezione.</p>';return;}
+  if(!list.length){box.innerHTML='<p class="empty" style="padding:12px">Nessuna materia trovata.</p>';return;}
+
   list.forEach(o=>{
-    o.color=state.colors[o.id]||PAL[all.indexOf(o)%PAL.length];
+    o.color=state.colors[o.id]||autoColor(o.id);
     const h=totalCtx(o.id),tgt=targetH(o.cfu);
+    const pct=tgt?Math.min(100,(h/PERQ)/tgt*100):0;
     const b=document.createElement("button");
     b.className="prow"+(state.brush===o.id?" sel":"");
     b.setAttribute("aria-pressed",state.brush===o.id);
-    const pct=tgt?Math.min(100,Math.round((h/2)/tgt*100)):0;
-    b.innerHTML='<span class="fol'+(state.follow[o.id]?" on":"")+'" role="button" '+
-        'aria-label="Segui questa materia" title="Seguo questa materia"></span>'+
-      '<span class="swatch" style="background:'+o.color+'"></span>'+
-      '<span class="pnm">'+o.name+
-        (tgt?'<span class="bar"><i style="width:'+pct+'%;background:'+o.color+'"></i></span>':"")+
+    const tag=(q&&o.kind==="c")?'<em>'+["I","II","III"][o.year-1]+" · sem "+o.sem+"</em>":"";
+    b.innerHTML='<span class="swatch" style="background:'+o.color+'"></span>'+
+      '<span class="pnm">'+o.name+tag+
+        (tgt?'<span class="bar"><i style="width:'+Math.max(h?2:0,pct)+'%;background:'+o.color+'"></i></span>':"")+
       "</span>"+
-      '<span class="ph">'+(h?hrs(h):"—")+(tgt?'<u>su '+tgt+" h</u>":"")+"</span>";
+      '<span class="ph">'+(h?hrs(h):"—")+(tgt?"<u>su "+tgt+" h"+(h?" · "+Math.round(pct)+"%":"")+"</u>":"")+"</span>"+
+      '<span class="pen'+(editId===o.id?" on":"")+'" role="button" title="Modifica nome, CFU, scadenza" '+
+        'aria-label="Modifica">✎</span>';
     b.onclick=()=>{state.brush=o.id;state.erase=false;save();picklist();tools();status();};
     b.querySelector(".swatch").onclick=e=>{
       e.stopPropagation();openColor=openColor===o.id?null:o.id;picklist();
     };
-    b.querySelector(".fol").onclick=e=>{
-      e.stopPropagation();
-      if(state.follow[o.id])delete state.follow[o.id];else state.follow[o.id]=1;
-      save();commit();picklist();
+    b.querySelector(".pen").onclick=e=>{
+      e.stopPropagation();editId=editId===o.id?null:o.id;picklist();
     };
     box.appendChild(b);
 
@@ -1038,7 +1130,57 @@ function picklist(){
     inp.onchange=()=>{state.colors[o.id]=inp.value;save("Colore aggiornato");commit();render();};
     pick.appendChild(inp);
     box.appendChild(pick);
+
+    if(editId===o.id)box.appendChild(editForm(o));
   });
+}
+
+/* form di modifica della materia: nome, CFU, scadenza */
+function editForm(o){
+  const custom=o.id.indexOf("x:")===0;
+  const wrap=document.createElement("div");wrap.className="vedit open";
+
+  const nm=document.createElement("input");
+  nm.type="text";nm.maxLength=60;nm.value=o.name;nm.setAttribute("aria-label","Nome");
+  const cf=document.createElement("input");
+  cf.type="number";cf.min=0;cf.max=40;cf.className="cfu";cf.placeholder="CFU";
+  cf.value=o.cfu||"";cf.setAttribute("aria-label","CFU");
+  const dt=document.createElement("input");
+  dt.type="date";dt.className="dt";dt.value=o.date||"";dt.setAttribute("aria-label","Scadenza");
+
+  const ok=document.createElement("button");ok.textContent="Salva";
+  ok.onclick=()=>{
+    const nv=nm.value.trim();if(!nv){nm.focus();return;}
+    if(custom){
+      normCustom();
+      const c=state.custom.find(x=>x.id===o.id);
+      if(c){c.name=nv;c.cfu=+cf.value||0;c.d=dt.value||"";}
+    }else{
+      state.over=state.over||{};
+      state.over[o.id]={n:nv,c:(cf.value===""?null:+cf.value),d:dt.value||""};
+    }
+    syncExam(o.id,nv,dt.value||"");
+    editId=null;save("Materia aggiornata");commit();render();
+  };
+  const del=document.createElement("button");
+  del.textContent=custom?"Elimina":"Ripristina";
+  del.title=custom?"Elimina la voce":"Torna al nome e ai CFU del piano didattico";
+  del.onclick=()=>{
+    if(del.className==="armed"){
+      if(custom)delVoce(o.id);else delete state.over[o.id];
+      syncExam(o.id,"","");
+      editId=null;save(custom?"Voce eliminata":"Ripristinata");commit();render();
+    }else{
+      del.className="armed";del.textContent="Confermi?";
+      setTimeout(()=>{if(del.className==="armed"){
+        del.className="";del.textContent=custom?"Elimina":"Ripristina";}},4000);
+    }
+  };
+  const cl=document.createElement("button");cl.textContent="Chiudi";
+  cl.onclick=()=>{editId=null;picklist();};
+
+  [nm,cf,dt,ok,del,cl].forEach(el=>wrap.appendChild(el));
+  return wrap;
 }
 
 function tools(){
@@ -1048,7 +1190,7 @@ function tools(){
     b.className="tool o"+(i+1);
     b.setAttribute("aria-pressed",state.mode==="paint"&&!state.erase&&state.act===a.k);
     b.innerHTML="<i></i>"+a.n;
-    b.onclick=()=>{state.act=a.k;state.erase=false;state.mode="paint";save();tools();status();panels();};
+    b.onclick=()=>{state.act=a.k;state.erase=false;state.mode="paint";save();tools();status();modeFlag();panels();};
     box.appendChild(b);
   });
   const v=document.getElementById("voci");v.innerHTML="";
@@ -1060,49 +1202,14 @@ function tools(){
     b.onclick=()=>{state.brush=o.id;state.erase=false;save();picklist();tools();status();};
     v.appendChild(b);
   });
-  vedit();
 }
-/* pannello di modifica: nome, CFU e scadenza della materia selezionata */
-function vedit(){
-  const box=document.getElementById("vedit");
-  const sel=state.brush?items().find(o=>o.id===state.brush):null;
-  box.className="vedit"+(sel?" open":"");
-  if(!sel)return;
-  const custom=sel.id.indexOf("x:")===0;
-  const inp=document.getElementById("vName"),cf=document.getElementById("vCfu"),
-        dt=document.getElementById("vDate"),del=document.getElementById("vDel");
-  inp.value=sel.name;cf.value=sel.cfu||"";dt.value=sel.date||"";
-  del.className="";del.textContent=custom?"Elimina":"Ripristina";
-  del.title=custom?"Elimina la voce":"Torna al nome e ai CFU del piano didattico";
-
-  document.getElementById("vRen").onclick=()=>{
-    const nv=inp.value.trim();
-    if(!nv)return;
-    if(custom){
-      normCustom();
-      const c=state.custom.find(x=>x.id===sel.id);
-      if(c){c.name=nv;c.cfu=+cf.value||0;c.d=dt.value||"";}
-    }else{
-      state.over=state.over||{};
-      state.over[sel.id]={n:nv,c:(cf.value===""?null:+cf.value),d:dt.value||""};
-    }
-    syncExam(sel.id,nv,dt.value||"");
-    save("Materia aggiornata");commit();render();
-  };
-  del.onclick=()=>{
-    if(del.className==="armed"){
-      if(custom)delVoce(sel.id);
-      else{delete state.over[sel.id];}
-      syncExam(sel.id,"","");
-      save(custom?"Voce eliminata":"Ripristinata");commit();render();
-    }else{
-      del.className="armed";del.textContent="Confermi?";
-      setTimeout(()=>{if(del.className==="armed"){
-        del.className="";del.textContent=custom?"Elimina":"Ripristina";}},4000);
-    }
-  };
+function modeFlag(){
+  const el=document.getElementById("modeflag");
+  if(state.mode==="move"){el.className="modeflag on";el.textContent="Modalità sposta attiva";}
+  else if(state.erase){el.className="modeflag on";el.style.background="var(--warn)";
+    el.textContent="Cancella slot attivo";}
+  else {el.className="modeflag";el.style.background="";}
 }
-
 function status(){
   const m=map(),el=document.getElementById("status");
   const clip=state.clip?'<span style="color:var(--tx3)"> — appunti: '+state.clip.label+" ("+hrs(state.clip.hours)+")</span>":"";
@@ -1179,11 +1286,103 @@ function pasteWeek(p){
     const q=k.split("."),v=state.clip.data[k];
     state.cells[ck(iso(dates[+q[0]]),+q[1])]=v.n?{i:v.i,a:v.a,n:v.n}:{i:v.i,a:v.a};
   });
-  save("Incollata nella settimana "+(p+1));commit();panels();picklist();
+  save("Incollata nella settimana "+(p+1));commit();panels();picklist();semSummary();
 }
+/* ---------- riepilogo del semestre ---------- */
+function semSummary(){
+  const box=document.getElementById("semBody");
+  if(!state.semOpen){box.innerHTML="";return;}
+  const m=map(),pre=state.year+"."+state.ctx+".";
+  const per={},byAct={},weeks={};
+  let tot=0;
+  Object.keys(state.cells).forEach(k=>{
+    if(k.indexOf(pre)!==0)return;
+    const v=state.cells[k];if(!m[v.i])return;
+    const wk=iso(monday(parse(k.split(".")[2])));
+    per[v.i]=per[v.i]||{tot:0};
+    per[v.i][v.a]=(per[v.i][v.a]||0)+1;per[v.i].tot++;
+    byAct[v.a]=(byAct[v.a]||0)+1;
+    weeks[wk]=(weeks[wk]||0)+1;
+    tot++;
+  });
+  const nw=Object.keys(weeks).length,avg=nw?tot/nw:0;
+  const peak=Object.keys(weeks).reduce((a,b)=>weeks[b]>(weeks[a]||0)?b:a,null);
+
+  let h='<div class="tally">'+
+    '<div><b>'+hrs(tot)+"</b><span>totale</span></div>"+
+    '<div><b>'+nw+"</b><span>settimane usate</span></div>"+
+    '<div><b>'+hrs(Math.round(avg))+"</b><span>media a settimana</span></div>"+
+    (peak?'<div><b>'+hrs(weeks[peak])+"</b><span>settimana più carica</span></div>":"")+
+    "</div>";
+  h+='<div class="acts" style="margin:0 0 16px">'+
+    ACTS.filter(a=>byAct[a.k]).map(a=>"<span>"+a.n+" <u>"+hrs(byAct[a.k])+"</u></span>").join("")+"</div>";
+
+  const ids=Object.keys(per).sort((a,b)=>per[b].tot-per[a].tot);
+  if(!ids.length)h+='<p class="empty">Nessuna ora pianificata in questo semestre.</p>';
+  ids.forEach(id=>{
+    const o=m[id],k=per[id],tgt=targetH(o.cfu),done=k.tot/PERQ;
+    const pct=tgt?Math.min(100,done/tgt*100):0;
+    h+='<div class="srow"><span class="dot" style="background:'+o.color+'"></span>'+
+      '<span class="body"><b>'+o.name+"</b>"+
+      (tgt?'<span class="pnm"><span class="bar"><i style="width:'+Math.max(2,pct)+
+        "%;background:"+o.color+'"></i></span></span>':"")+
+      '<span class="acts">'+ACTS.filter(a=>k[a.k]).map(a=>"<span>"+a.n+" <u>"+hrs(k[a.k])+"</u></span>").join("")+
+      "</span></span>"+
+      '<span class="tot"><b>'+hrs(k.tot)+"</b><u>"+
+        (tgt?"su "+tgt+" h · "+Math.round(pct)+"%":"senza obiettivo")+"</u></span></div>";
+  });
+  box.innerHTML=h;
+}
+
+/* ---------- giorno intero: copia, incolla, svuota ---------- */
+let dayAt=null;
+function dayData(dateIso){
+  const out={};
+  HOURS.forEach(sl=>{const v=state.cells[ck(dateIso,sl)];if(v)out[sl]=v;});
+  return out;
+}
+function openDay(dateIso){
+  dayAt=dateIso;
+  const n=Object.keys(dayData(dateIso)).length;
+  const d=parse(dateIso);
+  document.getElementById("dyTitle").textContent=
+    DSH[(d.getDay()+6)%7]+" "+fmt(d)+" · "+(n?hrs(n):"vuoto");
+  const inc=document.getElementById("dyPaste");
+  inc.disabled=!state.dayClip;
+  inc.textContent=state.dayClip?"Incolla ("+hrs(Object.keys(state.dayClip.data).length)+")":"Incolla";
+  document.getElementById("dyModal").classList.add("open");
+}
+function closeDay(){document.getElementById("dyModal").classList.remove("open");dayAt=null;}
+
+let repeatFrom=null;
+function openRepeat(p){
+  if(!Object.keys(weekData(p)).length){toast("Settimana vuota");return;}
+  repeatFrom=p;
+  document.getElementById("rpInfo").textContent=
+    "Settimana "+(p+1)+" · "+fmt(panelStart(p))+" — verrà copiata nelle settimane successive, "+
+    "sostituendo quello che contengono.";
+  document.getElementById("rpN").value=3;
+  document.getElementById("rpModal").classList.add("open");
+}
+function doRepeat(){
+  const p=repeatFrom,n=Math.max(1,Math.min(30,+document.getElementById("rpN").value||1));
+  const data=weekData(p);
+  for(let k=1;k<=n;k++){
+    const dates=[];const st=addDays(panelStart(p),7*k);
+    for(let i=0;i<7;i++)dates.push(addDays(st,i));
+    dates.forEach(d=>HOURS.forEach(sl=>delete state.cells[ck(iso(d),sl)]));
+    Object.keys(data).forEach(key=>{
+      const q=key.split("."),v=data[key];
+      state.cells[ck(iso(dates[+q[0]]),+q[1])]=v.n?{i:v.i,a:v.a,n:v.n}:{i:v.i,a:v.a};
+    });
+  }
+  document.getElementById("rpModal").classList.remove("open");
+  save("Ripetuta su "+n+(n===1?" settimana":" settimane"));commit();panels();picklist();semSummary();
+}
+
 function wipeWeek(p){
   panelDates(p).forEach(d=>HOURS.forEach(hr=>delete state.cells[ck(iso(d),hr)]));
-  save("Settimana "+(p+1)+" svuotata");commit();panels();picklist();
+  save("Settimana "+(p+1)+" svuotata");commit();panels();picklist();semSummary();
 }
 
 /* ---------- pannelli ---------- */
@@ -1197,8 +1396,19 @@ function buildPanel(p,m){
   const dates=panelDates(p);
   const sec=document.createElement("section");sec.className="panel";
 
+  const closed=!!state.collapsed[p];
+  if(closed)sec.classList.add("closed");
+
   const hd=document.createElement("div");hd.className="phead";
-  hd.innerHTML="<div><b>Settimana "+(p+1)+"</b><u>"+fmt(dates[0])+" – "+fmt(dates[6])+"</u></div>";
+  const ttl=document.createElement("button");ttl.className="ptitle";
+  ttl.innerHTML='<span class="chev">'+(closed?"›":"⌄")+"</span><b>Settimana "+(p+1)+
+    "</b><u>"+fmt(dates[0])+" – "+fmt(dates[6])+"</u>";
+  ttl.title=closed?"Apri la settimana":"Chiudi la settimana";
+  ttl.onclick=()=>{
+    if(closed)delete state.collapsed[p];else state.collapsed[p]=1;
+    save();panels();
+  };
+  hd.appendChild(ttl);
 
   const acts=document.createElement("div");acts.className="pacts";
 
@@ -1208,17 +1418,21 @@ function buildPanel(p,m){
   mv.title="Trascina un blocco per riposizionarlo";
   mv.onclick=()=>{
     state.mode=state.mode==="move"?"paint":"move";state.erase=false;
-    save();tools();status();panels();
+    save();tools();status();modeFlag();panels();
   };
   const er=document.createElement("button");
   er.innerHTML="<i style='opacity:.4;background:repeating-linear-gradient(45deg,currentColor,currentColor 2px,transparent 2px,transparent 4px)'></i>Cancella slot";
   if(state.erase)er.className="act";
   er.onclick=()=>{
     state.erase=!state.erase;state.mode="paint";
-    save();tools();status();panels();
+    save();tools();status();modeFlag();panels();
   };
 
   const sep=document.createElement("span");sep.className="sep";
+
+  const rep=document.createElement("button");
+  rep.textContent="Ripeti";rep.title="Ripeti questa settimana su quelle successive";
+  rep.onclick=()=>openRepeat(p);
 
   const cal=document.createElement("button");
   cal.textContent="Calendario";cal.title="Scegli il giorno di partenza";
@@ -1243,8 +1457,16 @@ function buildPanel(p,m){
     else{armed="w"+p;panels();clearTimeout(armTmr);armTmr=setTimeout(()=>{armed=null;panels();},4000);}
   };
   acts.appendChild(mv);acts.appendChild(er);acts.appendChild(sep);
-  acts.appendChild(copy);acts.appendChild(paste);acts.appendChild(wipe);acts.appendChild(cal);
+  acts.appendChild(copy);acts.appendChild(paste);acts.appendChild(rep);
+  acts.appendChild(wipe);acts.appendChild(cal);
   hd.appendChild(acts);sec.appendChild(hd);
+  if(closed){
+    const c=countPanel(p);let g=0;Object.keys(c).forEach(i=>g+=c[i].tot);
+    const s2=document.createElement("p");s2.className="closedline";
+    s2.textContent=g?hrs(g)+" pianificate":"settimana vuota";
+    sec.appendChild(s2);
+    return sec;
+  }
 
   /* griglia */
   const gw=document.createElement("div");gw.className="gwrap";
@@ -1254,10 +1476,15 @@ function buildPanel(p,m){
   for(let d=state.from;d<=state.to;d++){
     const ex=examsOn(iso(dates[d]));
     const cls=(d>4?"we ":"")+(iso(dates[d])===TODAY?"today ":"")+(ex.length?"exam":"");
-    head+='<th class="'+cls+'" title="'+(ex.map(x=>x.t).join(", ")||"")+'">'+
+    head+='<th class="'+cls+'" data-date="'+iso(dates[d])+'" tabindex="0" '+
+      'title="'+(ex.map(x=>x.t).join(", ")||"Tocca per copiare o svuotare il giorno")+'">'+
       "<u>"+DSH[d]+"</u><s>"+dates[d].getDate()+"</s></th>";
   }
   const th=document.createElement("thead");th.innerHTML="<tr>"+head+"</tr>";t.appendChild(th);
+  th.addEventListener("click",e=>{
+    const h=e.target.closest("th[data-date]");
+    if(h)openDay(h.dataset.date);
+  });
 
   const tb=document.createElement("tbody");
 
@@ -1283,7 +1510,7 @@ function buildPanel(p,m){
       const c=document.createElement("td");
       c.tabIndex=0;c.dataset.date=iso(dates[d]);c.dataset.h=s;c.dataset.d=d;
       c.dataset.half=isHalf(s);
-      c.dataset.mark=(!isHalf(s)&&slotHour(s)%3===0);
+      c.dataset.mark=(slotQ(s)===0);
       cell(c,m);row.appendChild(c);
     }
     tb.appendChild(row);
@@ -1496,8 +1723,8 @@ function wire(t){
   });
 }
 ["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,()=>{
-  if(drag){drag=null;save();commit();panels();picklist();}
-  if(painting){painting=false;commit();panels();picklist();}
+  if(drag){drag=null;save();commit();panels();picklist();semSummary();}
+  if(painting){painting=false;commit();panels();picklist();semSummary();}
 }));
 
 /* ============================================================
@@ -1641,7 +1868,7 @@ document.getElementById("addBtn").onclick=()=>{
   const cf=document.getElementById("newCfu");
   const id="x:"+Date.now().toString(36);
   state.custom.push({id:id,name:v,cfu:+cf.value||0});
-  state.follow[id]=1;state.brush=id;state.erase=false;
+  state.brush=id;state.erase=false;
   i.value="";cf.value="";save();commit();render();
 };
 document.getElementById("newName").addEventListener("keydown",e=>{
@@ -1660,6 +1887,45 @@ document.getElementById("exText").addEventListener("keydown",e=>{
   if(e.key==="Enter")document.getElementById("exAdd").click();
 });
 
+const qEl=document.getElementById("q");
+qEl.addEventListener("input",()=>{state.q=qEl.value;picklist();});
+document.getElementById("qClear").onclick=()=>{qEl.value="";state.q="";picklist();qEl.focus();};
+
+document.getElementById("semToggle").onclick=()=>{
+  state.semOpen=!state.semOpen;save();
+  document.querySelector("#semToggle .chev").textContent=state.semOpen?"⌄":"›";
+  semSummary();
+};
+
+document.getElementById("dyClose").onclick=closeDay;
+document.getElementById("dyModal").onclick=e=>{if(e.target.id==="dyModal")closeDay();};
+document.getElementById("dyCopy").onclick=()=>{
+  const data=dayData(dayAt);
+  if(!Object.keys(data).length){toast("Giorno vuoto");return;}
+  state.dayClip={data:data,from:dayAt};
+  save("Giorno copiato");closeDay();
+};
+document.getElementById("dyPaste").onclick=()=>{
+  if(!state.dayClip)return;
+  const d=dayAt;
+  HOURS.forEach(sl=>delete state.cells[ck(d,sl)]);
+  Object.keys(state.dayClip.data).forEach(sl=>{
+    const v=state.dayClip.data[sl];
+    state.cells[ck(d,+sl)]=v.n?{i:v.i,a:v.a,n:v.n}:{i:v.i,a:v.a};
+  });
+  closeDay();save("Giorno incollato");commit();panels();picklist();semSummary();
+};
+document.getElementById("dyWipe").onclick=()=>{
+  const d=dayAt;
+  HOURS.forEach(sl=>delete state.cells[ck(d,sl)]);
+  closeDay();save("Giorno svuotato");commit();panels();picklist();semSummary();
+};
+
+document.getElementById("rpClose").onclick=()=>document.getElementById("rpModal").classList.remove("open");
+document.getElementById("rpModal").onclick=e=>{
+  if(e.target.id==="rpModal")e.currentTarget.classList.remove("open");};
+document.getElementById("rpGo").onclick=doRepeat;
+
 document.getElementById("undoBtn").onclick=()=>undo();
 document.getElementById("redoBtn").onclick=()=>redo();
 document.getElementById("theme").onclick=()=>{
@@ -1667,7 +1933,11 @@ document.getElementById("theme").onclick=()=>{
   document.documentElement.setAttribute("data-theme",state.theme);save();
 };
 
-function render(){controls();picklist();tools();examList();weeknav();panels();status();}
+function render(){
+  controls();picklist();tools();examList();weeknav();panels();status();modeFlag();
+  document.querySelector("#semToggle .chev").textContent=state.semOpen?"⌄":"›";
+  semSummary();
+}
 (async()=>{await load();render();histInit();})();
 </script>
 </body>
