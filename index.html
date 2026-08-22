@@ -222,7 +222,11 @@ table.moving .blk{cursor:grab}
 .tool.pompick.armed{background:var(--accent);border-color:var(--accent);color:#fff}
 .pomhint.warn{color:var(--accent)}
 .pomhint{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3);
-  align-self:center}
+  align-self:center;line-height:1.5}
+.pomhint b{font-weight:500;color:var(--tx2)}
+.pmhead{font-family:"IBM Plex Mono",monospace;font-size:8.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);display:flex;gap:9px;padding:0 0 6px 159px}
+.pmhead span{width:58px;text-align:center}
 .pmrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:10px 0;
   border-bottom:1px solid var(--line2)}
 .pmrow:last-child{border-bottom:0}
@@ -533,8 +537,9 @@ html[data-theme="light"] input.noteEdit{background:rgba(255,255,255,.45)}
   <div class="sheet bk" style="max-width:520px">
     <div class="mhead"><b>Durate delle sessioni</b><button id="pmClose">✕</button></div>
     <p style="font-size:12.5px;color:var(--tx2);margin:0 0 14px;line-height:1.5">
-      Per ogni attività: quanto dura una sessione, la pausa breve, dopo quanti cicli
-      scatta la pausa lunga e quanto dura.</p>
+      Per ogni attività, da sinistra a destra: durata di una <b>sessione</b>, minuti di
+      <b>pausa</b> breve, dopo quanti <b>cicli</b> scatta la pausa <b>lunga</b>, e quanto
+      dura. Tutto in minuti.</p>
     <div id="pmBody"></div>
   </div>
 </div>
@@ -1715,6 +1720,16 @@ function pomAdvance(auto){
   }
   r.paused=null;save();pomRender();pomLoop();
 }
+/* riporta la fase in corso al suo inizio */
+function pomRestart(){
+  const r=state.pomRun;if(!r)return;
+  const c=pomConf(r.act);
+  const dur=(r.phase==="work"?c.s:(r.phase==="long"?c.l:c.b))*60000;
+  r.ends=Date.now()+dur;
+  if(r.paused!=null)r.paused=dur;
+  save();pomRender();if(r.paused==null)pomLoop();
+  toast("Ripartito da "+Math.round(dur/60000)+" min");
+}
 function pomStop(){
   const old=state.pomRun;
   state.pomRun=null;clearInterval(pomTick);pomTick=null;save();pomRender();
@@ -1793,15 +1808,18 @@ function pomRender(onlyTime){
       '<span class="pmeta"><b>'+eti+"</b><i>ciclo "+r.cycle+" di "+c.n+
         " · oggi "+t.n+(t.n===1?" sessione":" sessioni")+"</i></span>"+
       '<span class="pbtn">'+
-        '<button data-p="pause">'+(r.paused!=null?"Riprendi":"Pausa")+"</button>"+
-        '<button data-p="skip">Salta</button>'+
-        '<button data-p="stop">Chiudi</button>'+
+        '<button data-p="pause" title="'+(r.paused!=null?"Riprendi":"Metti in pausa")+'">'+
+          (r.paused!=null?"▶ Riprendi":"❚❚ Pausa")+"</button>"+
+        '<button data-p="restart" title="Riporta il conto all\'inizio">↺ Riavvia</button>'+
+        '<button data-p="skip" title="Passa alla fase successiva">↷ Salta</button>'+
+        '<button data-p="stop" title="Chiudi il pomodoro">✕</button>'+
       "</span>"+
     "</div>";
   bar.querySelectorAll("button").forEach(b=>{
     b.onclick=()=>{
       const k=b.dataset.p;
       if(k==="pause")pomPause();
+      else if(k==="restart")pomRestart();
       else if(k==="skip")pomAdvance(false);
       else pomStop();
     };
@@ -1826,8 +1844,9 @@ function pomPanel(){
 
   const pick=document.createElement("button");
   pick.className="tool pompick"+(pomPick?" armed":"");
-  pick.innerHTML=icon("POM",16)+(pomPick?"Tocca un blocco…":"Da un blocco");
-  pick.title="Scegli un blocco: la sessione userà la sua attività e lo spunterà alla fine";
+  pick.innerHTML=icon("POM",16)+(pomPick?"Tocca un blocco…":"Avvia su un blocco");
+  pick.title="Poi tocchi un blocco della griglia: la sessione prende la sua attività "+
+    "e a fine lo spunta come fatto";
   pick.onclick=()=>pomAskBlock(!pomPick);
 
   if(act===AUTOACT){
@@ -1864,7 +1883,8 @@ function pomPanel(){
   }
 
   const cfg=document.createElement("button");
-  cfg.className="tool";cfg.textContent="Durate";
+  cfg.className="tool";cfg.textContent="Imposta durate";
+  cfg.title="Quanto dura una sessione, la pausa breve e ogni quanto scatta quella lunga";
   cfg.onclick=()=>{pomSettings();document.getElementById("pmModal").classList.add("open");};
   box.appendChild(cfg);
 
@@ -1872,6 +1892,12 @@ function pomPanel(){
     const h=document.createElement("span");
     h.className="pomhint warn";
     h.textContent="tocca il blocco da cui partire · Esc per annullare";
+    box.appendChild(h);
+  }else if(!state.pomRun&&!sel.length){
+    const h=document.createElement("span");
+    h.className="pomhint";
+    h.innerHTML="<b>Avvia</b> usa l'attività scelta qui sopra · "+
+      "<b>Avvia su un blocco</b> parte da un blocco della griglia e lo spunta a fine sessione";
     box.appendChild(h);
   }
   const t=pomToday();
@@ -1883,14 +1909,17 @@ function pomPanel(){
 
 function pomSettings(){
   const box=document.getElementById("pmBody");box.innerHTML="";
+  const hd=document.createElement("div");hd.className="pmhead";
+  hd.innerHTML="<span>sessione</span><span>pausa</span><span>cicli</span><span>lunga</span>";
+  box.appendChild(hd);
   ACTS.filter(a=>a.k!==AUTOACT).forEach(a=>{
     const c=pomConf(a.k);
     const row=document.createElement("div");row.className="pmrow";
     row.innerHTML='<span class="nm">'+icon(a.k,13)+a.n+"</span>"+
-      '<label>Sessione<input type="number" min="1" max="180" value="'+c.s+'" data-f="s"></label>'+
-      '<label>Pausa<input type="number" min="0" max="60" value="'+c.b+'" data-f="b"></label>'+
-      '<label>Cicli<input type="number" min="1" max="10" value="'+c.n+'" data-f="n"></label>'+
-      '<label>Pausa lunga<input type="number" min="0" max="120" value="'+c.l+'" data-f="l"></label>';
+      '<input type="number" min="1" max="180" value="'+c.s+'" data-f="s" title="Minuti di una sessione">'+
+      '<input type="number" min="0" max="60" value="'+c.b+'" data-f="b" title="Minuti di pausa breve">'+
+      '<input type="number" min="1" max="10" value="'+c.n+'" data-f="n" title="Dopo quanti cicli scatta la pausa lunga">'+
+      '<input type="number" min="0" max="120" value="'+c.l+'" data-f="l" title="Minuti di pausa lunga">';
     row.querySelectorAll("input").forEach(inp=>{
       inp.onchange=()=>{
         state.pomConf=state.pomConf||{};
