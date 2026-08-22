@@ -625,10 +625,11 @@ html[data-theme="light"] input.noteEdit{background:rgba(255,255,255,.45)}
    1. DATI
    ============================================================ */
 const PANELS=4;
+/* calendario LM Scienze Informatiche, Parma, a.a. 2026-27 */
 const CTX={
-  "1":{label:"1", name:"Semestre 1", start:"2026-09-14"},
-  "2":{label:"2", name:"Semestre 2", start:"2027-02-08"},
-  "S":{label:"Sessione", name:"Sessione d'esame", start:"2026-12-07"}
+  "1":{label:"1", name:"Semestre 1", start:"2026-09-21"},
+  "2":{label:"2", name:"Semestre 2", start:"2027-02-22"},
+  "S":{label:"Sessione", name:"Sessione invernale", start:"2027-01-07"}
 };
 const DSH=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
 const MESI=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
@@ -672,67 +673,42 @@ const ACTS=[
   {k:"RIP",n:"Ripasso"}
 ];
 
+/* LM-18 Scienze Informatiche, Università di Parma — immatricolati 2026/27
+   p = semestre, u = CFU */
 const COURSES={
  1:[
-  {c:"16764",n:"Storia dell'educazione",k:"Storia educ.",p:1,u:10},
-  {c:"C8772",n:"Sociologia generale e fondamenti della ricerca sociale",k:"Sociologia gen.",p:1,u:10},
-  {c:"03079",n:"Psicologia dello sviluppo",k:"Psic. sviluppo",p:1,u:10},
-  {c:"26338",n:"Idoneità lingua inglese B — 1",k:"Inglese B",p:1,u:6},
-  {c:"13220",n:"Pedagogia generale e sociale",k:"Pedagogia gen.",p:2,u:10},
-  {c:"C8773",n:"Antropologia culturale e sociale",k:"Antropologia",p:2,u:10}
+  /* --- primo anno, primo semestre --- */
+  {c:"LIC",  n:"Linguaggi, interpreti e compilatori",        k:"Ling. compilat.", p:1, u:6},
+  {c:"PDIC", n:"Programmazione dichiarativa",                k:"Progr. dichiar.", p:1, u:6},
+  {c:"BDDM", n:"Big data e data mining",                     k:"Big data",        p:1, u:6},
+  /* scelte guidate, tabella B */
+  {c:"TARC", n:"Teoria e applicazioni delle reti complesse", k:"Reti complesse",  p:1, u:6},
+  {c:"FCOM", n:"Finanza computazionale",                     k:"Finanza comp.",   p:1, u:6},
+  /* --- primo anno, secondo semestre --- */
+  {c:"FIA",  n:"Fondamenti dell'intelligenza artificiale",   k:"Fondamenti IA",   p:2, u:6},
+  {c:"MMIA", n:"Metodi e modelli per l'intelligenza artificiale", k:"Metodi IA",  p:2, u:6},
+  {c:"DRSS", n:"Development of reliable, safe and secure software", k:"Reliable sw", p:2, u:9},
+  {c:"ENGB", n:"Inglese B2 for STEM",                        k:"Inglese B2",      p:2, u:3},
+  {c:"PSKL", n:"Presentation skills",                        k:"Present. skills", p:2, u:3},
+  /* a scelta libera attivabili al primo anno */
+  {c:"TGRA", n:"Teoria dei grafi",                           k:"Teoria grafi",    p:2, u:6},
+  {c:"MLPH", n:"Machine Learning Methods for Physics",       k:"ML physics",      p:2, u:6},
+  {c:"SPCS", n:"Statistical Physics of Complex Systems",     k:"Stat. physics",   p:2, u:6}
  ],
  2:[
-  {c:"94162",n:"Elementi di didattica innovativa per la scuola e l'extrascuola",k:"Didattica innov.",p:1,u:8},
-  {c:"00870",n:"Psicologia sociale",k:"Psic. sociale",p:1,u:8},
-  {c:"C8783",n:"Educazione inclusiva nella scuola e nel territorio",k:"Educ. inclusiva",p:1,u:8},
-  {c:"C8782",n:"Pedagogia dell'inclusione e della marginalità",k:"Ped. inclusione",p:1,u:8},
-  {c:"73378",n:"Genere e culture della scienza",k:"Genere scienza",p:1,u:8},
-  {c:"C8780",n:"Geografia del mondo contemporaneo",k:"Geografia",p:1,u:8},
-  {c:"C8779",n:"Storia del mondo contemporaneo nel XIX e XX secolo",k:"Storia contemp.",p:1,u:8},
-  {c:"B8521",n:"Storia, patrimonio, cittadinanza",k:"Storia patrim.",p:1,u:8},
-  {c:"16692",n:"Laboratorio di informatica",k:"Lab. informatica",p:1,u:1},
-  {c:"C8775",n:"Laboratorio propedeutico all'attività di tirocinio",k:"Lab. tirocinio",p:1,u:3},
-  {c:"15579",n:"Pedagogia interculturale",k:"Ped. intercult.",p:2,u:8},
-  {c:"61359",n:"Psicologia dei gruppi e di comunità",k:"Psic. gruppi",p:2,u:8},
-  {c:"02517",n:"Sociologia dell'educazione",k:"Soc. educazione",p:2,u:8},
-  {c:"C8776",n:"Sociologia delle differenze e delle disuguaglianze",k:"Soc. differenze",p:2,u:8},
-  {c:"99505",n:"Compiti di sviluppo psicologici in adolescenza",k:"Adolescenza",p:2,u:8},
-  {c:"42972",n:"Diritto dei servizi sociali",k:"Diritto servizi",p:2,u:8},
-  {c:"94411",n:"Citizenship education and active participation",k:"Citizenship",p:2,u:4},
-  {c:"94410",n:"History and culture of European cities",k:"Eur. cities",p:2,u:4},
-  {c:"94414",n:"Gender studies in education",k:"Gender studies",p:2,u:4},
-  {c:"94413",n:"Intercultural pedagogy",k:"Intercult. ped.",p:2,u:4}
- ],
- 3:[
-  {c:"C8876",n:"Agency e mondi digitali",k:"Agency digitali",p:1,u:8},
-  {c:"94109",n:"Ambienti digitali, musei e educazione al patrimonio culturale",k:"Ambienti digit.",p:1,u:8},
-  {c:"B3448",n:"Metodologie dell'osservazione e della riflessività pedagogica",k:"Metod. osserv.",p:1,u:8},
-  {c:"03084",n:"Psicologia clinica",k:"Psic. clinica",p:1,u:8},
-  {c:"94244",n:"Psicologia del lavoro e dell'orientamento",k:"Psic. lavoro",p:1,u:8},
-  {c:"C8783",n:"Educazione inclusiva nella scuola e nel territorio",k:"Educ. inclusiva",p:1,u:8},
-  {c:"C8782",n:"Pedagogia dell'inclusione e della marginalità",k:"Ped. inclusione",p:1,u:8},
-  {c:"00870",n:"Psicologia sociale",k:"Psic. sociale",p:1,u:8},
-  {c:"73378",n:"Genere e culture della scienza",k:"Genere scienza",p:1,u:8},
-  {c:"C8780",n:"Geografia del mondo contemporaneo",k:"Geografia",p:1,u:8},
-  {c:"C8779",n:"Storia del mondo contemporaneo nel XIX e XX secolo",k:"Storia contemp.",p:1,u:8},
-  {c:"B8521",n:"Storia, patrimonio, cittadinanza",k:"Storia patrim.",p:1,u:8},
-  {c:"15349",n:"Tirocinio",k:"Tirocinio",p:1,u:10},
-  {c:"C8875",n:"Laboratorio di formazione professionale per l'educatore socio-pedagogico",k:"Lab. formazione",p:1,u:2},
-  {c:"27281",n:"Seminari",k:"Seminari",p:1,u:1},
-  {c:"17268",n:"Prova finale",k:"Prova finale",p:1,u:3},
-  {c:"31675",n:"Progettazione e valutazione degli interventi educativi",k:"Progettazione",p:2,u:8},
-  {c:"C8786",n:"Educazione al genere, all'affettività e alla sessualità",k:"Educ. affettività",p:2,u:8},
-  {c:"C8788",n:"Media capabilities e educazione nei territori",k:"Media capabilit.",p:2,u:8},
-  {c:"94110",n:"Antropologia ed etnografia dei servizi socio-educativi",k:"Antrop. servizi",p:2,u:8},
-  {c:"C8789",n:"Sociologia delle istituzioni di welfare, della cittadinanza e del controllo sociale",k:"Soc. welfare",p:2,u:8},
-  {c:"61359",n:"Psicologia dei gruppi e di comunità",k:"Psic. gruppi",p:2,u:8},
-  {c:"02517",n:"Sociologia dell'educazione",k:"Soc. educazione",p:2,u:8},
-  {c:"99505",n:"Compiti di sviluppo psicologici in adolescenza",k:"Adolescenza",p:2,u:8},
-  {c:"42972",n:"Diritto dei servizi sociali",k:"Diritto servizi",p:2,u:8},
-  {c:"94411",n:"Citizenship education and active participation",k:"Citizenship",p:2,u:4},
-  {c:"94410",n:"History and culture of European cities",k:"Eur. cities",p:2,u:4},
-  {c:"94414",n:"Gender studies in education",k:"Gender studies",p:2,u:4},
-  {c:"94413",n:"Intercultural pedagogy",k:"Intercult. ped.",p:2,u:4}
+  /* --- secondo anno, primo semestre --- */
+  {c:"AIA",  n:"Algoritmi per l'intelligenza artificiale",   k:"Algoritmi IA",    p:1, u:6},
+  {c:"ASVS", n:"Analisi statica e verifica del software",    k:"Analisi statica", p:1, u:9},
+  {c:"CYBS", n:"Cybersecurity",                              k:"Cybersecurity",   p:1, u:6},
+  {c:"LIA",  n:"Laboratorio di intelligenza artificiale",    k:"Lab. IA",         p:1, u:6},
+  /* a scelta libera del secondo anno */
+  {c:"AIIA", n:"Applicazioni industriali dell'intelligenza artificiale", k:"Appl. industr.", p:1, u:6},
+  {c:"SIFO", n:"Sicurezza e informatica forense",            k:"Inf. forense",    p:1, u:6},
+  {c:"POMS", n:"Programmazione orientata ai microservizi",   k:"Microservizi",    p:1, u:6},
+  {c:"FCOM", n:"Finanza computazionale",                     k:"Finanza comp.",   p:1, u:6},
+  /* --- secondo anno, secondo semestre --- */
+  {c:"TIRO", n:"Tirocinio",                                  k:"Tirocinio",       p:2, u:6},
+  {c:"TESI", n:"Tesi",                                       k:"Tesi",            p:2, u:27}
  ]
 };
 
@@ -1057,6 +1033,7 @@ window.addEventListener("keydown",e=>{
 function adopt(d){
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
   state.exams=state.exams||[];state.collapsed=state.collapsed||{};
+  if(state.year>2)state.year=2;      /* la magistrale ha due anni */
   normCustom();
   migrate(d);
 }
@@ -1162,7 +1139,7 @@ function autoColor(id){
 function allCourses(){
   const out=[],seen=new Set();
   state.over=state.over||{};
-  [1,2,3].forEach(y=>COURSES[y].forEach(c=>{
+  [1,2].forEach(y=>COURSES[y].forEach(c=>{
     const id="c:"+c.c;
     if(seen.has(id))return;seen.add(id);
     const ov=state.over[id]||{};
@@ -1282,9 +1259,9 @@ function controls(){
   document.documentElement.setAttribute("data-theme",state.theme);
   const y=document.getElementById("segYear"),p=document.getElementById("segCtx");
   y.innerHTML="";p.innerHTML="";
-  [1,2,3].forEach(v=>{
+  [1,2].forEach(v=>{
     const b=document.createElement("button");
-    b.textContent=["I","II","III"][v-1];b.setAttribute("aria-pressed",state.year===v);
+    b.textContent=["I","II"][v-1];b.setAttribute("aria-pressed",state.year===v);
     b.onclick=()=>{state.year=v;state.brush=null;save();render();};y.appendChild(b);
   });
   Object.keys(CTX).forEach(k=>{
@@ -1365,7 +1342,7 @@ function picklist(){
     const b=document.createElement("button");
     b.className="prow"+(state.brush===o.id?" sel":"");
     b.setAttribute("aria-pressed",state.brush===o.id);
-    const tag=(q&&o.kind==="c")?'<em>'+["I","II","III"][o.year-1]+" · sem "+o.sem+"</em>":"";
+    const tag=(q&&o.kind==="c")?'<em>'+["I","II"][o.year-1]+" · sem "+o.sem+"</em>":"";
     const cl=clash[o.id];
     b.innerHTML='<span class="swatch'+(cl?" clash":"")+'" style="background:'+o.color+'"'+
       (cl?' title="Stesso colore di '+cl.name.replace(/"/g,"")+'"':"")+"></span>"+
