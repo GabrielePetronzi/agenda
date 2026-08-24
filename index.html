@@ -103,11 +103,18 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
   display:grid;grid-template-columns:1fr;gap:0}
 @media (min-width:1060px){
   .shell{grid-template-columns:308px minmax(0,1fr);gap:26px;padding-top:10px}
-  .sidebar{position:sticky;top:71px;align-self:start;max-height:calc(100vh - 88px);
+  .sidebar{position:sticky;top:calc(var(--stick-bar, 62px) + 9px);align-self:start;
+    max-height:calc(100vh - var(--stick-bar, 62px) - 26px);
     overflow-y:auto;padding-right:4px;scrollbar-width:thin}
 }
 .sidebar{padding:16px 0 6px}
 .canvas{min-width:0;padding-top:0}
+/* colonna singola: prima la settimana, gli strumenti sotto — così la fascia
+   8–20 si vede appena apri, senza dover scorrere oltre l'elenco materie */
+@media (max-width:1059px){
+  .canvas{order:-1;padding-bottom:20px}
+  .sidebar{border-top:1px solid var(--line);padding-top:14px}
+}
 
 /* sezioni della colonna strumenti */
 .sec{margin-bottom:20px}
@@ -230,7 +237,7 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 /* ============================================================
    Canvas: barra della griglia
    ============================================================ */
-.gridbar{position:sticky;top:62px;z-index:30;background:var(--bg);
+.gridbar{position:sticky;top:var(--stick-bar, 62px);z-index:30;background:var(--bg);
   padding:6px 0 7px;margin-bottom:2px;
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   border-bottom:1px solid var(--line)}
@@ -273,10 +280,24 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 .selbar b{font-family:"DM Mono",monospace;font-size:12px;font-weight:500;color:var(--action)}
 .selbar span{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
 .modeflag{display:none}
-.modeflag.on{display:block;position:sticky;top:109px;z-index:28;background:var(--action);
+.modeflag.on{display:block;position:sticky;top:var(--stick-head, 109px);z-index:28;background:var(--action);
   color:#fff;font-family:"DM Mono",monospace;font-size:10.5px;letter-spacing:.1em;
   text-transform:uppercase;padding:7px 13px;border-radius:0 0 var(--r-sm) var(--r-sm);
   margin:0 auto 11px;width:fit-content}
+
+/* Schermo basso: la giornata dalle 8 alle 20 viene prima di tutto,
+   quindi l'intestazione si stringe per lasciarle i pixel che servono. */
+html[data-fit="compact"] .tin{padding:3px var(--pad) 4px}
+html[data-fit="compact"] .ctxpick .lbl{display:none}
+html[data-fit="compact"] .shell{padding-top:4px}
+html[data-fit="compact"] .gridbar{padding:3px 0 4px}
+html[data-fit="compact"] .status{margin:3px 0 4px;min-height:0;font-size:10px}
+html[data-fit="compact"] .phead{margin-bottom:3px}
+html[data-fit="compact"] .ptitle{padding:0}
+html[data-fit="compact"] th{padding-bottom:3px}
+html[data-fit="compact"] th u{font-size:8px}
+html[data-fit="compact"] th s{font-size:12.5px}
+html[data-fit="compact"] th .load{margin-top:3px;height:2px}
 
 /* ============================================================
    Settimana
@@ -312,7 +333,13 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 
 /* ---------- griglia ---------- */
 .gwrap{overflow-x:auto;margin:0 calc(var(--pad)*-1);padding:0 var(--pad) 2px}
-@media (min-width:1060px){.gwrap{margin:0;padding:0 0 2px}}
+/* da questa larghezza la tabella ci sta tutta: tolgo lo scorrimento laterale
+   così le testate dei giorni possono restare agganciate sotto la barra */
+@media (min-width:1060px){
+  .gwrap{margin:0;padding:0 0 2px;overflow:visible}
+  thead th{position:sticky;top:var(--stick-head, 114px);z-index:22;background:var(--bg);padding-top:6px}
+  thead th.hc{background:var(--bg)}
+}
 table{border-collapse:collapse;table-layout:fixed;width:100%;min-width:440px;
   touch-action:none;user-select:none;-webkit-user-select:none}
 th{padding:0 0 6px;text-align:center;font-weight:500;border:0;vertical-align:bottom}
@@ -338,6 +365,8 @@ th.today .load i{background:var(--action)}
 td.hr{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);text-align:right;
   padding:0 7px 0 0;vertical-align:top;height:var(--row);line-height:1;border:0;white-space:nowrap;
   transform:translateY(-5px)}
+/* la prima etichetta non si alza, se no finisce sotto le testate dei giorni */
+tbody tr:first-child td.hr{transform:none;padding-top:1px}
 td.c{background:var(--surface);height:var(--row);padding:0;vertical-align:top;cursor:pointer;
   overflow:visible;position:relative;
   border-left:1px solid var(--line-soft);border-right:1px solid var(--line-soft);
@@ -347,7 +376,9 @@ td.c.mark{border-top-color:var(--line)}
 td.c.we{background:var(--sunken)}
 /* la colonna di oggi ha una velatura appena percettibile */
 td.c.tdy{background-image:linear-gradient(var(--tint-today),var(--tint-today))}
-th.today{background:var(--tint-today);border-radius:7px 7px 0 0}
+th.today{background-color:var(--bg);
+  background-image:linear-gradient(var(--tint-today),var(--tint-today));
+  border-radius:7px 7px 0 0}
 /* la casella vuota sotto il puntatore dice che ora è e invita a riempirla */
 td.c:empty:hover{background-image:linear-gradient(var(--tint-hover),var(--tint-hover))}
 td.c:empty:hover::after{content:attr(data-t);position:absolute;left:6px;top:1px;
@@ -367,11 +398,31 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
 .blk em s{display:flex;align-items:center;gap:4px;text-decoration:none;font-size:11.5px;
   opacity:.92;line-height:1.25;white-space:nowrap;overflow:hidden;margin-top:1px}
 .blk em s i{font-style:normal;opacity:.85;overflow:hidden;text-overflow:ellipsis}
+/* la nota va a capo e si ferma dove finisce il blocco, con i puntini */
+.blk em u.nota{display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;
+  text-decoration:none;font-size:11px;line-height:1.25;opacity:.94;margin-top:2px;
+  overflow-wrap:anywhere}
+html[data-row="tight"] .blk em u.nota{font-size:10.5px;line-height:1.2}
+html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top:1px}
 .blk em s .ico{flex:0 0 auto;opacity:.8}
+/* mezz'ora con la riga alta: materia sopra, nota sotto, tutto molto stretto */
+.blk.mini2 em{padding:0 6px}
+.blk.mini2 em b{font-size:10.5px;line-height:1.25;padding-right:15px}
+.blk.mini2 em s{font-size:10px;line-height:1.2;margin-top:0}
+.blk.mini2 .rsz{height:6px}
 /* mezz'ora: non c'è spazio per due righe, titolo e attività stanno affiancati */
 .blk.mini em{display:flex;align-items:center;gap:6px;padding:0 20px 0 7px}
-.blk.mini em b{padding-right:0;flex:0 1 auto}
+.blk.mini em b{padding-right:0;flex:0 0 auto;max-width:58%}
 .blk.mini em s{margin-top:0;flex:1 1 auto;min-width:0}
+.blk.mini .rsz{height:6px}
+html[data-row="micro"] .blk em{padding:1px 5px 0}
+html[data-row="micro"] .blk em b{font-size:10px;padding-right:13px;line-height:1.15}
+html[data-row="micro"] .blk em s{font-size:9.5px}
+html[data-row="micro"] .blk.mini em s{display:none}
+html[data-row="micro"] .tick{width:10px;height:10px;top:2px;right:2px}
+html[data-row="micro"] .tick::after{left:3px;top:.8px;width:2.8px;height:5.8px}
+html[data-row="micro"] td.hr{font-size:9px}
+html[data-row="micro"] .rsz{height:5px}
 html[data-row="tight"] .blk em{padding:2px 6px 0}
 html[data-row="tight"] .blk.mini em{padding:0 18px 0 6px}
 html[data-row="tight"] .blk em b{font-size:11px;padding-right:15px}
@@ -565,6 +616,18 @@ td.tot b{color:var(--tx2);font-weight:500}
   background:none;border:0;color:var(--tx3);font-size:16px;cursor:pointer;
   padding:5px 9px;border-radius:6px}
 .mhead button:hover{color:var(--tx);background:var(--raised)}
+/* legenda dei tasti */
+.kslist{display:flex;flex-direction:column}
+.ksrow{display:flex;align-items:center;gap:12px;padding:8px 0;
+  border-bottom:1px solid var(--line-soft);font-size:13px;color:var(--tx2)}
+.ksrow:last-child{border-bottom:0}
+.ksrow b{flex:0 0 118px;display:flex;gap:5px;flex-wrap:wrap}
+.ksrow b kbd{font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx);
+  background:var(--raised);border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:5px;padding:2px 6px;line-height:1.4}
+.kssec{font-family:"DM Mono",monospace;font-size:8.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--tx3);padding:13px 0 5px}
+.kssec:first-child{padding-top:0}
 .mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .mgrid .dh{font-family:"DM Mono",monospace;font-size:9px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--tx3);text-align:center;padding-bottom:6px}
@@ -607,8 +670,13 @@ td.tot b{color:var(--tx2);font-weight:500}
   .shell{display:block;padding:0}
   :root{--bg:#fff;--surface:#fff;--raised:#fff;--sunken:#f4f4f4;--tx:#000;--tx2:#444;
         --tx3:#777;--line:#bbb;--line-soft:#ddd}
-  .panel{break-inside:avoid;page-break-inside:avoid;border-top:1px solid #999;
-    margin-top:14px;padding-top:14px}
+  .panel{break-inside:avoid;page-break-inside:avoid;border-top:0;
+    margin-top:0;padding-top:0}
+  /* una settimana per foglio, con le testate dei giorni ferme in cima */
+  .panel+.panel{break-before:page;page-break-before:always}
+  .panel.closed{display:none}
+  thead th{position:static!important;background:none}
+  .shell{padding-top:0}
   .blk{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   table{min-width:0}
 }
@@ -638,6 +706,7 @@ td.tot b{color:var(--tx2);font-weight:500}
       <span class="sync" id="sync"><i></i><span>Pronto</span></span>
       <button id="syncBtn">Sincronizza dispositivi</button>
       <button id="backup">Backup</button>
+      <button id="ksBtn">Scorciatoie</button>
       <button id="printBtn">Stampa</button>
     </div>
   </div>
@@ -750,14 +819,31 @@ td.tot b{color:var(--tx2);font-weight:500}
   </div>
 </div>
 
+<div class="modal" id="ksModal">
+  <div class="sheet bk" style="max-width:470px">
+    <div class="mhead"><b>Scorciatoie</b><button id="ksClose">✕</button></div>
+    <p style="font-size:12.5px;color:var(--tx2);margin:0 0 14px;line-height:1.5">
+      Valgono quando non stai scrivendo in un campo.</p>
+    <div class="kslist" id="ksList"></div>
+  </div>
+</div>
+
 <div class="modal" id="pmModal">
   <div class="sheet bk" style="max-width:520px">
-    <div class="mhead"><b>Durate delle sessioni</b><button id="pmClose">✕</button></div>
+    <div class="mhead"><b>Durate e obiettivi</b><button id="pmClose">✕</button></div>
     <p style="font-size:12.5px;color:var(--tx2);margin:0 0 14px;line-height:1.5">
       Per ogni attività, da sinistra a destra: durata di una <b>sessione</b>, minuti di
       <b>pausa</b> breve, dopo quanti <b>cicli</b> scatta la pausa <b>lunga</b>, e quanto
       dura. Tutto in minuti.</p>
     <div id="pmBody"></div>
+    <div class="pmrow" style="border-top:1px solid var(--line);border-bottom:0;margin-top:6px">
+      <span class="nm" id="dayTgtLab">Obiettivo di ore al giorno</span>
+      <input id="dayTgt" type="number" min="1" max="16" step="1"
+        title="Quando la giornata supera questo monte ore il nastro sotto la data diventa rosso">
+    </div>
+    <p style="font-size:11px;color:var(--tx3);margin:8px 0 0;line-height:1.5">
+      È la misura del nastro di carico sotto ogni data: pieno quando arrivi all'obiettivo,
+      rosso quando lo superi.</p>
   </div>
 </div>
 
@@ -817,8 +903,10 @@ td.tot b{color:var(--tx2);font-weight:500}
       <button id="syOff">Scollega</button>
     </div>
     <p style="font-size:11px;color:var(--tx3);margin:12px 0 0;line-height:1.5">
-      Il token resta solo su questo dispositivo e non finisce mai nel gist né su GitHub Pages.
-      Puoi revocarlo quando vuoi dalle impostazioni di GitHub.</p>
+      Il token resta solo su questo dispositivo e non finisce mai nel gist né su GitHub Pages:
+      è salvato in chiaro nella memoria del browser, quindi chi usa questo profilo può leggerlo.
+      Dagli il solo permesso <code>gist</code> e revocalo dalle impostazioni di GitHub
+      se il dispositivo non è più tuo.</p>
   </div>
 </div>
 
@@ -858,8 +946,12 @@ const HOURS=(()=>{const a=[];for(let s=DAY_FROM*PERQ;s<24*PERQ;s++)a.push(s);ret
 /* Altezza di uno slot: non è più fissa. autoRow() la calcola in modo che la
    giornata arrivi almeno alle 20 senza dover scorrere, dentro questi limiti. */
 let ROW=28;
-const ROW_MIN=22, ROW_MAX=34;
-const FIT_TO=20;                 /* l'ora che deve restare visibile a schermo */
+const ROW_MIN=13;                /* sotto non si legge più niente */
+const ROW_MAX=34;
+const ROW_OK=22;                 /* sotto questa misura conviene stringere l'intestazione */
+const ROW_TINY=16;               /* sotto questa, meglio un filo di scorrimento */
+const FIT_TO=18.5;               /* l'ora fino a cui la giornata deve stare a schermo */
+const MINI2=27;                  /* da qui in su in mezz'ora ci stanno due righe */
 const slotHour=s=>Math.floor(s/PERQ);
 const slotQ=s=>s%PERQ;
 const isHalf=s=>slotQ(s)===1;
@@ -875,6 +967,9 @@ const ICON={
   LAB:'<path d="M6.4 2.2v4.3L3.1 12.1A1.1 1.1 0 0 0 4 13.8h8a1.1 1.1 0 0 0 .9-1.7L9.6 6.5V2.2"/><path d="M5.4 2.2h5.2M5.3 9.6h5.4"/>',
   PRO:'<rect x="2" y="2.4" width="5.4" height="5.4" rx="1"/><rect x="8.6" y="2.4" width="5.4" height="5.4" rx="1"/><rect x="5.3" y="9" width="5.4" height="5" rx="1"/>',
   RIP:'<path d="M13.2 8a5.2 5.2 0 1 1-1.7-3.9"/><path d="M13.4 2.1v3.3h-3.3"/>',
+  LAV:'<rect x="1.9" y="5.1" width="12.2" height="7.7" rx="1.3"/>'+
+      '<path d="M5.9 5.1V3.8a1.1 1.1 0 0 1 1.1-1.1h2a1.1 1.1 0 0 1 1.1 1.1v1.3"/>'+
+      '<path d="M1.9 8.3h12.2"/><path d="M7.2 8.3h1.6"/>',
   /* icone d'interfaccia, stesso tratto di quelle delle attività */
   SRC:'<circle cx="7" cy="7" r="4.3"/><path d="M10.2 10.2L14 14"/>',
   CPY:'<rect x="5.4" y="5.4" width="8.3" height="8.3" rx="1.3"/>'+
@@ -916,6 +1011,8 @@ const ICON={
   ERS:'<path d="M6.4 13.4H13.4"/><path d="M9.3 2.9l3.8 3.8a1.2 1.2 0 0 1 0 1.7l-4.5 4.5'+
       'a1.2 1.2 0 0 1-1.7 0L3.1 9.1a1.2 1.2 0 0 1 0-1.7l4.5-4.5a1.2 1.2 0 0 1 1.7 0z"/>',
   TCK:'<path d="M3 8.3l3.4 3.3L13 4.7"/>',
+  KEY:'<rect x="1.7" y="4.1" width="12.6" height="7.8" rx="1.4"/>'+
+      '<path d="M4.3 6.6h.01M6.8 6.6h.01M9.2 6.6h.01M11.7 6.6h.01M4.9 9.3h6.2"/>',
   TDY:'<circle cx="8" cy="8" r="5.4"/><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/>',
   CLK:'<circle cx="8" cy="8" r="5.6"/><path d="M8 4.7V8.2l2.4 1.5"/>',
   PRN:'<path d="M4.7 6.2V2.7h6.6v3.5"/><rect x="2.3" y="6.2" width="11.4" height="5.1" rx="1.2"/>'+
@@ -938,7 +1035,8 @@ const ACTS=[
   {k:"ESE",n:"Esercizi"},
   {k:"LAB",n:"Laboratorio"},
   {k:"PRO",n:"Progetto"},
-  {k:"RIP",n:"Ripasso"}
+  {k:"RIP",n:"Ripasso"},
+  {k:"LAV",n:"Lavoro"}
 ];
 
 const COURSES={
@@ -1300,6 +1398,29 @@ window.addEventListener("keydown",e=>{
 window.addEventListener("keydown",e=>{
   const tag=(e.target.tagName||"").toLowerCase();
   if(tag==="input"||tag==="textarea")return;
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+
+  /* con una finestra aperta i tasti appartengono a lei: Esc la chiude */
+  const open=document.querySelector(".modal.open");
+  if(open){
+    if(e.key==="Escape"&&open.id!=="cfModal"){
+      if(open.id==="dyModal")closeDay();else open.classList.remove("open");
+    }
+    return;
+  }
+
+  const k=e.key;
+  /* da 1 a 7: l'attività con cui dipingere */
+  if(k>="1"&&k<="9"&&ACTS[+k-1]){e.preventDefault();pickAct(ACTS[+k-1].k);return;}
+  if(k==="e"||k==="E"){e.preventDefault();document.getElementById("eraseBtn").click();return;}
+  if(k==="m"||k==="M"){e.preventDefault();document.getElementById("moveBtn").click();return;}
+  if(k==="o"||k==="O"){e.preventDefault();document.getElementById("wToday").click();return;}
+  if(k==="ArrowLeft"){e.preventDefault();document.getElementById("wPrev").click();return;}
+  if(k==="ArrowRight"){e.preventDefault();document.getElementById("wNext").click();return;}
+  if(k==="/"){e.preventDefault();const q=document.getElementById("q");q.focus();q.select();return;}
+  if(k==="?"){e.preventDefault();ksList();
+    document.getElementById("ksModal").classList.add("open");return;}
+
   if(e.key==="Escape"){if(pomPick)pomAskBlock(false);clearSel();}
   else if((e.key==="Delete"||e.key==="Backspace")&&Object.keys(selRuns).length){
     e.preventDefault();deleteSel();
@@ -1470,11 +1591,16 @@ function delVoce(id){
 }
 /* il ripasso può stare in griglia anche senza materia: voce grigia di servizio */
 const GENID="_gen";
+const WORKID="_lav";
+/* attività che si piazzano anche senza scegliere una materia */
+const LIBERE={RIP:GENID,LAV:WORKID};
+function brushNow(){return state.brush||LIBERE[state.act]||null;}
 function items(){
   const all=allCourses().concat(voci());
   all.push({id:GENID,name:"Ripasso libero",short:"Ripasso",cfu:0,date:"",kind:"g"});
+  all.push({id:WORKID,name:"Lavoro",short:"Lavoro",cfu:0,date:"",kind:"g"});
   all.forEach(o=>o.color=state.colors[o.id]||
-    (o.id===GENID?"#7C8CA6":autoColor(o.id)));
+    (o.id===GENID?"#7C8CA6":(o.id===WORKID?"#8C7B63":autoColor(o.id))));
   return all;
 }
 const map=()=>{const m={};items().forEach(o=>m[o.id]=o);return m;};
@@ -1717,15 +1843,19 @@ function editForm(o){
   return wrap;
 }
 
+function pickAct(k){
+  state.act=k;state.erase=false;state.mode="paint";
+  save();tools();status();modeFlag();gridModes();pomPanel();panels();
+}
 function tools(){
   const box=document.getElementById("tools");box.innerHTML="";
-  ACTS.forEach(a=>{
+  ACTS.forEach((a,i)=>{
     const b=document.createElement("button");
     b.className="tool";
     b.setAttribute("aria-pressed",state.mode==="paint"&&!state.erase&&state.act===a.k);
     b.innerHTML=icon(a.k,15)+a.n;
-    b.onclick=()=>{state.act=a.k;state.erase=false;state.mode="paint";
-      save();tools();status();modeFlag();gridModes();pomPanel();panels();};
+    b.title=a.n+" · tasto "+(i+1);
+    b.onclick=()=>pickAct(a.k);
     box.appendChild(b);
   });
 
@@ -1776,7 +1906,9 @@ function status(){
   if(!state.brush||!m[state.brush]){
     el.innerHTML=state.act==="RIP"
       ? "<b>RIPASSO LIBERO</b> · senza materia, in grigio"+clip
-      : "Scegli una materia o una voce."+clip;
+      : (state.act==="LAV"
+        ? "<b>LAVORO</b> · senza materia, in marrone"+clip
+        : "Scegli una materia o una voce."+clip);
     return;
   }
   el.innerHTML="<b>"+m[state.brush].name.toUpperCase()+"</b> · "+actOf(state.act).n+clip;
@@ -1916,7 +2048,8 @@ const POM_DEF={
   ESE:{s:30,b:8,n:3,l:20},
   LAB:{s:45,b:8,n:2,l:20},
   PRO:{s:45,b:8,n:2,l:20},
-  RIP:{s:17,b:8,n:3,l:20}
+  RIP:{s:17,b:8,n:3,l:20},
+  LAV:{s:50,b:10,n:2,l:20}
 };
 function pomConf(k){
   state.pomConf=state.pomConf||{};
@@ -2186,6 +2319,14 @@ function pomPanel(){
 }
 
 function pomSettings(){
+  const tg=document.getElementById("dayTgt");
+  tg.value=state.dayTarget||8;
+  document.getElementById("dayTgtLab").innerHTML=icon("CLK",13)+"Obiettivo di ore al giorno";
+  tg.onchange=()=>{
+    state.dayTarget=Math.min(16,Math.max(1,+tg.value||8));
+    tg.value=state.dayTarget;
+    save("Obiettivo aggiornato");panels();
+  };
   const box=document.getElementById("pmBody");box.innerHTML="";
   const hd=document.createElement("div");hd.className="pmhead";
   hd.innerHTML="<span>sessione</span><span>pausa</span><span>cicli</span><span>lunga</span>";
@@ -2318,6 +2459,18 @@ function wipeWeek(p){
   save("Settimana "+(p+1)+" svuotata");commit();panels();refreshMetrics();
 }
 
+/* all'avvio si apre la settimana che contiene oggi e si chiudono le altre:
+   si atterra sul punto giusto invece che su quattro griglie impilate */
+function foldToToday(){
+  let open=0;
+  for(let p=0;p<PANELS;p++){
+    if(panelDates(p).some(d=>iso(d)===TODAY)){open=p;break;}
+  }
+  const c={};
+  for(let p=0;p<PANELS;p++)if(p!==open)c[p]=1;
+  state.collapsed=c;
+}
+
 /* ---------- pannelli ---------- */
 function panels(){
   const box=document.getElementById("panels");box.innerHTML="";
@@ -2404,7 +2557,8 @@ function buildPanel(p,m){
     let nh=0;HOURS.forEach(sl=>{nh+=at(ck(iso(dates[d]),sl)).filter(Boolean).length;});
     const TG=(state.dayTarget||8)*PERQ;
     const ttl=ex.length?ex.map(x=>x.t).join(", ")
-      :(nh?hrs(nh)+" pianificate · tocca per copiare o svuotare il giorno"
+      :(nh?hrs(nh)+" pianificate su "+(state.dayTarget||8)+
+           " h di obiettivo · tocca per copiare o svuotare il giorno"
           :"tocca per incollare o svuotare il giorno");
     head+='<th class="'+cls+'" data-date="'+iso(dates[d])+'" tabindex="0" '+
       'title="'+ttl+'">'+
@@ -2642,7 +2796,11 @@ function drawDay(dateIso,scope){
       const bl=document.createElement("div");
       const run=state.pomRun&&state.pomRun.linked&&
         state.pomRun.linked.some(x=>x.date===dateIso&&x.start===r.start&&x.lane===r.lane);
-      bl.className="blk"+(r.len===1?" mini":"")+(r.v.done?" done":"")+
+      const nt=r.v.n?r.v.n.replace(/</g,"&lt;"):"";
+      /* mezz'ora con una nota: se la riga è alta abbastanza la nota va sotto
+         il nome della materia, se no le sta accanto al posto dell'attività */
+      const due=r.len===1&&!!nt&&ROW>=MINI2;
+      bl.className="blk"+(r.len===1?(due?" mini2":" mini"):"")+(r.v.done?" done":"")+
         (selRuns[selKey(dateIso,r.start,r.lane)]?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
       bl.style.background=o.color;
@@ -2651,9 +2809,22 @@ function drawDay(dateIso,scope){
       const nl=cw[ri]||1;
       bl.style.left=(r.lane*100/nl)+"%";
       bl.style.width=(100/nl)+"%";
-      const note=r.v.n?' <i>('+r.v.n.replace(/</g,"&lt;")+")</i>":"";
+      /* La nota è la cosa più utile scritta dentro il blocco, quindi:
+         su mezz'ora prende il posto del nome dell'attività (che l'icona dice già),
+         più in alto va a capo su una riga sua, con quante righe ci stanno. */
+      let corpo;
+      if(r.len===1){
+        corpo=due?"<s>"+icon(r.v.a,11)+"<i>"+nt+"</i></s>"
+                 :"<s>"+icon(r.v.a,11)+(nt?"<i>"+nt+"</i>":a.n)+"</s>";
+      }else{
+        corpo="<s>"+icon(r.v.a,11)+a.n+"</s>";
+        if(nt){
+          const righe=Math.max(1,Math.min(5,Math.floor((ROW*r.len-36)/14)));
+          corpo+='<u class="nota" style="-webkit-line-clamp:'+righe+'">'+nt+"</u>";
+        }
+      }
       bl.innerHTML='<span class="tick" role="button" aria-label="Segna come fatto"></span>'+
-        '<em><b>'+o.short.toUpperCase()+"</b><s>"+icon(r.v.a,11)+a.n+note+"</s></em>"+
+        '<em><b>'+o.short.toUpperCase()+"</b>"+corpo+"</em>"+
         '<span class="rsz"></span>';
       bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
         (r.v.n?" ("+r.v.n+")":"")+(r.v.done?" · fatto":"");
@@ -2937,37 +3108,33 @@ function wire(t){
       return;
     }
 
-    const brush=state.brush||(state.act==="RIP"?GENID:null);
+    const brush=brushNow();
     if(!brush&&!state.erase){
       document.getElementById("status").innerHTML=
-        "<b>Scegli prima una materia</b> dall'elenco in alto — il Ripasso si può piazzare anche senza.";
+        "<b>Scegli prima una materia</b> dall'elenco in alto — Ripasso e Lavoro si piazzano anche senza.";
       return;
     }
     const kk=ck(td.dataset.date,+td.dataset.h);
     tapUndo={k:kk,prev:state.cells[kk]?JSON.parse(JSON.stringify(state.cells[kk])):null};
-    const arr=at(kk);
-    const has=arr.findIndex(e=>e&&e.i===brush&&e.a===state.act);
-    if(state.erase)val=null;
-    else if(has>=0){val=null;paintLane=has;}
-    else val={i:brush,a:state.act};
+    /* ripassare su un blocco già piazzato non lo toglie: si cancella solo
+       con la modalità Cancella o con i blocchi selezionati */
+    val=state.erase?null:{i:brush,a:state.act};
     painting=true;overflowWarn=false;
-    put(td,state.erase?null:paintLane);
+    put(td,null);
   });
 
   t.addEventListener("keydown",e=>{
     if(e.key!==" "&&e.key!=="Enter")return;
     const td=e.target.closest("td.c");if(!td)return;
     e.preventDefault();
-    const brush=state.brush||(state.act==="RIP"?GENID:null);
+    const brush=brushNow();
     if(state.mode==="move"||(!brush&&!state.erase))return;
-    const arr=at(ck(td.dataset.date,+td.dataset.h));
-    const has=arr.findIndex(x=>x&&x.i===brush&&x.a===state.act);
-    val=(state.erase||has>=0)?null:{i:brush,a:state.act};
-    put(td,state.erase?null:(has>=0?has:null));
+    val=state.erase?null:{i:brush,a:state.act};
+    put(td,null);
     commit();
   });
 }
-let paintLane=null;
+
 
 /* il movimento è agganciato alla finestra: così si trascina anche
    da una settimana all'altra, non solo dentro il pannello */
@@ -2999,14 +3166,14 @@ window.addEventListener("pointermove",e=>{
     drag.date=td.dataset.date;drag.start=ns;
     placeRun(drag.date,drag.start,drag.run,drag.lane);
     drawDay(old);if(old!==drag.date)drawDay(drag.date);
-  }else put(td,state.erase?null:paintLane);
+  }else put(td,null);
 });
 
 ["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,()=>{
   if(rz){rz=null;afterEdit();}
   if(drag){drag=null;afterEdit();}
   if(painting){
-    painting=false;paintLane=null;
+    painting=false;
     commit();reportOverwrite();
     if(overflowWarn){toast("Massimo "+MAXLANE+" blocchi affiancati");overflowWarn=false;}
     refreshMetrics();
@@ -3200,6 +3367,15 @@ document.getElementById("semToggle").onclick=()=>{
   semSummary();
 };
 
+document.getElementById("ksBtn").onclick=()=>{
+  ksList();document.getElementById("moremenu").classList.remove("open");
+  document.getElementById("moreBtn").setAttribute("aria-expanded",false);
+  document.getElementById("ksModal").classList.add("open");
+};
+document.getElementById("ksClose").onclick=()=>document.getElementById("ksModal").classList.remove("open");
+document.getElementById("ksModal").onclick=e=>{
+  if(e.target.id==="ksModal")e.currentTarget.classList.remove("open");};
+
 document.getElementById("pmClose").onclick=()=>document.getElementById("pmModal").classList.remove("open");
 document.getElementById("pmModal").onclick=e=>{
   if(e.target.id==="pmModal")e.currentTarget.classList.remove("open");};
@@ -3264,7 +3440,21 @@ document.getElementById("theme").onclick=()=>{
 function setRow(px){
   ROW=px;
   document.documentElement.style.setProperty("--row",px+"px");
-  document.documentElement.dataset.row=px<24?"tight":"normal";
+  document.documentElement.dataset.row=px<18?"micro":(px<24?"tight":"normal");
+}
+/* gli elementi agganciati si fermano dove finisce quello sopra, qualunque
+   altezza abbia: le misure vengono prese, non indovinate */
+function stickyOffsets(){
+  const tb=document.querySelector(".topbar"),gb=document.querySelector(".gridbar");
+  if(!tb||!gb)return;
+  const r=document.documentElement.style;
+  r.setProperty("--stick-bar",tb.offsetHeight+"px");
+  r.setProperty("--stick-head",(tb.offsetHeight+gb.offsetHeight)+"px");
+}
+/* quanto spazio resta sotto l'intestazione della griglia */
+function gridTop(){
+  const first=document.querySelector("tbody td.c");
+  return first?first.getBoundingClientRect().top+window.scrollY:null;
 }
 /* ridisegna i blocchi già a schermo con la nuova altezza */
 function redrawGrid(){
@@ -3274,26 +3464,87 @@ function redrawGrid(){
     ds.forEach(d=>drawDay(d,t));
   });
 }
-/* misura quanto spazio resta sotto l'intestazione della griglia e sceglie
-   l'altezza di riga più grande che fa entrare la giornata fino a FIT_TO */
+/* Sceglie l'altezza di riga più grande che fa comunque entrare la fascia
+   8–20. Tre tentativi, in quest'ordine:
+     1. tutta la pagina dall'alto, senza toccare niente;
+     2. la stessa cosa con l'intestazione stretta;
+     3. sotto una certa soglia le righe non si leggerebbero più: allora si
+        misura lo spazio sotto le barre agganciate, cioè quello che vedi
+        appena la griglia è in vista. Un filo di scorrimento, ma la fascia c'è.
+   Su schermi stretti la griglia è comunque il primo blocco della pagina,
+   quindi la misura dall'alto vale anche lì. */
 function autoRow(){
-  const first=document.querySelector("tbody td.c");
-  if(!first)return false;
-  const top=first.getBoundingClientRect().top+window.scrollY;
-  const need=FIT_TO*PERQ-HOURS[0]+1;          /* righe da mostrare, 20:00 compresa */
-  const px=Math.max(ROW_MIN,Math.min(ROW_MAX,
-    Math.floor((window.innerHeight-top-10)/need)));
+  const el=document.documentElement;
+  const need=Math.round(FIT_TO*PERQ)-HOURS[0]+1;   /* righe da mostrare, l'ultima compresa */
+  const fromTop=()=>{
+    const t=gridTop();
+    return t===null?null:Math.floor((window.innerHeight-t-10)/need);
+  };
+  const fromView=()=>{
+    const tb=document.querySelector(".topbar"),gb=document.querySelector(".gridbar"),
+          th=document.querySelector("thead");
+    if(!tb||!gb||!th)return null;
+    const fisso=tb.offsetHeight+gb.offsetHeight+th.offsetHeight;
+    return Math.floor((window.innerHeight-fisso-10)/need);
+  };
+  el.dataset.fit="wide";
+  let px=fromTop();
+  if(px===null){el.removeAttribute("data-fit");return false;}
+  if(px<ROW_OK){el.dataset.fit="compact";px=Math.max(px,fromTop());}
+  if(px<ROW_TINY){
+    const v=fromView();
+    if(v!==null)px=Math.min(ROW_OK,Math.max(px,v));
+  }
+  px=Math.max(ROW_MIN,Math.min(ROW_MAX,px));
+  stickyOffsets();
   if(px===ROW)return false;
   setRow(px);return true;
 }
 
 /* mette le icone nei pulsanti scritti a mano nell'HTML: si fa una volta sola,
    così il markup resta leggibile e le icone stanno tutte nella mappa ICON */
+const KEYS=[
+  ["Griglia",[
+    [["1","…","8"],"Scegli l'attività con cui dipingere"],
+    [["E"],"Cancella: tocca o trascina per svuotare"],
+    [["M"],"Sposta: trascina i blocchi"],
+    [["Spazio"],"Dipinge la casella che ha il fuoco"]]],
+  ["Navigazione",[
+    [["←","→"],"Quattro settimane indietro o avanti"],
+    [["O"],"Torna alla settimana di oggi"],
+    [["/"],"Salta nella ricerca delle materie"],
+    [["?"],"Apre questa legenda"]]],
+  ["Selezione",[
+    [["Esc"],"Annulla la selezione o chiude la finestra"],
+    [["Canc"],"Elimina i blocchi selezionati"],
+    [["F"],"Segna come fatti i blocchi selezionati"]]],
+  ["Modifiche",[
+    [["⌘/Ctrl","Z"],"Annulla"],
+    [["⌘/Ctrl","Y"],"Rifai"],
+    [["⌘/Ctrl","C"],"Copia i blocchi selezionati"],
+    [["⌘/Ctrl","V"],"Incolla dove sei"]]]
+];
+function ksList(){
+  const box=document.getElementById("ksList");
+  if(!box||box.childNodes.length)return;
+  KEYS.forEach(([sez,righe])=>{
+    const h=document.createElement("p");h.className="kssec";h.textContent=sez;
+    box.appendChild(h);
+    righe.forEach(([tasti,txt])=>{
+      const r=document.createElement("div");r.className="ksrow";
+      r.innerHTML="<b>"+tasti.map(t=>t==="…"?"<span>…</span>":"<kbd>"+t+"</kbd>").join("")+
+        "</b><span>"+txt+"</span>";
+      box.appendChild(r);
+    });
+  });
+}
+
 function iconify(){
   const solo=[["undoBtn","UND",15],["redoBtn","RED",15],["moreBtn","DOT",15],
     ["qClear","XX",12],["wPrev","CHL",14],["wNext","CHR",14],["dPrev","CHL",14],
     ["dNext","CHR",14],["mPrev","CHL",14],["mNext","CHR",14],["pmClose","XX",13],
-    ["dyClose","XX",13],["rpClose","XX",13],["syClose","XX",13],["bkClose","XX",13]];
+    ["dyClose","XX",13],["rpClose","XX",13],["syClose","XX",13],["bkClose","XX",13],
+    ["ksClose","XX",13]];
   solo.forEach(([id,k,sz])=>{const e=document.getElementById(id);if(e)e.innerHTML=icon(k,sz);});
   document.querySelectorAll(".lbl[data-ico]").forEach(e=>{
     e.innerHTML=icon(e.dataset.ico,11)+"<span>"+e.textContent.trim()+"</span>";
@@ -3304,8 +3555,8 @@ function iconify(){
   if(sb)sb.insertAdjacentHTML("afterbegin",'<span class="sico">'+icon("SRC",13)+"</span>");
   const testo=[["wToday","TDY",13],["moveBtn","MOV",13],["eraseBtn","ERS",13],
     ["addBtn","PLS",12],["exAdd","PLS",12],["syncBtn","CLD",13],["backup","SAV",13],
-    ["printBtn","PRN",13],["dyCopy","CPY",12],["dyPaste","PST",12],["dyWipe","TRS",12],
-    ["rpGo","RIP",12]];
+    ["printBtn","PRN",13],["ksBtn","KEY",13],["dyCopy","CPY",12],["dyPaste","PST",12],
+    ["dyWipe","TRS",12],["rpGo","RIP",12]];
   testo.forEach(([id,k,sz])=>{
     const e=document.getElementById(id);
     if(e)e.innerHTML=icon(k,sz)+"<span>"+e.textContent.trim()+"</span>";
@@ -3331,8 +3582,21 @@ window.addEventListener("resize",()=>{
   clearTimeout(rzT);
   rzT=setTimeout(()=>{if(autoRow())redrawGrid();},140);
 });
+/* Sulla carta l'altezza della finestra non conta: densità fissa e leggibile,
+   e tutte le settimane aperte, anche quelle che a schermo tieni chiuse. */
+const ROW_PRINT=26;
+let printFold=null;
+window.addEventListener("beforeprint",()=>{
+  printFold=state.collapsed;state.collapsed={};
+  document.documentElement.dataset.fit="wide";
+  setRow(ROW_PRINT);panels();
+});
+window.addEventListener("afterprint",()=>{
+  if(printFold){state.collapsed=printFold;printFold=null;}
+  ROW=0;autoRow();panels();
+});
 (async()=>{
-  await load();iconify();autoLessons();render();histInit();
+  await load();iconify();autoLessons();foldToToday();render();histInit();
   /* la griglia parte dalle 8: se resta qualcosa piazzato prima, va segnalato */
   const early=Object.keys(state.cells)
     .filter(k=>+k.split(".").pop()<DAY_FROM*PERQ&&at(k).length).length;
