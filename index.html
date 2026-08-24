@@ -110,7 +110,7 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .sidebar{padding:16px 0 6px}
 .canvas{min-width:0;padding-top:0}
 /* colonna singola: prima la settimana, gli strumenti sotto — così la fascia
-   8–20 si vede appena apri, senza dover scorrere oltre l'elenco materie */
+   si vede appena apri, senza dover scorrere oltre l'elenco materie */
 @media (max-width:1059px){
   .canvas{order:-1;padding-bottom:20px}
   .sidebar{border-top:1px solid var(--line);padding-top:14px}
@@ -270,6 +270,7 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 .btn.warnon{background:var(--warn);border-color:var(--warn);color:#fff}
 .btn.armed{border-color:var(--warn);color:var(--warn)}
 
+.printhead{display:none}
 .status{font-family:"DM Mono",monospace;font-size:11px;color:var(--tx2);
   margin:5px 0 6px;min-height:16px;line-height:1.5}
 .status b{color:var(--tx);font-weight:500;letter-spacing:.02em}
@@ -285,7 +286,7 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
   text-transform:uppercase;padding:7px 13px;border-radius:0 0 var(--r-sm) var(--r-sm);
   margin:0 auto 11px;width:fit-content}
 
-/* Schermo basso: la giornata dalle 8 alle 20 viene prima di tutto,
+/* Schermo basso: la fascia centrale della giornata viene prima di tutto,
    quindi l'intestazione si stringe per lasciarle i pixel che servono. */
 html[data-fit="compact"] .tin{padding:3px var(--pad) 4px}
 html[data-fit="compact"] .ctxpick .lbl{display:none}
@@ -670,6 +671,9 @@ td.tot b{color:var(--tx2);font-weight:500}
   .shell{display:block;padding:0}
   :root{--bg:#fff;--surface:#fff;--raised:#fff;--sunken:#f4f4f4;--tx:#000;--tx2:#444;
         --tx3:#777;--line:#bbb;--line-soft:#ddd}
+  .printhead{display:block;font-family:"DM Mono",monospace;font-size:10px;
+    letter-spacing:.06em;color:#555;margin:0 0 10px;padding-bottom:6px;
+    border-bottom:1px solid #bbb}
   .panel{break-inside:avoid;page-break-inside:avoid;border-top:0;
     margin-top:0;padding-top:0}
   /* una settimana per foglio, con le testate dei giorni ferme in cima */
@@ -765,6 +769,8 @@ td.tot b{color:var(--tx2);font-weight:500}
 
   <main class="canvas">
 
+    <p class="printhead" id="printhead"></p>
+
     <div class="gridbar">
       <div class="grp nav">
         <button class="icon sm" id="wPrev" title="Quattro settimane indietro" aria-label="Settimane precedenti">‹</button>
@@ -836,14 +842,20 @@ td.tot b{color:var(--tx2);font-weight:500}
       <b>pausa</b> breve, dopo quanti <b>cicli</b> scatta la pausa <b>lunga</b>, e quanto
       dura. Tutto in minuti.</p>
     <div id="pmBody"></div>
-    <div class="pmrow" style="border-top:1px solid var(--line);border-bottom:0;margin-top:6px">
+    <div class="pmrow" style="border-top:1px solid var(--line);margin-top:6px">
+      <span class="nm" id="dayFromLab">La giornata inizia alle</span>
+      <input id="dayFrom" type="number" min="0" max="12" step="1"
+        title="Prima ora mostrata nella griglia: sotto questa non si piazza niente">
+    </div>
+    <div class="pmrow" style="border-bottom:0">
       <span class="nm" id="dayTgtLab">Obiettivo di ore al giorno</span>
       <input id="dayTgt" type="number" min="1" max="16" step="1"
         title="Quando la giornata supera questo monte ore il nastro sotto la data diventa rosso">
     </div>
     <p style="font-size:11px;color:var(--tx3);margin:8px 0 0;line-height:1.5">
-      È la misura del nastro di carico sotto ogni data: pieno quando arrivi all'obiettivo,
-      rosso quando lo superi.</p>
+      L'obiettivo è la misura del nastro di carico sotto ogni data: pieno quando ci arrivi,
+      rosso quando lo superi. L'ora d'inizio decide da dove parte la griglia: quello che hai
+      piazzato prima resta salvato, torna visibile appena la abbassi.</p>
   </div>
 </div>
 
@@ -862,7 +874,7 @@ td.tot b{color:var(--tx2);font-weight:500}
 
 <div class="modal" id="rpModal">
   <div class="sheet">
-    <div class="mhead"><b>Ripeti settimana</b><button id="rpClose">✕</button></div>
+    <div class="mhead"><b id="rpTitle">Ripeti settimana</b><button id="rpClose">✕</button></div>
     <p id="rpInfo" style="font-size:13px;color:var(--tx2);line-height:1.55;margin:0 0 12px"></p>
     <div class="adder" style="margin:0">
       <input id="rpN" type="number" min="1" max="30" value="3" class="cfu" aria-label="Quante settimane">
@@ -918,6 +930,7 @@ td.tot b{color:var(--tx2);font-weight:500}
     <textarea id="bkText" spellcheck="false" style="font-family:'DM Mono',monospace;font-size:10.5px"></textarea>
     <div class="mfoot">
       <button id="bkCopy">Copia</button>
+      <button id="bkDl">Scarica</button>
       <button id="bkRestore">Ripristina</button>
     </div>
   </div>
@@ -941,10 +954,16 @@ const MESIL=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","A
              "Settembre","Ottobre","Novembre","Dicembre"];
 /* slot da 30 minuti: indice = ora*2 (+1 per la mezz'ora). 16 = 08:00, 47 = 23:30 */
 const PERQ=2;
-const DAY_FROM=8;                /* prima ora mostrata nella griglia */
-const HOURS=(()=>{const a=[];for(let s=DAY_FROM*PERQ;s<24*PERQ;s++)a.push(s);return a;})();
+const DAY_FROM=8;                /* prima ora mostrata, se non ne scegli un'altra */
+/* La griglia parte dall'ora scelta. Il valore vive qui e non in state, che
+   viene creato più sotto: così HOURS si può costruire subito. */
+let DFROM=DAY_FROM;
+function dayFrom(){return DFROM;}
+function buildHours(){const a=[];for(let s=DFROM*PERQ;s<24*PERQ;s++)a.push(s);return a;}
+function setDayFrom(v){DFROM=Math.min(12,Math.max(0,+v||0));HOURS=buildHours();}
+let HOURS=buildHours();
 /* Altezza di uno slot: non è più fissa. autoRow() la calcola in modo che la
-   giornata arrivi almeno alle 20 senza dover scorrere, dentro questi limiti. */
+   fascia 8–FIT_TO resti a schermo senza scorrere, dentro questi limiti. */
 let ROW=28;
 const ROW_MIN=13;                /* sotto non si legge più niente */
 const ROW_MAX=34;
@@ -1103,7 +1122,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
 const KEY="piano-6272-v5";
 let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,mode:"paint",
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
-           pomConf:null,pomRun:null,pomLog:null,dayTarget:8,
+           pomConf:null,pomRun:null,pomLog:null,dayTarget:8,dayFrom:8,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
 let painting=false,val=null,openColor=null,armed=null,armTmr=null,mMonth=null,drag=null;
 let lastTap={sig:null,t:0},tapUndo=null,editId=null;
@@ -1139,7 +1158,7 @@ function panelDates(p){
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
 const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
-  "pomConf","pomRun","pomLog","dayTarget"];
+  "pomConf","pomRun","pomLog","dayTarget","dayFrom"];
 const LSKEY="piano-6272-local";
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
         localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
@@ -1415,6 +1434,11 @@ window.addEventListener("keydown",e=>{
   if(k==="e"||k==="E"){e.preventDefault();document.getElementById("eraseBtn").click();return;}
   if(k==="m"||k==="M"){e.preventDefault();document.getElementById("moveBtn").click();return;}
   if(k==="o"||k==="O"){e.preventDefault();document.getElementById("wToday").click();return;}
+  /* con il fuoco su una casella le frecce servono a muoversi lì dentro;
+     fuori dalla griglia cambiano settimana */
+  const cella=document.activeElement&&document.activeElement.closest&&
+              document.activeElement.closest("td.c");
+  if(cella&&k.indexOf("Arrow")===0){e.preventDefault();moveFocus(cella,k);return;}
   if(k==="ArrowLeft"){e.preventDefault();document.getElementById("wPrev").click();return;}
   if(k==="ArrowRight"){e.preventDefault();document.getElementById("wNext").click();return;}
   if(k==="/"){e.preventDefault();const q=document.getElementById("q");q.focus();q.select();return;}
@@ -1432,6 +1456,7 @@ window.addEventListener("keydown",e=>{
 
 function adopt(d){
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
+  setDayFrom(state.dayFrom==null?DAY_FROM:state.dayFrom);
   state.exams=state.exams||[];state.collapsed=state.collapsed||{};
   normCustom();
   migrate(d);
@@ -1607,7 +1632,6 @@ const map=()=>{const m={};items().forEach(o=>m[o.id]=o);return m;};
 const ck=(dateIso,h)=>state.year+"."+state.ctx+"."+dateIso+"."+h;
 const actOf=k=>ACTS.find(a=>a.k===k)||ACTS[0];
 const rgb=h=>{const n=parseInt(h.slice(1),16);return [n>>16,(n>>8)&255,n&255];};
-const rgba=(h,o)=>{const c=rgb(h);return "rgba("+c[0]+","+c[1]+","+c[2]+","+o+")";};
 function ink(h){const c=rgb(h);return (.299*c[0]+.587*c[1]+.114*c[2])/255>.62?"#0D0F13":"#FFFFFF";}
 
 function countAll(pre){
@@ -1650,11 +1674,6 @@ function totalCtx(id){
 }
 const targetH=cfu=>cfu?cfu*25:0;
 
-function totalVisible(id){
-  let n=0;
-  for(let p=0;p<PANELS;p++){const c=countPanel(p);if(c[id])n+=c[id].tot;}
-  return n;
-}
 
 /* ============================================================
    5. RENDER
@@ -1723,23 +1742,36 @@ function colorClashes(){
   });
   return clash;
 }
+/* materie su cui hai scritto una nota che contiene il testo cercato */
+function noteHits(q){
+  const out={};
+  Object.keys(state.cells).forEach(k=>{
+    at(k).forEach(v=>{
+      if(v&&v.n&&v.n.toLowerCase().indexOf(q)>=0)out[v.i]=(out[v.i]||0)+1;
+    });
+  });
+  return out;
+}
 function picklist(){
   const box=document.getElementById("picklist");box.innerHTML="";
   const q=(state.q||"").trim().toLowerCase();
   const inCtx=courses().concat(voci());
   const clash=colorClashes();
-  /* con la ricerca attiva pesca in tutto il piano, non solo nel semestre corrente */
+  /* con la ricerca attiva pesca in tutto il piano: nomi, note e scadenze */
+  const note=q?noteHits(q):{};
   const list=q
-    ? items().filter(o=>o.name.toLowerCase().indexOf(q)>=0)
+    ? items().filter(o=>o.name.toLowerCase().indexOf(q)>=0||note[o.id])
     : inCtx;
+  const scad=q?(state.exams||[]).filter(x=>x.t.toLowerCase().indexOf(q)>=0):[];
   box.classList.toggle("grow",!!q);
 
   const info=document.getElementById("pickinfo");
   info.textContent=q
-    ? list.length+" risultati in tutto il piano"
+    ? (list.length+scad.length)+" risultati in tutto il piano"
     : list.length+" nel semestre";
 
-  if(!list.length){box.innerHTML='<p class="empty" style="padding:12px">Nessuna materia trovata.</p>';return;}
+  if(!list.length&&!scad.length){
+    box.innerHTML='<p class="empty" style="padding:12px">Niente che corrisponda.</p>';return;}
 
   list.forEach(o=>{
     o.color=state.colors[o.id]||autoColor(o.id);
@@ -1748,7 +1780,8 @@ function picklist(){
     const b=document.createElement("button");
     b.className="prow"+(state.brush===o.id?" sel":"");
     b.setAttribute("aria-pressed",state.brush===o.id);
-    const tag=(q&&o.kind==="c")?'<em>'+["I","II","III"][o.year-1]+" · sem "+o.sem+"</em>":"";
+    const tag=((q&&o.kind==="c")?'<em>'+["I","II","III"][o.year-1]+" · sem "+o.sem+"</em>":"")+
+      (note[o.id]?'<em style="color:var(--action)">'+note[o.id]+" in nota</em>":"");
     const cl=clash[o.id];
     b.innerHTML='<span class="swatch'+(cl?" clash":"")+'" style="background:'+o.color+'"'+
       (cl?' title="Stesso colore di '+cl.name.replace(/"/g,"")+'"':"")+"></span>"+
@@ -1789,6 +1822,28 @@ function picklist(){
 
     if(editId===o.id)box.appendChild(editForm(o));
   });
+
+  if(scad.length){
+    const h=document.createElement("p");
+    h.className="empty";h.style.cssText="padding:9px 11px 4px;border-top:1px solid var(--line)";
+    h.textContent=scad.length+(scad.length===1?" scadenza":" scadenze");
+    box.appendChild(h);
+    scad.sort((a,b)=>a.d<b.d?-1:1).forEach(x=>{
+      const b=document.createElement("button");
+      b.className="prow";b.title="Porta la Settimana 1 su questa data";
+      b.innerHTML='<span class="swatch" style="background:var(--warn);'+
+        'display:flex;align-items:center;justify-content:center">'+icon("FLG",11)+"</span>";
+      const nm=document.createElement("span");nm.className="pnm";nm.textContent=x.t;
+      const dt=document.createElement("span");dt.className="ph";
+      dt.textContent=fmt(parse(x.d))+(x.hm?" · "+x.hm:"");
+      b.appendChild(nm);b.appendChild(dt);
+      b.onclick=()=>{
+        state.anchor[state.ctx]=iso(monday(parse(x.d)));
+        save();weeknav();panels();picklist();
+      };
+      box.appendChild(b);
+    });
+  }
 }
 
 /* form di modifica della materia: nome, CFU, scadenza */
@@ -2022,7 +2077,6 @@ function autoLessons(){
 function nowLine(){
   document.querySelectorAll(".nowline").forEach(el=>el.remove());
   const n=new Date(),h=n.getHours();
-  if(h<DAY_FROM)return;
   const sl=h*PERQ+(n.getMinutes()>=30?1:0);
   const frac=(n.getMinutes()%30)/30;
   if(HOURS.indexOf(sl)<0)return;
@@ -2319,9 +2373,19 @@ function pomPanel(){
 }
 
 function pomSettings(){
+  const df=document.getElementById("dayFrom");
+  df.value=dayFrom();
+  document.getElementById("dayFromLab").innerHTML=icon("CLK",13)+"La giornata inizia alle";
+  df.onchange=()=>{
+    const v=Math.min(12,Math.max(0,+df.value||0));
+    df.value=v;
+    if(v===dayFrom())return;
+    state.dayFrom=v;setDayFrom(v);
+    save("Giornata dalle "+v);render();
+  };
   const tg=document.getElementById("dayTgt");
   tg.value=state.dayTarget||8;
-  document.getElementById("dayTgtLab").innerHTML=icon("CLK",13)+"Obiettivo di ore al giorno";
+  document.getElementById("dayTgtLab").innerHTML=icon("TDY",13)+"Obiettivo di ore al giorno";
   tg.onchange=()=>{
     state.dayTarget=Math.min(16,Math.max(1,+tg.value||8));
     tg.value=state.dayTarget;
@@ -2428,8 +2492,23 @@ function openDay(dateIso){
 }
 function closeDay(){document.getElementById("dyModal").classList.remove("open");dayAt=null;}
 
-let repeatFrom=null;
+let repeatFrom=null,rpMode="week";
+function openRepeatBlocks(){
+  const keys=Object.keys(selRuns);
+  if(!keys.length)return;
+  rpMode="blocks";
+  document.getElementById("rpTitle").textContent=
+    keys.length===1?"Ripeti il blocco":"Ripeti i blocchi";
+  document.getElementById("rpInfo").textContent=
+    keys.length+(keys.length===1?" blocco":" blocchi")+
+    " — vengono ricopiati nello stesso giorno e alla stessa ora delle settimane "+
+    "successive, senza toccare quello che c'è già intorno.";
+  document.getElementById("rpN").value=3;
+  document.getElementById("rpModal").classList.add("open");
+}
 function openRepeat(p){
+  rpMode="week";
+  document.getElementById("rpTitle").textContent="Ripeti settimana";
   if(!Object.keys(weekData(p)).length){toast("Settimana vuota");return;}
   repeatFrom=p;
   document.getElementById("rpInfo").textContent=
@@ -2439,7 +2518,20 @@ function openRepeat(p){
   document.getElementById("rpModal").classList.add("open");
 }
 function doRepeat(){
-  const p=repeatFrom,n=Math.max(1,Math.min(30,+document.getElementById("rpN").value||1));
+  const n=Math.max(1,Math.min(30,+document.getElementById("rpN").value||1));
+  if(rpMode==="blocks"){
+    document.getElementById("rpModal").classList.remove("open");
+    const runs=Object.keys(selRuns).map(k=>selRuns[k]);
+    runs.forEach(r=>{
+      for(let k=1;k<=n;k++){
+        placeRun(iso(addDays(parse(r.date),7*k)),r.start,
+          {i:r.i,a:r.a,n:r.n,len:r.len},null);
+      }
+    });
+    afterEdit("Ripetuti su "+n+(n===1?" settimana":" settimane"));
+    return;
+  }
+  const p=repeatFrom;
   const data=weekData(p);
   for(let k=1;k<=n;k++){
     const dates=[];const st=addDays(panelStart(p),7*k);
@@ -2600,6 +2692,7 @@ function buildPanel(p,m){
       c.tabIndex=0;c.dataset.date=iso(dates[d]);c.dataset.h=s;c.dataset.d=d;
       c.dataset.half=isHalf(s);
       c.dataset.mark=(slotQ(s)===0);c.dataset.t=slotTime(s);
+      c.dataset.lab=DSH[d]+" "+dates[d].getDate()+", "+slotTime(s);
       cell(c,m);row.appendChild(c);
     }
     tb.appendChild(row);
@@ -2684,9 +2777,6 @@ function setAt(k,arr){
   while(a.length&&!a[a.length-1])a.pop();
   if(!a.length)delete state.cells[k];else state.cells[k]=a;
 }
-function eachEntry(fn){
-  Object.keys(state.cells).forEach(k=>at(k).forEach((v,l)=>{if(v)fn(v,k,l);}));
-}
 function lanesOf(dateIso){
   let n=1;
   HOURS.forEach(sl=>{n=Math.max(n,at(ck(dateIso,sl)).length);});
@@ -2759,6 +2849,8 @@ function cell(td,m){
   td.className="c"+(+td.dataset.d>4?" we":"")+(td.dataset.mark==="true"?" mark":"")+
     (td.dataset.half==="true"?" half":"")+(td.dataset.date===TODAY?" tdy":"");
   td.innerHTML="";td.style.background="";
+  /* torna l'etichetta vuota: drawDay ci aggiunge il contenuto del blocco */
+  td.setAttribute("aria-label",td.dataset.lab||"");
 }
 /* i blocchi che si toccano formano un gruppo e si dividono la colonna
    solo fra loro: un blocco isolato resta a tutta larghezza */
@@ -2828,6 +2920,9 @@ function drawDay(dateIso,scope){
         '<span class="rsz"></span>';
       bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
         (r.v.n?" ("+r.v.n+")":"")+(r.v.done?" · fatto":"");
+      td.setAttribute("aria-label",
+        (td.dataset.lab||"")+" — "+o.name+", "+a.n+", fino alle "+
+        slotTime(r.start+r.len)+(r.v.n?", nota: "+r.v.n:"")+(r.v.done?", fatto":""));
       td.appendChild(bl);
     });
   });
@@ -2843,7 +2938,6 @@ function drawDay(dateIso,scope){
   });
   nowLine();
 }
-function redrawDay(dateIso){drawDay(dateIso);}
 
 /* ---------- scrittura ---------- */
 function put(td,lane){
@@ -2930,6 +3024,12 @@ function selInfo(){
   el.className="selbar on";
   el.innerHTML="<b>"+n+(n===1?" blocco":" blocchi")+" · "+hrs(tot)+"</b>"+
     "<span>copia C · incolla V · fatto F · elimina ⌫ · esci Esc</span>";
+  const rip=document.createElement("button");
+  rip.className="btn";
+  rip.innerHTML=icon("RIP",13)+"<span>Ripeti ogni settimana…</span>";
+  rip.title="Ricopia questi blocchi nelle settimane successive, stesso giorno e stessa ora";
+  rip.onclick=openRepeatBlocks;
+  el.appendChild(rip);
   pomPanel();
 }
 function copyBlocks(){
@@ -3013,7 +3113,7 @@ function editNote(dateIso,start,lane){
   const r=runAt(dateIso,start,lane);if(!r)return;
   if(bl.querySelector("input.noteEdit"))return;
   const inp=document.createElement("input");
-  inp.className="noteEdit";inp.maxLength=40;
+  inp.className="noteEdit";inp.maxLength=120;
   inp.value=r.n||"";inp.placeholder="aula, capitolo…";
   bl.appendChild(inp);inp.focus();inp.select();
   let closed=false;
@@ -3037,6 +3137,22 @@ function editNote(dateIso,start,lane){
   });
   inp.addEventListener("pointerdown",e=>e.stopPropagation());
   inp.addEventListener("blur",()=>done(true));
+}
+
+/* sposta il fuoco di una casella nella direzione della freccia */
+function moveFocus(td,k){
+  const tr=td.parentElement,tb=tr.parentElement;
+  const celle=[...tr.querySelectorAll("td.c")],i=celle.indexOf(td);
+  if(k==="ArrowLeft"||k==="ArrowRight"){
+    const n=celle[i+(k==="ArrowRight"?1:-1)];
+    if(n)n.focus();
+    return;
+  }
+  const righe=[...tb.querySelectorAll("tr")].filter(r=>r.querySelector("td.c"));
+  const r=righe[righe.indexOf(tr)+(k==="ArrowDown"?1:-1)];
+  if(!r)return;
+  const n=[...r.querySelectorAll("td.c")][i];
+  if(n)n.focus();
 }
 
 /* ---------- interazione ---------- */
@@ -3188,12 +3304,6 @@ function reportOverwrite(){
   toast("Sostituito: "+txt+" — annulla con Z");
   overwritten={};
 }
-["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,()=>{
-  if(rz){rz=null;save();commit();panels();picklist();semSummary();}
-  if(drag){drag=null;save();commit();panels();picklist();semSummary();}
-  if(painting){painting=false;commit();reportOverwrite();panels();picklist();semSummary();}
-}));
-
 /* ============================================================
    6. CALENDARIO
    ============================================================ */
@@ -3278,6 +3388,14 @@ document.getElementById("bkCopy").onclick=async()=>{
   t.select();
   try{await navigator.clipboard.writeText(t.value);toast("Copiato");}
   catch(e){toast("Seleziona e copia a mano");}
+};
+document.getElementById("bkDl").onclick=()=>{
+  const url=URL.createObjectURL(new Blob([payload()],{type:"application/json"}));
+  const a=document.createElement("a");
+  a.href=url;a.download="piano-"+iso(new Date())+".json";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  toast("Backup scaricato");
 };
 document.getElementById("bkRestore").onclick=()=>{
   try{
@@ -3465,7 +3583,7 @@ function redrawGrid(){
   });
 }
 /* Sceglie l'altezza di riga più grande che fa comunque entrare la fascia
-   8–20. Tre tentativi, in quest'ordine:
+   dalle 8 a FIT_TO. Tre tentativi, in quest'ordine:
      1. tutta la pagina dall'alto, senza toccare niente;
      2. la stessa cosa con l'intestazione stretta;
      3. sotto una certa soglia le righe non si leggerebbero più: allora si
@@ -3508,9 +3626,11 @@ const KEYS=[
     [["1","…","8"],"Scegli l'attività con cui dipingere"],
     [["E"],"Cancella: tocca o trascina per svuotare"],
     [["M"],"Sposta: trascina i blocchi"],
-    [["Spazio"],"Dipinge la casella che ha il fuoco"]]],
+    [["Spazio"],"Dipinge la casella che ha il fuoco"],
+    [["←","↑","→","↓"],"Si sposta fra le caselle"],
+    [["Doppio tocco"],"Scrive la nota dentro un blocco"]]],
   ["Navigazione",[
-    [["←","→"],"Quattro settimane indietro o avanti"],
+    [["←","→"],"Quattro settimane, fuori dalla griglia"],
     [["O"],"Torna alla settimana di oggi"],
     [["/"],"Salta nella ricerca delle materie"],
     [["?"],"Apre questa legenda"]]],
@@ -3556,7 +3676,7 @@ function iconify(){
   const testo=[["wToday","TDY",13],["moveBtn","MOV",13],["eraseBtn","ERS",13],
     ["addBtn","PLS",12],["exAdd","PLS",12],["syncBtn","CLD",13],["backup","SAV",13],
     ["printBtn","PRN",13],["ksBtn","KEY",13],["dyCopy","CPY",12],["dyPaste","PST",12],
-    ["dyWipe","TRS",12],["rpGo","RIP",12]];
+    ["dyWipe","TRS",12],["rpGo","RIP",12],["bkDl","SAV",12],["bkCopy","CPY",12]];
   testo.forEach(([id,k,sz])=>{
     const e=document.getElementById(id);
     if(e)e.innerHTML=icon(k,sz)+"<span>"+e.textContent.trim()+"</span>";
@@ -3587,6 +3707,10 @@ window.addEventListener("resize",()=>{
 const ROW_PRINT=26;
 let printFold=null;
 window.addEventListener("beforeprint",()=>{
+  const a=panelStart(0),b=addDays(panelStart(PANELS-1),6);
+  document.getElementById("printhead").textContent=
+    state.year+"º anno · "+CTX[state.ctx].name+" "+b.getFullYear()+" · "+
+    fmt(a)+" – "+fmt(b)+" · stampato il "+new Date().toLocaleDateString("it-IT");
   printFold=state.collapsed;state.collapsed={};
   document.documentElement.dataset.fit="wide";
   setRow(ROW_PRINT);panels();
@@ -3599,8 +3723,8 @@ window.addEventListener("afterprint",()=>{
   await load();iconify();autoLessons();foldToToday();render();histInit();
   /* la griglia parte dalle 8: se resta qualcosa piazzato prima, va segnalato */
   const early=Object.keys(state.cells)
-    .filter(k=>+k.split(".").pop()<DAY_FROM*PERQ&&at(k).length).length;
-  if(early)setTimeout(()=>toast("Alcune ore prima delle "+DAY_FROM+" non sono in griglia"),900);
+    .filter(k=>+k.split(".").pop()<HOURS[0]&&at(k).length).length;
+  if(early)setTimeout(()=>toast("Alcune ore prima delle "+dayFrom()+" non sono in griglia"),900);
   /* i caratteri web arrivano dopo il primo disegno e spostano le misure:
      la densità va ricalcolata quando la pagina è davvero assestata */
   requestAnimationFrame(()=>{if(autoRow())redrawGrid();});
