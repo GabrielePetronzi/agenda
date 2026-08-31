@@ -16,7 +16,7 @@
 :root{
   --bg:#101114; --surface:#17181D; --raised:#1E2026; --sunken:#0C0D10;
   --line:#2A2C34; --line-soft:#212329;
-  --tx:#E8E9ED; --tx2:#9A9CA6; --tx3:#63656F;
+  --tx:#E8E9ED; --tx2:#9A9CA6; --tx3:#7E808C;   /* 15.6 · 6.9 · 4.8 sul fondo */
   --action:#8B93FF; --done:#57BE8E; --warn:#E0736A;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
   --r:10px; --r-sm:7px;
@@ -27,7 +27,7 @@
 html[data-theme="light"]{
   --bg:#F2F0EA; --surface:#FBFAF6; --raised:#FFFFFF; --sunken:#E8E5DC;
   --line:#DEDACF; --line-soft:#EAE6DC;
-  --tx:#23231F; --tx2:#6A6862; --tx3:#9C998F;
+  --tx:#23231F; --tx2:#52504C; --tx3:#69675D;   /* 13.8 · 7.1 · 5.0 sul fondo */
   --action:#4A54D6; --done:#2F8A5F; --warn:#B4483E;
   --shadow:0 1px 2px rgba(60,54,40,.07), 0 10px 26px -14px rgba(60,54,40,.28);
   --tint-today:rgba(74,84,214,.07); --tint-hover:rgba(74,84,214,.11);
@@ -213,6 +213,21 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 .vedit button:hover{color:var(--tx)}
 #vDel.armed{border-color:var(--warn);color:var(--warn)}
 
+/* trascinamento di una materia dall'elenco fin dentro la griglia:
+   l'etichetta segue il dito, la casella sotto si illumina */
+.prow{touch-action:pan-y;-webkit-touch-callout:none}
+.dragghost{position:fixed;z-index:90;pointer-events:none;display:flex;align-items:center;
+  gap:7px;max-width:220px;padding:6px 10px;border-radius:var(--r-sm);
+  background:var(--raised);border:1px solid var(--line);box-shadow:var(--shadow);
+  font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transform:translate(-50%,-165%)}
+.dragghost i{width:12px;height:12px;flex:0 0 12px;border-radius:4px}
+.dragghost b{font-weight:400;color:var(--tx3);font-family:"DM Mono",monospace;font-size:10px}
+body.dropping{cursor:copy;user-select:none;-webkit-user-select:none}
+body.dropping .prow{touch-action:none}
+body.dropping td.c.dropok{background:var(--tint-hover);
+  box-shadow:inset 0 0 0 1px var(--action)}
+
 /* ============================================================
    Pulsanti attività e strumenti
    ============================================================ */
@@ -390,7 +405,7 @@ body.erasing td.c:hover{background-image:linear-gradient(rgba(224,115,106,.16),r
 tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
 
 /* blocchi */
-.blk{position:absolute;top:0;z-index:2;border-radius:5px;overflow:hidden;cursor:pointer;
+.blk{position:absolute;top:0;z-index:2;border-radius:5px;overflow:hidden;cursor:grab;
   box-shadow:0 0 0 1px rgba(0,0,0,.28), 0 1px 3px rgba(0,0,0,.22)}
 .blk em{display:block;font-style:normal;padding:4px 7px 0;overflow:hidden;height:100%}
 .blk em b{display:block;font-family:"Familjen Grotesk",sans-serif;font-size:12px;
@@ -457,8 +472,7 @@ html[data-theme="light"] input.noteEdit{background:rgba(255,255,255,.5)}
 body.picking td.c{cursor:crosshair}
 body.picking .blk{outline:1px dashed rgba(255,255,255,.45);outline-offset:-3px}
 body.picking .blk:hover{outline:2px solid var(--action);outline-offset:-2px}
-table.moving{outline:2px solid var(--action);outline-offset:3px;border-radius:4px}
-table.moving .blk{cursor:grab}
+.blk:active{cursor:grabbing}
 
 /* scadenze */
 tr.exline td{border:1px solid var(--line-soft);background:var(--sunken);padding:0;
@@ -587,13 +601,31 @@ td.tot b{color:var(--tx2);font-weight:500}
 .pmrow input{width:56px;border:1px solid var(--line);background:var(--surface);color:var(--tx);
   border-radius:6px;padding:7px;font-family:"DM Mono",monospace;font-size:12.5px;text-align:center}
 .pmhead{font-family:"DM Mono",monospace;font-size:8.5px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--tx3);display:flex;gap:9px;padding:0 0 7px 159px}
-.pmhead span{width:56px;text-align:center}
+  text-transform:uppercase;color:var(--tx3);display:flex;gap:9px;padding:0 0 7px}
+/* lo spazio del nome dell'attività, ricalcato da .pmrow .nm: così le colonne
+   restano sopra i loro campi anche quando la finestra cambia larghezza */
+.pmhead::before{content:"";flex:1 0 150px}
+.pmhead span{width:56px;text-align:center;flex:0 0 56px}
+/* ogni campo si porta dietro la sua etichetta: sta nascosta finché la testata
+   in cima alla tabella fa il suo lavoro, e prende il suo posto quando sparisce */
+.pmrow .f{display:flex;flex-direction:column;align-items:center;gap:3px}
+.pmrow .f u{display:none;text-decoration:none;font-family:"DM Mono",monospace;
+  font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3)}
+.pmrow .pair{display:flex;align-items:center;gap:8px}
+.pmrow .pair em{font-style:normal;color:var(--tx3);font-size:13px}
+.pmrow .pair .f u{display:block}
+.pmnote{font-family:"DM Mono",monospace;font-size:10.5px;line-height:1.55;
+  color:var(--tx3);margin:9px 0 0}
+.pmnote b{font-weight:500;color:var(--tx2)}
+.pmnote .warn,.pmnote.warn{color:var(--warn)}
+.pmnote .warn b{color:var(--warn)}
 @media (max-width:600px){
   .pombar .pmeta i{display:none}
   .pombar .pt{font-size:21px;min-width:62px}
   .pombar .pin{gap:10px}
   .pmhead{display:none}
+  .pmrow .f u{display:block}
+  .pmrow .nm{flex:1 0 100%}
 }
 
 /* ============================================================
@@ -707,7 +739,7 @@ td.tot b{color:var(--tx2);font-weight:500}
   </div>
   <div class="moremenu" id="moremenu">
     <div class="mm">
-      <span class="sync" id="sync"><i></i><span>Pronto</span></span>
+      <span class="sync" id="sync" role="status" aria-live="polite"><i></i><span>Pronto</span></span>
       <button id="syncBtn">Sincronizza dispositivi</button>
       <button id="backup">Backup</button>
       <button id="ksBtn">Scorciatoie</button>
@@ -789,16 +821,17 @@ td.tot b{color:var(--tx2);font-weight:500}
         <button class="icon sm" id="dPrev" title="Giorni precedenti" aria-label="Giorni precedenti">‹</button>
         <span class="dlab" id="dLab"></span>
         <button class="icon sm" id="dNext" title="Giorni successivi" aria-label="Giorni successivi">›</button>
+        <button class="icon sm" id="gdBtn" title="Ore mostrate e carico della giornata"
+          aria-label="Impostazioni della giornata"></button>
       </div>
 
       <div class="grp sep">
-        <button class="btn" id="moveBtn">Sposta</button>
         <button class="btn" id="eraseBtn">Cancella</button>
       </div>
     </div>
 
-    <p class="status" id="status"></p>
-    <p class="modeflag" id="modeflag"></p>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <p class="modeflag" id="modeflag" role="status" aria-live="assertive"></p>
     <div class="selbar" id="selbar"></div>
     <div id="panels"></div>
 
@@ -836,34 +869,44 @@ td.tot b{color:var(--tx2);font-weight:500}
 
 <div class="modal" id="pmModal">
   <div class="sheet bk" style="max-width:520px">
-    <div class="mhead"><b>Durate e obiettivi</b><button id="pmClose">✕</button></div>
-    <p style="font-size:12.5px;color:var(--tx2);margin:0 0 14px;line-height:1.5">
-      Per ogni attività, da sinistra a destra: durata di una <b>sessione</b>, minuti di
-      <b>pausa</b> breve, dopo quanti <b>cicli</b> scatta la pausa <b>lunga</b>, e quanto
-      dura. Tutto in minuti.</p>
+    <div class="mhead"><b>Durate del pomodoro</b><button id="pmClose">✕</button></div>
     <div id="pmBody"></div>
-    <div class="pmrow" style="border-top:1px solid var(--line);margin-top:6px">
-      <span class="nm" id="dayFromLab">La giornata inizia alle</span>
-      <input id="dayFrom" type="number" min="0" max="12" step="1"
-        title="Prima ora mostrata nella griglia: sotto questa non si piazza niente">
+    <p class="pmnote">Minuti, tranne <b>cicli</b>: quante sessioni prima della pausa lunga.</p>
+  </div>
+</div>
+
+<div class="modal" id="gdModal">
+  <div class="sheet">
+    <div class="mhead"><b>La giornata</b><button id="gdClose">✕</button></div>
+
+    <p class="lbl" data-ico="CLK">Ore mostrate in griglia</p>
+    <div class="pmrow" style="padding-top:2px">
+      <span class="nm">Dalla prima all'ultima</span>
+      <span class="pair">
+        <label class="f"><input id="dayFrom" type="number" min="0" max="22" step="1"
+          aria-label="La griglia parte dalle"><u>dalle</u></label>
+        <em>→</em>
+        <label class="f"><input id="dayTo" type="number" min="2" max="24" step="1"
+          aria-label="La griglia arriva alle"><u>alle</u></label>
+      </span>
     </div>
-    <div class="pmrow" style="border-bottom:0">
-      <span class="nm" id="dayTgtLab">Obiettivo di ore al giorno</span>
-      <input id="dayTgt" type="number" min="1" max="16" step="1"
-        title="Quando la giornata supera questo monte ore il nastro sotto la data diventa rosso">
+    <p class="pmnote" id="dayNote"></p>
+
+    <p class="lbl" data-ico="TDY" style="margin:22px 0 9px">Carico della giornata</p>
+    <div class="pmrow" style="padding-top:2px;border-bottom:0">
+      <span class="nm">Giornata piena a</span>
+      <span class="pair">
+        <label class="f"><input id="dayTgt" type="number" min="1" max="16" step="1"
+          aria-label="Ore che riempiono una giornata"><u>ore</u></label>
+      </span>
     </div>
-    <p style="font-size:11px;color:var(--tx3);margin:8px 0 0;line-height:1.5">
-      L'obiettivo è la misura del nastro di carico sotto ogni data: pieno quando ci arrivi,
-      rosso quando lo superi. L'ora d'inizio decide da dove parte la griglia: quello che hai
-      piazzato prima resta salvato, torna visibile appena la abbassi.</p>
+    <p class="pmnote" id="tgtNote"></p>
   </div>
 </div>
 
 <div class="modal" id="dyModal">
   <div class="sheet">
     <div class="mhead"><b id="dyTitle"></b><button id="dyClose">✕</button></div>
-    <p style="font-size:12.5px;color:var(--tx2);margin:0 0 12px;line-height:1.5">
-      Copia il giorno per riprodurlo altrove, anche in un'altra settimana.</p>
     <div class="mfoot" style="flex-wrap:wrap">
       <button id="dyCopy">Copia giorno</button>
       <button id="dyPaste">Incolla</button>
@@ -936,7 +979,7 @@ td.tot b{color:var(--tx2);font-weight:500}
   </div>
 </div>
 
-<div class="toast" id="toast">Salvato</div>
+<div class="toast" id="toast" role="status" aria-live="polite">Salvato</div>
 
 <script>
 /* ============================================================
@@ -955,12 +998,19 @@ const MESIL=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","A
 /* slot da 30 minuti: indice = ora*2 (+1 per la mezz'ora). 16 = 08:00, 47 = 23:30 */
 const PERQ=2;
 const DAY_FROM=8;                /* prima ora mostrata, se non ne scegli un'altra */
-/* La griglia parte dall'ora scelta. Il valore vive qui e non in state, che
-   viene creato più sotto: così HOURS si può costruire subito. */
-let DFROM=DAY_FROM;
+const DAY_TO=24;                 /* e ultima: 24 vuol dire fino a 23:30 compreso */
+const DAY_MIN=2;                 /* una fascia più stretta di così non è una giornata */
+/* La griglia sta dentro la fascia scelta. I due valori vivono qui e non in
+   state, che viene creato più sotto: così HOURS si può costruire subito. */
+let DFROM=DAY_FROM,DTO=DAY_TO;
 function dayFrom(){return DFROM;}
-function buildHours(){const a=[];for(let s=DFROM*PERQ;s<24*PERQ;s++)a.push(s);return a;}
-function setDayFrom(v){DFROM=Math.min(12,Math.max(0,+v||0));HOURS=buildHours();}
+function dayTo(){return DTO;}
+function buildHours(){const a=[];for(let s=DFROM*PERQ;s<DTO*PERQ;s++)a.push(s);return a;}
+function setDayRange(f,t){
+  DTO=Math.min(24,Math.max(DAY_MIN,+t||DAY_TO));
+  DFROM=Math.min(DTO-DAY_MIN,Math.max(0,+f||0));
+  HOURS=buildHours();
+}
 let HOURS=buildHours();
 /* Altezza di uno slot: non è più fissa. autoRow() la calcola in modo che la
    fascia 8–FIT_TO resti a schermo senza scorrere, dentro questi limiti. */
@@ -1120,15 +1170,16 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    2. STATO
    ============================================================ */
 const KEY="piano-6272-v5";
-let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,mode:"paint",
+let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
-           pomConf:null,pomRun:null,pomLog:null,dayTarget:8,dayFrom:8,
+           pomConf:null,pomRun:null,pomLog:null,log:{},dayTarget:8,dayFrom:8,dayTo:24,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
 let painting=false,val=null,openColor=null,armed=null,armTmr=null,mMonth=null,drag=null;
 let lastTap={sig:null,t:0},tapUndo=null,editId=null;
 let selRuns={};          /* chiave "data.inizio" → blocco selezionato */
 let cursor=null;         /* ultima cella toccata: è qui che incolla */
 let rz=null;             /* ridimensionamento in corso */
+let armMove=null;        /* presa sul corpo di un blocco, non ancora partita */
 
 
 /* ---------- date ---------- */
@@ -1158,7 +1209,7 @@ function panelDates(p){
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
 const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
-  "pomConf","pomRun","pomLog","dayTarget","dayFrom"];
+  "pomConf","pomRun","pomLog","log","dayTarget","dayFrom","dayTo"];
 const LSKEY="piano-6272-local";
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
         localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
@@ -1195,9 +1246,16 @@ function toast(m){
 }
 
 function save(msg){
+  const prima=sv.ts;
   sv.touched=true;sv.ts=Date.now();
   const p=payload(),b=body(p);
-  if(b===sv.localSaved&&b===sv.remoteSaved){if(msg)toast(msg);return;}
+  /* Scegliere una materia, accendere Cancella, cambiare attività: niente di
+     tutto questo è durevole. Se l'ora avanzasse lo stesso, il confronto col
+     gist crederebbe che qui c'è lavoro mai spedito e chiederebbe a vuoto.
+     Il confronto vale solo per i livelli davvero in uso: senza storage remoto
+     sv.remoteSaved resta null e non deve far fallire il paragone. */
+  const aPosto=(!sv.local||b===sv.localSaved)&&(!sv.remote||b===sv.remoteSaved);
+  if(aPosto){sv.ts=prima;if(msg)toast(msg);return;}
 
   /* livello a: subito, senza attese */
   if(sv.local&&b!==sv.localSaved){
@@ -1248,19 +1306,33 @@ window.addEventListener("pagehide",()=>{clearTimeout(sv.timer);flush(true);});
    Il token resta solo in questo dispositivo, non finisce mai nel gist.
    Vince sempre la copia con il timestamp più recente.
    ============================================================ */
-const TOKKEY="piano-6272-token",GISTKEY="piano-6272-gist",GDESC="piano-settimanale-6272";
+const TOKKEY="piano-6272-token",GISTKEY="piano-6272-gist",TSKEY="piano-6272-allineato";
+const GDESC="piano-settimanale-6272";
 let gh={token:null,gist:null,busy:false,timer:null,lastPull:0,err:"",on:false};
 
 function ghRead(){
-  try{gh.token=localStorage.getItem(TOKKEY)||null;gh.gist=localStorage.getItem(GISTKEY)||null;}catch(e){}
+  try{
+    gh.token=localStorage.getItem(TOKKEY)||null;
+    gh.gist=localStorage.getItem(GISTKEY)||null;
+    gh.knownTs=+(localStorage.getItem(TSKEY)||0)||0;
+  }catch(e){}
   gh.on=!!gh.token;
 }
+/* l'ora dell'ultima versione che qui e nel gist coincidevano */
+function ghKnown(ts){
+  gh.knownTs=ts||0;
+  try{localStorage.setItem(TSKEY,String(gh.knownTs));}catch(e){}
+}
+/* c'è del lavoro fatto qui che il gist non ha mai visto */
+function ghPending(){return gh.knownTs>0&&(sv.ts||0)>gh.knownTs;}
 function ghStore(t){
   try{
     if(t)localStorage.setItem(TOKKEY,t);
-    else{localStorage.removeItem(TOKKEY);localStorage.removeItem(GISTKEY);}
+    else{localStorage.removeItem(TOKKEY);localStorage.removeItem(GISTKEY);
+         localStorage.removeItem(TSKEY);}
   }catch(e){}
   gh.token=t||null;gh.gist=t?gh.gist:null;gh.on=!!t;
+  if(!t)gh.knownTs=0;
 }
 async function ghApi(path,opt){
   opt=opt||{};
@@ -1296,15 +1368,32 @@ async function ghPull(loud){
     const f=g.files&&g.files["piano.json"];
     if(f&&f.content){
       const d=JSON.parse(f.content);
-      gh.knownTs=d.ts||0;
-      if((d.ts||0)>(sv.ts||0)){
-        adopt(d);sv.ts=d.ts;
+      const rts=d.ts||0;
+      /* va deciso prima di spostare il segno di allineamento */
+      const inSospeso=ghPending();
+      if(rts>(sv.ts||0)){
+        ghKnown(rts);
+        /* qui c'è del lavoro mai spedito e di là ce n'è di più recente:
+           la stessa domanda che fa il push, invece di scegliere da soli */
+        if(inSospeso){
+          gh.busy=false;gh.lastPull=Date.now();updateSync();
+          conflict(d,rts);
+          return;
+        }
+        adopt(d);sv.ts=rts;
         const p=payload(),b=body(p);
         if(sv.local&&lsSet(p))sv.localSaved=b;
         if(sv.remote){sv.dirty=true;schedule();}
+        /* la cronologia è di un piano che non esiste più: un annulla la
+           riverserebbe sopra a quello appena arrivato, e il salvataggio
+           dentro applySnap la rispedirebbe pure nel gist */
+        histInit();
         render();
         toast("Aggiornato dall'altro dispositivo");
-      }else if(loud)toast("Già aggiornato");
+      }else{
+        ghKnown(rts);
+        if(loud)toast("Già aggiornato");
+      }
     }
     gh.lastPull=Date.now();gh.err="";
   }catch(e){gh.err=e.message||"errore";if(loud)toast("Sync: "+gh.err);}
@@ -1327,12 +1416,12 @@ async function ghPush(loud,force){
           conflict(d,rts);      /* chiede all'utente quale versione tenere */
           return;
         }
-        gh.knownTs=rts;
+        ghKnown(rts);
       }
     }
     await ghApi("/gists/"+gh.gist,{method:"PATCH",body:JSON.stringify({
       files:{"piano.json":{content:payload()}}})});
-    gh.knownTs=sv.ts;
+    ghKnown(sv.ts);
     gh.err="";if(loud)toast("Sincronizzato");
   }catch(e){gh.err=e.message||"errore";if(loud)toast("Sync: "+gh.err);}
   gh.busy=false;updateSync();
@@ -1349,7 +1438,7 @@ function conflict(remote,rts){
   };
   document.getElementById("cfTheirs").onclick=()=>{
     el.classList.remove("open");
-    adopt(remote);sv.ts=rts;gh.knownTs=rts;
+    adopt(remote);sv.ts=rts;ghKnown(rts);
     const pl=payload();if(sv.local&&lsSet(pl))sv.localSaved=body(pl);
     histInit();render();toast("Presa la versione dell'altro dispositivo");
   };
@@ -1415,6 +1504,7 @@ window.addEventListener("keydown",e=>{
 });
 /* fuori dai modificatori: Esc annulla la selezione, Canc elimina i blocchi scelti */
 window.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&sd){sdEnd(false);return;}
   const tag=(e.target.tagName||"").toLowerCase();
   if(tag==="input"||tag==="textarea")return;
   if(e.metaKey||e.ctrlKey||e.altKey)return;
@@ -1432,7 +1522,6 @@ window.addEventListener("keydown",e=>{
   /* da 1 a 7: l'attività con cui dipingere */
   if(k>="1"&&k<="9"&&ACTS[+k-1]){e.preventDefault();pickAct(ACTS[+k-1].k);return;}
   if(k==="e"||k==="E"){e.preventDefault();document.getElementById("eraseBtn").click();return;}
-  if(k==="m"||k==="M"){e.preventDefault();document.getElementById("moveBtn").click();return;}
   if(k==="o"||k==="O"){e.preventDefault();document.getElementById("wToday").click();return;}
   /* con il fuoco su una casella le frecce servono a muoversi lì dentro;
      fuori dalla griglia cambiano settimana */
@@ -1456,7 +1545,8 @@ window.addEventListener("keydown",e=>{
 
 function adopt(d){
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
-  setDayFrom(state.dayFrom==null?DAY_FROM:state.dayFrom);
+  setDayRange(state.dayFrom==null?DAY_FROM:state.dayFrom,
+              state.dayTo==null?DAY_TO:state.dayTo);
   state.exams=state.exams||[];state.collapsed=state.collapsed||{};
   normCustom();
   migrate(d);
@@ -1742,6 +1832,13 @@ function colorClashes(){
   });
   return clash;
 }
+/* la ricerca ha fatto il suo lavoro: si ritira e torna l'elenco del semestre */
+function chiudiRicerca(){
+  if(!state.q)return;
+  state.q="";
+  const q=document.getElementById("q");
+  if(q)q.value="";
+}
 /* materie su cui hai scritto una nota che contiene il testo cercato */
 function noteHits(q){
   const out={};
@@ -1766,9 +1863,7 @@ function picklist(){
   box.classList.toggle("grow",!!q);
 
   const info=document.getElementById("pickinfo");
-  info.textContent=q
-    ? (list.length+scad.length)+" risultati in tutto il piano"
-    : list.length+" nel semestre";
+  info.textContent=q?(list.length+scad.length)+" risultati in tutto il piano":"";
 
   if(!list.length&&!scad.length){
     box.innerHTML='<p class="empty" style="padding:12px">Niente che corrisponda.</p>';return;}
@@ -1794,8 +1889,14 @@ function picklist(){
       '<span class="pen'+(editId===o.id?" on":"")+'" role="button" title="Modifica nome, CFU, scadenza" '+
         'aria-label="Modifica">'+icon("ESE",12)+"</span>";
     b.onclick=()=>{
-      state.brush=(state.brush===o.id)?null:o.id;
-      state.erase=false;save();picklist();tools();status();
+      if(sdAte){sdAte=false;return;}   /* è la coda di un trascinamento, non una scelta */
+      const sceglie=state.brush!==o.id;
+      state.brush=sceglie?o.id:null;
+      state.erase=false;
+      /* deselezionare invece la ricerca la tiene: vuol dire "non era quella,
+         fammi rivedere i risultati" */
+      if(sceglie)chiudiRicerca();
+      save();picklist();tools();status();
     };
     b.querySelector(".swatch").onclick=e=>{
       e.stopPropagation();openColor=openColor===o.id?null:o.id;picklist();
@@ -1811,15 +1912,18 @@ function picklist(){
       const sw=document.createElement("button");
       sw.style.background=hex;sw.setAttribute("aria-label",hex);
       sw.setAttribute("aria-pressed",o.color.toLowerCase()===hex.toLowerCase());
-      sw.onclick=()=>{state.colors[o.id]=hex;save("Colore aggiornato");commit();render();};
+      sw.onclick=()=>{openColor=null;state.colors[o.id]=hex;
+        save("Colore aggiornato");commit();render();};
       pick.appendChild(sw);
     });
     const inp=document.createElement("input");
     inp.type="color";inp.value=o.color;inp.setAttribute("aria-label","Colore personalizzato");
-    inp.onchange=()=>{state.colors[o.id]=inp.value;save("Colore aggiornato");commit();render();};
+    inp.onchange=()=>{openColor=null;state.colors[o.id]=inp.value;
+      save("Colore aggiornato");commit();render();};
     pick.appendChild(inp);
     box.appendChild(pick);
 
+    sdArm(b,o);
     if(editId===o.id)box.appendChild(editForm(o));
   });
 
@@ -1839,6 +1943,7 @@ function picklist(){
       b.appendChild(nm);b.appendChild(dt);
       b.onclick=()=>{
         state.anchor[state.ctx]=iso(monday(parse(x.d)));
+        chiudiRicerca();
         save();weeknav();panels();picklist();
       };
       box.appendChild(b);
@@ -1899,7 +2004,7 @@ function editForm(o){
 }
 
 function pickAct(k){
-  state.act=k;state.erase=false;state.mode="paint";
+  state.act=k;state.erase=false;
   save();tools();status();modeFlag();gridModes();pomPanel();panels();
 }
 function tools(){
@@ -1907,7 +2012,7 @@ function tools(){
   ACTS.forEach((a,i)=>{
     const b=document.createElement("button");
     b.className="tool";
-    b.setAttribute("aria-pressed",state.mode==="paint"&&!state.erase&&state.act===a.k);
+    b.setAttribute("aria-pressed",!state.erase&&state.act===a.k);
     b.innerHTML=icon(a.k,15)+a.n;
     b.title=a.n+" · tasto "+(i+1);
     b.onclick=()=>pickAct(a.k);
@@ -1929,17 +2034,16 @@ function tools(){
   gridModes();
 }
 
-/* i due interruttori nella barra della griglia */
+/* l'unico interruttore rimasto nella barra della griglia: lo spostamento non
+   ne ha più bisogno, il corpo del blocco è la sua presa */
 function gridModes(){
-  const mv=document.getElementById("moveBtn"),er=document.getElementById("eraseBtn");
-  if(!mv)return;
-  mv.className="btn"+(state.mode==="move"?" on":"");
-  mv.title=state.mode==="move"?"Trascina un blocco per spostarlo":"Attiva lo spostamento dei blocchi";
+  const er=document.getElementById("eraseBtn");
+  if(!er)return;
   er.className="btn"+(state.erase?" warnon":"");
-  er.title=state.erase?"Tocca o trascina per svuotare":"Attiva la cancellazione degli slot";
+  er.title=state.erase?"Tocca o trascina per svuotare: si spegne quando rilasci"
+                      :"Cancella un tratto di slot, per una volta sola";
   /* la griglia cambia carattere secondo quello che sta per succedere */
-  document.body.classList.toggle("paint",
-    state.mode==="paint"&&!state.erase&&!!state.brush);
+  document.body.classList.toggle("paint",!state.erase&&!!state.brush);
   document.body.classList.toggle("erasing",!!state.erase);
 }
 
@@ -1947,17 +2051,15 @@ function modeFlag(){
   const el=document.getElementById("modeflag");
   if(pomPick){el.className="modeflag on";el.style.background="var(--action)";
     el.textContent="Tocca il blocco su cui avviare il pomodoro";}
-  else if(state.mode==="move"){el.className="modeflag on";el.style.background="";
-    el.textContent="Spostamento attivo";}
   else if(state.erase){el.className="modeflag on";el.style.background="var(--warn)";
-    el.textContent="Cancellazione attiva";}
+    el.textContent="Cancella un tratto — si spegne quando rilasci";}
   else{el.className="modeflag";el.style.background="";}
 }
 function status(){
   const m=map(),el=document.getElementById("status");
   const clip=state.clip?'<span style="color:var(--tx3)"> — appunti: '+state.clip.label+" ("+hrs(state.clip.hours)+")</span>":"";
-  if(state.mode==="move"){el.innerHTML="<b>SPOSTA</b> · trascina un blocco per riposizionarlo"+clip;return;}
-  if(state.erase){el.innerHTML="Cancella slot — tocca o trascina per svuotare."+clip;return;}
+  if(state.erase){el.innerHTML="<b>CANCELLA</b> · tocca o trascina per svuotare, "+
+    "poi torna il pennello di prima"+clip;return;}
   if(!state.brush||!m[state.brush]){
     el.innerHTML=state.act==="RIP"
       ? "<b>RIPASSO LIBERO</b> · senza materia, in grigio"+clip
@@ -2119,6 +2221,55 @@ const mmss=ms=>{
   const t=Math.max(0,Math.round(ms/1000));
   return Math.floor(t/60)+":"+String(t%60).padStart(2,"0");
 };
+/* minuti → ore, con la virgola solo quando serve: come hrs(), ma i minuti
+   arrivano dal timer e non dagli slot della griglia */
+const hmn=m=>{
+  if(m<60)return Math.round(m)+" min";
+  const v=Math.round(m/6)/10;
+  return (v%1?v.toFixed(1).replace(".",","):String(v))+" h";};
+
+/* ---------- registro di quello che è stato fatto davvero ----------
+   Il flag "fatto" dice che un blocco è stato spuntato; questo dice quanti
+   minuti ci hai passato col timer. Chiave "anno.periodo.data" → mappa
+   "materia|attività" → minuti. Sta fuori dalla cronologia: è un verbale di
+   quello che è successo, non una modifica da annullare. */
+function logAdd(act,min,ids,dateIso){
+  min=Math.round(min);
+  if(!(min>0))return;
+  state.log=state.log||{};
+  const k=state.year+"."+state.ctx+"."+(dateIso||iso(new Date()));
+  const day=state.log[k]||(state.log[k]={});
+  const who=(ids&&ids.length)?[...new Set(ids)]:[brushNow()||LIBERE[act]||GENID];
+  const q=min/who.length;
+  who.forEach(id=>{const f=id+"|"+act;day[f]=Math.round((day[f]||0)+q);});
+}
+/* la sessione interrotta a metà: il girato finisce comunque nel registro */
+function logPartial(r){
+  if(!r||r.phase!=="work")return;
+  const c=pomConf(r.act);
+  const rest=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
+  logAdd(r.act,(c.s*60000-rest)/60000,linkedIds(r));
+}
+/* le materie dei blocchi agganciati al timer: la sessione va a loro */
+function linkedIds(r){
+  return ((r&&r.linked)||[]).map(b=>{
+    const q=runAt(b.date,b.start,b.lane);return q&&q.i;
+  }).filter(Boolean);
+}
+/* minuti registrati nel periodo aperto, in tutto o per una sola materia */
+function logMin(id){
+  const pre=state.year+"."+state.ctx+".";
+  let n=0;
+  Object.keys(state.log||{}).forEach(k=>{
+    if(k.indexOf(pre)!==0)return;
+    const day=state.log[k];
+    Object.keys(day).forEach(f=>{
+      if(id&&f.slice(0,f.lastIndexOf("|"))!==id)return;
+      n+=day[f];
+    });
+  });
+  return n;
+}
 
 let pomTick=null;
 let pomPick=false;          /* in attesa che tocchi il blocco su cui avviare */
@@ -2150,6 +2301,7 @@ function askNotify(){
 }
 
 function pomStart(act,linked){
+  logPartial(state.pomRun);
   const c=pomConf(act);
   state.pomRun={act:act,phase:"work",cycle:1,
     ends:Date.now()+c.s*60000,paused:null,linked:linked||null};
@@ -2160,6 +2312,9 @@ function pomAdvance(auto){
   const r=state.pomRun;if(!r)return;
   const c=pomConf(r.act);
   if(r.phase==="work"){
+    /* a fine sessione conta tutta la durata, se la salti conta solo il girato */
+    const rest=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
+    logAdd(r.act,auto?c.s:(c.s*60000-rest)/60000,linkedIds(r));
     if(auto){
       const t=pomToday();
       t.n++;t.min+=c.s;t.byAct[r.act]=(t.byAct[r.act]||0)+1;
@@ -2194,6 +2349,7 @@ function pomRestart(){
 }
 function pomStop(){
   const old=state.pomRun;
+  logPartial(old);
   state.pomRun=null;clearInterval(pomTick);pomTick=null;save();pomRender();
   if(old&&old.linked)old.linked.forEach(b=>drawDay(b.date));
   pomPanel();
@@ -2348,7 +2504,7 @@ function pomPanel(){
   }
 
   const cfg=document.createElement("button");
-  cfg.className="tool";cfg.textContent="Imposta durate";
+  cfg.className="tool";cfg.textContent="Durate";
   cfg.title="Quanto dura una sessione, la pausa breve e ogni quanto scatta quella lunga";
   cfg.onclick=()=>{pomSettings();document.getElementById("pmModal").classList.add("open");};
   box.appendChild(cfg);
@@ -2358,51 +2514,92 @@ function pomPanel(){
     h.className="pomhint warn";
     h.textContent="tocca il blocco da cui partire · Esc per annullare";
     box.appendChild(h);
-  }else if(!state.pomRun&&!sel.length){
-    const h=document.createElement("span");
-    h.className="pomhint";
-    h.innerHTML="<b>Avvia</b> usa l'attività scelta qui sopra · "+
-      "<b>Avvia su un blocco</b> parte da un blocco della griglia e lo spunta a fine sessione";
-    box.appendChild(h);
   }
   const t=pomToday();
-  const st=document.createElement("span");
-  st.className="pomhint";
-  st.textContent=t.n?("oggi "+t.n+(t.n===1?" sessione":" sessioni")+" · "+t.min+" min"):"nessuna sessione oggi";
-  box.appendChild(st);
+  if(t.n){
+    const st=document.createElement("span");
+    st.className="pomhint";
+    st.textContent="oggi "+t.n+(t.n===1?" sessione":" sessioni")+" · "+t.min+" min";
+    box.appendChild(st);
+  }
 }
 
-function pomSettings(){
-  const df=document.getElementById("dayFrom");
-  df.value=dayFrom();
-  document.getElementById("dayFromLab").innerHTML=icon("CLK",13)+"La giornata inizia alle";
-  df.onchange=()=>{
-    const v=Math.min(12,Math.max(0,+df.value||0));
-    df.value=v;
-    if(v===dayFrom())return;
-    state.dayFrom=v;setDayFrom(v);
-    save("Giornata dalle "+v);render();
+/* quante mezz'ore piazzate cadono fuori dalla fascia mostrata: restano salvate
+   e tornano visibili appena la si allarga, ma intanto vanno dichiarate */
+function outOfRange(){
+  const primo=HOURS[0],ultimo=HOURS[HOURS.length-1];
+  let n=0;
+  Object.keys(state.cells).forEach(k=>{
+    const sl=+k.split(".").pop();
+    if(sl<primo||sl>ultimo)n+=at(k).length;
+  });
+  return n;
+}
+function dayNote(){
+  const el=document.getElementById("dayNote");
+  if(!el)return;
+  const fuori=outOfRange();
+  const ultima=slotTime(HOURS[HOURS.length-1]);
+  /* la descrizione resta neutra: si accende solo la riga che avverte */
+  el.className="pmnote";
+  el.innerHTML="La griglia parte dalle <b>"+dayFrom()+":00</b> e l'ultima riga è quella delle <b>"+
+    ultima+"</b>: "+HOURS.length+" righe da mezz'ora, <b>"+hrs(HOURS.length)+"</b> in tutto."+
+    (fuori?'<br><span class="warn">Fuori da qui hai <b>'+hrs(fuori)+"</b>: non si perde niente, "+
+      "torna in griglia appena riallarghi.</span>":"");
+}
+function tgtNote(){
+  const el=document.getElementById("tgtNote");
+  if(!el)return;
+  const t=state.dayTarget||8;
+  el.className="pmnote";
+  el.innerHTML="È la misura del nastrino sotto ogni data: si riempie man mano che pianifichi "+
+    "e arriva in fondo a <b>"+t+" h</b>. Oltre diventa rosso.";
+}
+
+/* i quattro campi di ogni attività, definiti una volta sola: testata della
+   tabella ed etichette dei campi non possono più raccontare cose diverse */
+const PMF=[["s","sessione","Minuti di una sessione",1,180],
+           ["b","pausa","Minuti di pausa breve",0,60],
+           ["n","cicli","Dopo quante sessioni scatta la pausa lunga",1,10],
+           ["l","lunga","Minuti di pausa lunga",0,120]];
+
+/* le ore della griglia e la misura del carico governano la griglia, non il
+   pomodoro: stanno nella loro finestra, aperta dalla barra della griglia */
+function daySettings(){
+  const df=document.getElementById("dayFrom"),dt=document.getElementById("dayTo");
+  df.value=dayFrom();dt.value=dayTo();
+  const fascia=()=>{
+    let t=Math.min(24,Math.max(DAY_MIN,+dt.value||DAY_TO));
+    const f=Math.min(t-DAY_MIN,Math.max(0,+df.value||0));
+    df.value=f;dt.value=t;
+    if(f===dayFrom()&&t===dayTo()){dayNote();return;}
+    state.dayFrom=f;state.dayTo=t;setDayRange(f,t);
+    save("Griglia dalle "+f+" alle "+t);
+    ROW=0;render();dayNote();
   };
+  df.onchange=fascia;dt.onchange=fascia;
   const tg=document.getElementById("dayTgt");
   tg.value=state.dayTarget||8;
-  document.getElementById("dayTgtLab").innerHTML=icon("TDY",13)+"Obiettivo di ore al giorno";
   tg.onchange=()=>{
     state.dayTarget=Math.min(16,Math.max(1,+tg.value||8));
     tg.value=state.dayTarget;
-    save("Obiettivo aggiornato");panels();
+    save("Giornata piena a "+state.dayTarget+" h");panels();tgtNote();
   };
+  dayNote();tgtNote();
+}
+
+function pomSettings(){
   const box=document.getElementById("pmBody");box.innerHTML="";
   const hd=document.createElement("div");hd.className="pmhead";
-  hd.innerHTML="<span>sessione</span><span>pausa</span><span>cicli</span><span>lunga</span>";
+  hd.innerHTML=PMF.map(f=>"<span>"+f[1]+"</span>").join("");
   box.appendChild(hd);
   ACTS.filter(a=>a.k!==AUTOACT).forEach(a=>{
     const c=pomConf(a.k);
     const row=document.createElement("div");row.className="pmrow";
     row.innerHTML='<span class="nm">'+icon(a.k,13)+a.n+"</span>"+
-      '<input type="number" min="1" max="180" value="'+c.s+'" data-f="s" title="Minuti di una sessione">'+
-      '<input type="number" min="0" max="60" value="'+c.b+'" data-f="b" title="Minuti di pausa breve">'+
-      '<input type="number" min="1" max="10" value="'+c.n+'" data-f="n" title="Dopo quanti cicli scatta la pausa lunga">'+
-      '<input type="number" min="0" max="120" value="'+c.l+'" data-f="l" title="Minuti di pausa lunga">';
+      PMF.map(f=>'<label class="f"><input type="number" min="'+f[3]+'" max="'+f[4]+
+        '" value="'+c[f[0]]+'" data-f="'+f[0]+'" title="'+f[2]+
+        '" aria-label="'+a.n+", "+f[1]+'"><u>'+f[1]+"</u></label>").join("");
     row.querySelectorAll("input").forEach(inp=>{
       inp.onchange=()=>{
         state.pomConf=state.pomConf||{};
@@ -2436,12 +2633,14 @@ function semSummary(){
       tot++;
     });
   });
+  const real=logMin();
   const nw=Object.keys(weeks).length,avg=nw?tot/nw:0;
   const peak=Object.keys(weeks).reduce((a,b)=>weeks[b]>(weeks[a]||0)?b:a,null);
 
   let h='<div class="tally">'+
     '<div><b>'+hrs(tot)+"</b><span>pianificate</span></div>"+
-    '<div><b>'+hrs(done)+"</b><span>fatte"+(tot?" · "+Math.round(done/tot*100)+"%":"")+"</span></div>"+
+    '<div><b>'+hrs(done)+"</b><span>spuntate"+(tot?" · "+Math.round(done/tot*100)+"%":"")+"</span></div>"+
+    (real?'<div><b>'+hmn(real)+"</b><span>al timer</span></div>":"")+
     '<div><b>'+nw+"</b><span>settimane usate</span></div>"+
     '<div><b>'+hrs(Math.round(avg))+"</b><span>media a settimana</span></div>"+
     (peak?'<div><b>'+hrs(weeks[peak])+"</b><span>settimana più carica</span></div>":"")+
@@ -2452,7 +2651,7 @@ function semSummary(){
   const ids=Object.keys(per).sort((a,b)=>per[b].tot-per[a].tot);
   if(!ids.length)h+='<p class="empty">Nessuna ora pianificata in questo semestre.</p>';
   ids.forEach(id=>{
-    const o=m[id],k=per[id],tgt=targetH(o.cfu),done=k.tot/PERQ;
+    const o=m[id],k=per[id],tgt=targetH(o.cfu),done=k.tot/PERQ,rl=logMin(id);
     const pct=tgt?Math.min(100,done/tgt*100):0;
     const q=k.tot?Math.round(k.done/k.tot*100):0;
     h+='<div class="srow'+(k.done>=k.tot?" full":"")+'">'+
@@ -2460,7 +2659,8 @@ function semSummary(){
       '<div class="rbody">'+
         '<div class="rtop"><b>'+o.name+"</b>"+
           '<span class="rnum"><i>'+hrs(k.done)+"</i> / "+hrs(k.tot)+
-          (tgt?'<em class="goal">obiettivo '+tgt+" h</em>":"")+"</span></div>"+
+          (tgt?'<em class="goal">obiettivo '+tgt+" h</em>":"")+
+          (rl?'<em class="goal">'+hmn(rl)+" al timer</em>":"")+"</span></div>"+
         '<div class="rbar"><i style="width:'+q+"%;background:"+o.color+'"></i>'+
           (tgt?'<u style="left:'+Math.min(100,(k.tot/PERQ)/tgt*100)+'%"></u>':"")+"</div>"+
         '<div class="acts">'+ACTS.filter(a=>k[a.k]).map(a=>
@@ -2641,7 +2841,6 @@ function buildPanel(p,m){
   /* griglia */
   const gw=document.createElement("div");gw.className="gwrap";
   const t=document.createElement("table");t.dataset.p=p;
-  if(state.mode==="move")t.classList.add("moving");
   let head='<th class="hc"></th>';
   for(let d=state.from;d<=state.to;d++){
     const ex=examsOn(iso(dates[d]));
@@ -3200,7 +3399,7 @@ function wire(t){
 
     /* doppio tocco: nota */
     const sig=td.dataset.date+"."+td.dataset.h+"."+lane,now=Date.now();
-    if(state.mode!=="move"&&lastTap.sig===sig&&now-lastTap.t<450){
+    if(lastTap.sig===sig&&now-lastTap.t<450){
       lastTap={sig:null,t:0};painting=false;
       if(tapUndo){
         if(tapUndo.prev)state.cells[tapUndo.k]=tapUndo.prev;
@@ -3214,14 +3413,14 @@ function wire(t){
     }
     lastTap={sig:sig,t:now};
 
-    if(state.mode==="move"){
+    /* Il corpo di un blocco è la sua presa. Qui si arma soltanto: lo
+       spostamento parte al primo movimento vero, in pointermove. Così un
+       tocco secco resta un tocco e il doppio tocco di prima ci arriva.
+       Con ⌥ premuto la presa si disattiva e il tratto dipinge, che è il
+       solo modo di affiancare un blocco a uno che riempie già la cella. */
+    if(!state.erase&&!e.altKey&&e.target.closest(".blk")){
       const r=runAt(td.dataset.date,+td.dataset.h,lane)||anyRunAt(td.dataset.date,+td.dataset.h);
-      if(!r)return;
-      clearRun(r.date,r.start,r.len,r.lane);
-      drag={run:r,off:(+td.dataset.h)-r.start,date:r.date,start:r.start,lane:r.lane};
-      placeRun(drag.date,drag.start,drag.run,drag.lane);
-      drawDay(drag.date);
-      return;
+      if(r){armMove={run:r,off:(+td.dataset.h)-r.start,x:e.clientX,y:e.clientY};return;}
     }
 
     const brush=brushNow();
@@ -3244,7 +3443,7 @@ function wire(t){
     const td=e.target.closest("td.c");if(!td)return;
     e.preventDefault();
     const brush=brushNow();
-    if(state.mode==="move"||(!brush&&!state.erase))return;
+    if(!brush&&!state.erase)return;
     val=state.erase?null:{i:brush,a:state.act};
     put(td,null);
     commit();
@@ -3254,11 +3453,106 @@ function wire(t){
 
 /* il movimento è agganciato alla finestra: così si trascina anche
    da una settimana all'altra, non solo dentro il pannello */
+/* ============================================================
+   DALL'ELENCO ALLA GRIGLIA
+   Una riga dell'elenco si trascina fin dentro una casella. Col mouse
+   parte dopo pochi pixel, col dito dopo un attimo di pressione: così
+   l'elenco continua a scorrere come prima.
+   ============================================================ */
+const DROP_LEN=PERQ;        /* un'ora, accorciata se la giornata finisce prima */
+const HOLD_MS=330;          /* pressione che arma il trascinamento col dito */
+let sd=null;                /* trascinamento in corso */
+let sdAte=false;            /* il click dopo un trascinamento non vale */
+
+function sdStart(o,x,y){
+  const g=document.createElement("div");
+  g.className="dragghost";
+  g.innerHTML='<i style="background:'+o.color+'"></i>'+shortOf(o.name)+
+    "<b>"+actOf(state.act).n.toLowerCase()+"</b>";
+  document.body.appendChild(g);
+  sd={id:o.id,ghost:g,td:null};
+  document.body.classList.add("dropping");
+  sdAte=true;
+  sdMove(x,y);
+}
+function sdMove(x,y){
+  if(!sd)return;
+  sd.ghost.style.left=x+"px";sd.ghost.style.top=y+"px";
+  const el=document.elementFromPoint(x,y);
+  const td=el&&el.closest&&el.closest("td.c");
+  if(sd.td===td)return;
+  if(sd.td)sd.td.classList.remove("dropok");
+  sd.td=td||null;
+  if(sd.td)sd.td.classList.add("dropok");
+}
+function sdEnd(drop){
+  if(!sd)return;
+  const td=drop?sd.td:null,id=sd.id;
+  if(sd.td)sd.td.classList.remove("dropok");
+  sd.ghost.remove();
+  document.body.classList.remove("dropping");
+  sd=null;
+  if(!td)return;
+  const date=td.dataset.date,start=+td.dataset.h;
+  const len=Math.max(1,Math.min(DROP_LEN,HOURS[HOURS.length-1]-start+1));
+  const lane=freeLane(date,start,len);
+  placeRun(date,start,{i:id,a:state.act,len:len},lane);
+  /* la materia trascinata diventa anche il pennello: il gesto dopo continua da lì */
+  state.brush=id;state.erase=false;
+  cursor={date:date,slot:start,lane:lane};
+  drawDay(date);
+  save("Aggiunto "+hrs(len));commit();
+  picklist();tools();status();refreshMetrics();
+}
+/* arma una riga dell'elenco: il tocco breve resta la selezione di sempre */
+function sdArm(el,o){
+  let s0=null,timer=null;
+  const stop=()=>{if(timer){clearTimeout(timer);timer=null;}s0=null;};
+  el.addEventListener("pointerdown",e=>{
+    if(e.button>0||sd)return;
+    if(e.target.closest(".swatch")||e.target.closest(".pen"))return;
+    s0={x:e.clientX,y:e.clientY};
+    if(e.pointerType==="touch")
+      timer=setTimeout(()=>{timer=null;
+        if(s0)sdStart(o,s0.x,s0.y);},HOLD_MS);
+  });
+  el.addEventListener("pointermove",e=>{
+    if(!s0||sd)return;
+    if(Math.abs(e.clientX-s0.x)<6&&Math.abs(e.clientY-s0.y)<6)return;
+    if(e.pointerType==="touch"){stop();return;}   /* sta scorrendo l'elenco */
+    s0=null;sdStart(o,e.clientX,e.clientY);
+  });
+  ["pointerup","pointercancel"].forEach(ev=>el.addEventListener(ev,stop));
+}
+/* un gesto nuovo azzera sempre la coda di quello vecchio: così la bandierina
+   non può sopravvivere fino a mangiarsi un click che non c'entra niente */
+["pointerdown","keydown"].forEach(ev=>
+  document.addEventListener(ev,()=>{sdAte=false;},true));
+window.addEventListener("pointermove",e=>{if(sd)sdMove(e.clientX,e.clientY);});
+window.addEventListener("touchmove",e=>{if(sd)e.preventDefault();},{passive:false});
+window.addEventListener("pointerup",()=>{if(sd)sdEnd(true);});
+window.addEventListener("pointercancel",()=>{if(sd)sdEnd(false);});
+
+/* la cella della colonna di un giorno che sta all'altezza del puntatore:
+   serve alla maniglia, che deve seguire solo la verticale */
+function slotAtY(dateIso,y){
+  const tds=document.querySelectorAll('td.c[data-date="'+dateIso+'"]');
+  let best=null,bd=Infinity;
+  tds.forEach(td=>{
+    const r=td.getBoundingClientRect();
+    const d=y<r.top?r.top-y:(y>r.bottom?y-r.bottom:0);
+    if(d<bd){bd=d;best=td;}
+  });
+  return best;
+}
 window.addEventListener("pointermove",e=>{
   if(rz){
     const el=document.elementFromPoint(e.clientX,e.clientY);
-    const td=el&&el.closest&&el.closest("td.c");
-    if(!td||td.dataset.date!==rz.date)return;
+    let td=el&&el.closest&&el.closest("td.c");
+    /* il blocco resta nel suo giorno: se il dito esce dalla colonna, o dalla
+       griglia, si prende comunque lo slot all'altezza a cui è arrivato */
+    if(!td||td.dataset.date!==rz.date)td=slotAtY(rz.date,e.clientY);
+    if(!td)return;
     let nl=(+td.dataset.h)-rz.start+1;
     nl=Math.max(1,Math.min(HOURS[HOURS.length-1]-rz.start+1,nl));
     if(nl===rz.len)return;
@@ -3267,6 +3561,16 @@ window.addEventListener("pointermove",e=>{
     placeRun(rz.date,rz.start,rz,rz.lane);
     drawDay(rz.date);
     return;
+  }
+  /* soglia: sotto questa il dito sta fermo e il tocco resta un tocco */
+  if(armMove&&!drag){
+    if(Math.abs(e.clientX-armMove.x)<4&&Math.abs(e.clientY-armMove.y)<4)return;
+    const r=armMove.run;
+    clearRun(r.date,r.start,r.len,r.lane);
+    drag={run:r,off:armMove.off,date:r.date,start:r.start,lane:r.lane};
+    armMove=null;
+    placeRun(drag.date,drag.start,drag.run,drag.lane);
+    drawDay(drag.date);
   }
   if(!painting&&!drag)return;
   const el=document.elementFromPoint(e.clientX,e.clientY);
@@ -3286,13 +3590,23 @@ window.addEventListener("pointermove",e=>{
 });
 
 ["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,()=>{
+  armMove=null;
   if(rz){rz=null;afterEdit();}
   if(drag){drag=null;afterEdit();}
   if(painting){
+    const cancellava=state.erase;
     painting=false;
     commit();reportOverwrite();
     if(overflowWarn){toast("Massimo "+MAXLANE+" blocchi affiancati");overflowWarn=false;}
     refreshMetrics();
+    /* La cancellazione dura un tratto solo: al rilascio si spegne da sé.
+       Materia e attività non le ha mai toccate — accendere Cancella non le
+       cambia, e sceglierne una ne fa uscire — quindi torna esattamente il
+       pennello di prima senza bisogno di metterlo da parte. */
+    if(cancellava){
+      state.erase=false;
+      tools();status();modeFlag();
+    }
   }
 }));
 
@@ -3376,6 +3690,7 @@ document.getElementById("sync").onclick=e=>{
   d.classList.toggle("show");
 };
 document.getElementById("backup").onclick=()=>{
+  chiudiMenu();
   document.getElementById("bkText").value=payload();
   document.getElementById("bkModal").classList.add("open");
 };
@@ -3415,6 +3730,7 @@ function syState(){
     (gh.lastPull?" · ultimo controllo "+new Date(gh.lastPull).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):"");
 }
 document.getElementById("syncBtn").onclick=()=>{
+  chiudiMenu();
   ghRead();
   document.getElementById("syTok").value=gh.token||"";
   syState();
@@ -3477,7 +3793,7 @@ document.getElementById("exText").addEventListener("keydown",e=>{
 
 const qEl=document.getElementById("q");
 qEl.addEventListener("input",()=>{state.q=qEl.value;picklist();});
-document.getElementById("qClear").onclick=()=>{qEl.value="";state.q="";picklist();qEl.focus();};
+document.getElementById("qClear").onclick=()=>{chiudiRicerca();picklist();qEl.focus();};
 
 document.getElementById("semToggle").onclick=()=>{
   state.semOpen=!state.semOpen;save();
@@ -3486,8 +3802,7 @@ document.getElementById("semToggle").onclick=()=>{
 };
 
 document.getElementById("ksBtn").onclick=()=>{
-  ksList();document.getElementById("moremenu").classList.remove("open");
-  document.getElementById("moreBtn").setAttribute("aria-expanded",false);
+  ksList();chiudiMenu();
   document.getElementById("ksModal").classList.add("open");
 };
 document.getElementById("ksClose").onclick=()=>document.getElementById("ksModal").classList.remove("open");
@@ -3497,6 +3812,12 @@ document.getElementById("ksModal").onclick=e=>{
 document.getElementById("pmClose").onclick=()=>document.getElementById("pmModal").classList.remove("open");
 document.getElementById("pmModal").onclick=e=>{
   if(e.target.id==="pmModal")e.currentTarget.classList.remove("open");};
+
+document.getElementById("gdBtn").onclick=()=>{
+  daySettings();document.getElementById("gdModal").classList.add("open");};
+document.getElementById("gdClose").onclick=()=>document.getElementById("gdModal").classList.remove("open");
+document.getElementById("gdModal").onclick=e=>{
+  if(e.target.id==="gdModal")e.currentTarget.classList.remove("open");};
 
 document.getElementById("dyClose").onclick=closeDay;
 document.getElementById("dyModal").onclick=e=>{if(e.target.id==="dyModal")closeDay();};
@@ -3527,24 +3848,28 @@ document.getElementById("rpModal").onclick=e=>{
   if(e.target.id==="rpModal")e.currentTarget.classList.remove("open");};
 document.getElementById("rpGo").onclick=doRepeat;
 
-document.getElementById("moveBtn").onclick=()=>{
-  state.mode=state.mode==="move"?"paint":"move";state.erase=false;
-  save();tools();status();modeFlag();pomPanel();panels();
-};
 document.getElementById("eraseBtn").onclick=()=>{
-  state.erase=!state.erase;state.mode="paint";
+  state.erase=!state.erase;
   save();tools();status();modeFlag();pomPanel();panels();
 };
-document.getElementById("printBtn").onclick=()=>window.print();
+document.getElementById("printBtn").onclick=()=>{chiudiMenu();window.print();};
+function chiudiMenu(){
+  const m=document.getElementById("moremenu");
+  if(!m||!m.classList.contains("open"))return;
+  m.classList.remove("open");
+  document.getElementById("moreBtn").setAttribute("aria-expanded",false);
+}
 document.getElementById("moreBtn").onclick=e=>{
   const m=document.getElementById("moremenu");
   const open=m.classList.toggle("open");
   e.currentTarget.setAttribute("aria-expanded",open);
 };
-/* un tocco fuori chiude i menu aperti */
+/* un tocco fuori chiude i menu aperti — anche quello della barra alta, che
+   prima restava srotolato dietro alla finestra che lui stesso aveva aperto */
 document.addEventListener("click",e=>{
   if(!e.target.closest(".pacts"))
     document.querySelectorAll(".pacts.open").forEach(x=>x.classList.remove("open"));
+  if(!e.target.closest("#moremenu")&&!e.target.closest("#moreBtn"))chiudiMenu();
 });
 
 document.getElementById("undoBtn").onclick=()=>undo();
@@ -3593,7 +3918,8 @@ function redrawGrid(){
    quindi la misura dall'alto vale anche lì. */
 function autoRow(){
   const el=document.documentElement;
-  const need=Math.round(FIT_TO*PERQ)-HOURS[0]+1;   /* righe da mostrare, l'ultima compresa */
+  /* righe da mostrare, l'ultima compresa: mai più di quelle che la fascia ha */
+  const need=Math.max(1,Math.min(HOURS.length,Math.round(FIT_TO*PERQ)-HOURS[0]+1));
   const fromTop=()=>{
     const t=gridTop();
     return t===null?null:Math.floor((window.innerHeight-t-10)/need);
@@ -3624,11 +3950,13 @@ function autoRow(){
 const KEYS=[
   ["Griglia",[
     [["1","…","8"],"Scegli l'attività con cui dipingere"],
-    [["E"],"Cancella: tocca o trascina per svuotare"],
-    [["M"],"Sposta: trascina i blocchi"],
+    [["E"],"Cancella un tratto: al rilascio torna il pennello di prima"],
+    [["Trascina"],"Prendi un blocco per il corpo e portalo dove vuoi"],
+    [["⌥/Alt","Trascina"],"Dipinge anche sopra a un blocco: lo affianca"],
     [["Spazio"],"Dipinge la casella che ha il fuoco"],
     [["←","↑","→","↓"],"Si sposta fra le caselle"],
-    [["Doppio tocco"],"Scrive la nota dentro un blocco"]]],
+    [["Doppio tocco"],"Scrive la nota dentro un blocco"],
+    [["Trascina"],"Porta una materia dall'elenco dentro una casella"]]],
   ["Navigazione",[
     [["←","→"],"Quattro settimane, fuori dalla griglia"],
     [["O"],"Torna alla settimana di oggi"],
@@ -3664,7 +3992,7 @@ function iconify(){
     ["qClear","XX",12],["wPrev","CHL",14],["wNext","CHR",14],["dPrev","CHL",14],
     ["dNext","CHR",14],["mPrev","CHL",14],["mNext","CHR",14],["pmClose","XX",13],
     ["dyClose","XX",13],["rpClose","XX",13],["syClose","XX",13],["bkClose","XX",13],
-    ["ksClose","XX",13]];
+    ["ksClose","XX",13],["gdBtn","CLK",14],["gdClose","XX",13]];
   solo.forEach(([id,k,sz])=>{const e=document.getElementById(id);if(e)e.innerHTML=icon(k,sz);});
   document.querySelectorAll(".lbl[data-ico]").forEach(e=>{
     e.innerHTML=icon(e.dataset.ico,11)+"<span>"+e.textContent.trim()+"</span>";
@@ -3673,7 +4001,7 @@ function iconify(){
   document.querySelectorAll(".sumtoggle .chev").forEach(e=>{e.innerHTML=icon("CHR",11);});
   const sb=document.querySelector(".searchbox");
   if(sb)sb.insertAdjacentHTML("afterbegin",'<span class="sico">'+icon("SRC",13)+"</span>");
-  const testo=[["wToday","TDY",13],["moveBtn","MOV",13],["eraseBtn","ERS",13],
+  const testo=[["wToday","TDY",13],["eraseBtn","ERS",13],
     ["addBtn","PLS",12],["exAdd","PLS",12],["syncBtn","CLD",13],["backup","SAV",13],
     ["printBtn","PRN",13],["ksBtn","KEY",13],["dyCopy","CPY",12],["dyPaste","PST",12],
     ["dyWipe","TRS",12],["rpGo","RIP",12],["bkDl","SAV",12],["bkCopy","CPY",12]];
@@ -3721,10 +4049,9 @@ window.addEventListener("afterprint",()=>{
 });
 (async()=>{
   await load();iconify();autoLessons();foldToToday();render();histInit();
-  /* la griglia parte dalle 8: se resta qualcosa piazzato prima, va segnalato */
-  const early=Object.keys(state.cells)
-    .filter(k=>+k.split(".").pop()<HOURS[0]&&at(k).length).length;
-  if(early)setTimeout(()=>toast("Alcune ore prima delle "+dayFrom()+" non sono in griglia"),900);
+  /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
+  const fuori=outOfRange();
+  if(fuori)setTimeout(()=>toast(hrs(fuori)+" fuori dalla fascia "+dayFrom()+"–"+dayTo()),900);
   /* i caratteri web arrivano dopo il primo disegno e spostano le misure:
      la densità va ricalcolata quando la pagina è davvero assestata */
   requestAnimationFrame(()=>{if(autoRow())redrawGrid();});
