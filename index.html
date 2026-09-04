@@ -987,9 +987,9 @@ td.tot b{color:var(--tx2);font-weight:500}
    ============================================================ */
 const PANELS=4;
 const CTX={
-  "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-21"},
-  "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"},
-  "S":{label:"Sessione Esami",       name:"Sessione d'esame", start:"2027-01-07"}
+  "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-14"},
+  "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-08"},
+  "S":{label:"Sessione Esami",       name:"Sessione d'esame", start:"2026-12-07"}
 };
 const DSH=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
 const MESI=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
@@ -1111,32 +1111,51 @@ const ACTS=[
 const ANNI_ROMANI=["I","II","III","IV","V","VI"];
 function anni(){return Object.keys(COURSES).map(Number).sort((a,b)=>a-b);}
 const COURSES={
- /* Laurea magistrale in Scienze Informatiche (LM-18) — Università di Parma
-    Coorte 2026/27, curriculum GENERALE, CdS 5069.
-    Fonte: piano degli studi ufficiale di ateneo. p = semestre, u = CFU. */
  1:[
-  {c:"1009070",n:"Big data e data mining",k:"Big data",p:1,u:6},
-  {c:"1009064",n:"Linguaggi, interpreti e compilatori",k:"Linguaggi",p:1,u:6},
-  {c:"1009066",n:"Programmazione dichiarativa",k:"Prog. dichiar.",p:1,u:6},
-  {c:"1013075",n:"Finanza computazionale",k:"Finanza comp.",p:1,u:6},
-  {c:"1014073",n:"Sicurezza e informatica forense",k:"Sic. forense",p:1,u:6},
-  {c:"1014075",n:"Teoria e applicazioni delle reti complesse",k:"Reti complesse",p:1,u:6},
-  {c:"1009069",n:"Development of reliable, safe and secure software",k:"Reliable SW",p:2,u:9},
-  {c:"1009065",n:"Fondamenti dell'intelligenza artificiale",k:"Fondamenti IA",p:2,u:6},
-  {c:"1013067",n:"Metodi e modelli per l'intelligenza artificiale",k:"Metodi IA",p:2,u:6},
-  {c:"1010779",n:"English B2 for STEM",k:"English B2",p:2,u:3},
-  {c:"1007808",n:"Presentation skills",k:"Present. skills",p:2,u:3}
+  {c:"16764",n:"Storia dell'educazione",k:"Storia educ.",p:1,u:10},
+  {c:"C8772",n:"Sociologia generale e fondamenti della ricerca sociale",k:"Sociologia gen.",p:1,u:10},
+  {c:"03079",n:"Psicologia dello sviluppo",k:"Psic. sviluppo",p:1,u:10},
+  {c:"26338",n:"Idoneità lingua inglese B — 1",k:"Inglese B",p:1,u:6},
+  {c:"13220",n:"Pedagogia generale e sociale",k:"Pedagogia gen.",p:2,u:10},
+  {c:"C8773",n:"Antropologia culturale e sociale",k:"Antropologia",p:2,u:10}
  ],
  2:[
-  {c:"1009071",n:"Algoritmi per l'intelligenza artificiale",k:"Algoritmi IA",p:1,u:6},
-  {c:"1013066",n:"Analisi statica e verifica del software",k:"Analisi statica",p:1,u:9},
-  {c:"1010559",n:"Cybersecurity",k:"Cybersecurity",p:1,u:6},
-  {c:"1009073",n:"Laboratorio di intelligenza artificiale",k:"Lab. IA",p:1,u:6},
-  {c:"1014073",n:"Sicurezza e informatica forense",k:"Sic. forense",p:1,u:6},
-  {c:"24688",n:"Prova finale",k:"Prova finale",p:2,u:27},
-  {c:"1006658",n:"Tirocinio presso struttura esterna",k:"Tiroc. esterno",p:2,u:6},
-  {c:"1006659",n:"Tirocinio presso struttura dell'ateneo",k:"Tiroc. ateneo",p:2,u:6},
-  {c:"1006660",n:"Tirocinio in mobilità internazionale",k:"Tiroc. estero",p:2,u:6}
+  {c:"94162",n:"Elementi di didattica innovativa per la scuola e l'extrascuola",k:"Didattica innov.",p:1,u:8},
+  {c:"00870",n:"Psicologia sociale",k:"Psic. sociale",p:1,u:8},
+  {c:"C8783",n:"Educazione inclusiva nella scuola e nel territorio",k:"Educ. inclusiva",p:1,u:8},
+  {c:"C8782",n:"Pedagogia dell'inclusione e della marginalità",k:"Ped. inclusione",p:1,u:8},
+  {c:"73378",n:"Genere e culture della scienza",k:"Genere scienza",p:1,u:8},
+  {c:"C8780",n:"Geografia del mondo contemporaneo",k:"Geografia",p:1,u:8},
+  {c:"C8779",n:"Storia del mondo contemporaneo nel XIX e XX secolo",k:"Storia contemp.",p:1,u:8},
+  {c:"B8521",n:"Storia, patrimonio, cittadinanza",k:"Storia patrim.",p:1,u:8},
+  {c:"16692",n:"Laboratorio di informatica",k:"Lab. informatica",p:1,u:1},
+  {c:"C8775",n:"Laboratorio propedeutico all'attività di tirocinio",k:"Lab. tirocinio",p:1,u:3},
+  {c:"15579",n:"Pedagogia interculturale",k:"Ped. intercult.",p:2,u:8},
+  {c:"61359",n:"Psicologia dei gruppi e di comunità",k:"Psic. gruppi",p:2,u:8},
+  {c:"02517",n:"Sociologia dell'educazione",k:"Soc. educazione",p:2,u:8},
+  {c:"C8776",n:"Sociologia delle differenze e delle disuguaglianze",k:"Soc. differenze",p:2,u:8},
+  {c:"99505",n:"Compiti di sviluppo psicologici in adolescenza",k:"Adolescenza",p:2,u:8},
+  {c:"42972",n:"Diritto dei servizi sociali",k:"Diritto servizi",p:2,u:8},
+  {c:"94411",n:"Citizenship education and active participation",k:"Citizenship",p:2,u:4},
+  {c:"94410",n:"History and culture of European cities",k:"Eur. cities",p:2,u:4},
+  {c:"94414",n:"Gender studies in education",k:"Gender studies",p:2,u:4},
+  {c:"94413",n:"Intercultural pedagogy",k:"Intercult. ped.",p:2,u:4}
+ ],
+ 3:[
+  {c:"C8876",n:"Agency e mondi digitali",k:"Agency digitali",p:1,u:8},
+  {c:"94109",n:"Ambienti digitali, musei e educazione al patrimonio culturale",k:"Ambienti digit.",p:1,u:8},
+  {c:"B3448",n:"Metodologie dell'osservazione e della riflessività pedagogica",k:"Metod. osserv.",p:1,u:8},
+  {c:"03084",n:"Psicologia clinica",k:"Psic. clinica",p:1,u:8},
+  {c:"94244",n:"Psicologia del lavoro e dell'orientamento",k:"Psic. lavoro",p:1,u:8},
+  {c:"15349",n:"Tirocinio",k:"Tirocinio",p:1,u:10},
+  {c:"C8875",n:"Laboratorio di formazione professionale per l'educatore socio-pedagogico",k:"Lab. formazione",p:1,u:2},
+  {c:"27281",n:"Seminari",k:"Seminari",p:1,u:1},
+  {c:"17268",n:"Prova finale",k:"Prova finale",p:1,u:3},
+  {c:"31675",n:"Progettazione e valutazione degli interventi educativi",k:"Progettazione",p:2,u:8},
+  {c:"C8786",n:"Educazione al genere, all'affettività e alla sessualità",k:"Educ. affettività",p:2,u:8},
+  {c:"C8788",n:"Media capabilities e educazione nei territori",k:"Media capabilit.",p:2,u:8},
+  {c:"94110",n:"Antropologia ed etnografia dei servizi socio-educativi",k:"Antrop. servizi",p:2,u:8},
+  {c:"C8789",n:"Sociologia delle istituzioni di welfare, della cittadinanza e del controllo sociale",k:"Soc. welfare",p:2,u:8}
  ]
 };
 
