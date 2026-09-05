@@ -239,7 +239,7 @@ body.dropping td.c.dropok{background:var(--tint-hover);
 .tool[aria-pressed="true"]{background:var(--raised);color:var(--tx);
   border-color:var(--tx3);box-shadow:inset 0 0 0 1px var(--tx3)}
 .tool i{width:12px;height:12px;border-radius:3px;background:currentColor;display:block;flex:0 0 12px}
-.tool i.acdot{width:9px;height:9px;border-radius:2px;flex:0 0 9px;
+.tool i.acdot{width:17px;height:17px;border-radius:4px;flex:0 0 17px;
   box-shadow:0 0 0 1px rgba(0,0,0,.28)}
 .tool .ico{flex:0 0 auto;opacity:.75}
 .tool[aria-pressed="true"] .ico{opacity:1}
@@ -1122,16 +1122,38 @@ function icon(k,size){
    RICORDO        verde     ripasso               (richiamo attivo)
    Il lavoro sta fuori dal metodo, quindi grigio.
    Distanza percettiva minima fra le otto: ΔE 26. */
+/* Due canali, ognuno con il suo lavoro.
+
+   IL COLORE dice la FASE del metodo: cinque tinte e non otto, così la griglia
+   resta calma anche con venti materie. Chiare perché la scritta è sempre nera.
+
+   IL MOTIVO dice l'ATTIVITÀ, e non è astratto: righe di quaderno per leggere,
+   quadretti per gli esercizi, mattoni per costruire un progetto, bolle per il
+   laboratorio. Un motivo si riconosce anche quando il blocco è alto ventotto
+   pixel e la scritta non ci sta — che è il caso in cui prima non si capiva
+   niente. La lezione è l'unica liscia: è la pagina ancora da riempire. */
 const AFASE={LEZ:"Acquisizione",LET:"Acquisizione",SCH:"Rielaborazione",
              ESE:"Applicazione",LAB:"Applicazione",PRO:"Applicazione",
              RIP:"Ricordo",LAV:"fuori dal metodo"};
-/* Tinte chiare perché la scritta dentro al blocco è sempre nera: il contrasto
-   col nero sta fra 8,0:1 e 14,5:1 su tutte e otto. Chiare vuol dire anche
-   vicine nello spazio percettivo, quindi le ho separate per tinta e non per
-   luminosità — distanza minima ΔE 23, e le coppie più strette sono di
-   proposito quelle della stessa fase. */
-const ACOL={LEZ:"#A9D4F7",LET:"#7BA2E8",SCH:"#C49BEC",ESE:"#F5D461",
-            LAB:"#F3A55F",PRO:"#EE8880",RIP:"#7FD4A4",LAV:"#98A1AD"};
+const FCOL={"Acquisizione":"#A9D4F7","Rielaborazione":"#C49BEC",
+            "Applicazione":"#F5C96B","Ricordo":"#7FD4A4","fuori dal metodo":"#AEB6C0"};
+const ACOL=(()=>{const o={};Object.keys(AFASE).forEach(k=>o[k]=FCOL[AFASE[k]]);return o;})();
+function trama(w,h,d,op){
+  const svg="<svg xmlns='http://www.w3.org/2000/svg' width='"+w+"' height='"+h+
+    "' viewBox='0 0 "+w+" "+h+"'><g fill='none' stroke='%2314161B' stroke-opacity='"+
+    (op||.34)+"' stroke-width='1.4' stroke-linecap='round'>"+d+"</g></svg>";
+  return "url(\"data:image/svg+xml,"+encodeURIComponent(svg).replace(/%25/g,"%")+"\")";
+}
+const ATRAMA={
+  LEZ:"none",                                                    /* liscio */
+  LET:trama(24,7,"<path d='M0 3.5h24'/>"),                       /* righe di quaderno */
+  SCH:trama(34,34,"<circle cx='9' cy='17' r='2'/><path d='M11 17h7M18 17l7-6M18 17l7 6'/>",.38),
+  ESE:trama(9,9,"<path d='M0 .5h9M.5 0v9'/>"),                   /* quadretti */
+  LAB:trama(26,26,"<circle cx='6' cy='7' r='3.2'/><circle cx='17' cy='15' r='4.4'/><circle cx='9' cy='20' r='2'/>"),
+  PRO:trama(28,16,"<path d='M0 8h28M0 .7h28M0 15.3h28M7 0v8M21 0v8M14 8v8M.7 8v8M27.3 8v8'/>"),
+  RIP:trama(30,18,"<path d='M-2 16a9 9 0 0 1 17 0M13 16a9 9 0 0 1 17 0'/>",.38),
+  LAV:trama(10,10,"<path d='M-2 8L8 -2M2 12L12 2'/>")
+};
 const BLKINK="#14161B";
 const ACTS=[
   {k:"LEZ",n:"Lezione"},
@@ -2059,7 +2081,8 @@ function tools(){
     const b=document.createElement("button");
     b.className="tool";
     b.setAttribute("aria-pressed",!state.erase&&state.act===a.k);
-    b.innerHTML='<i class="acdot" style="background:'+ACOL[a.k]+'"></i>'+icon(a.k,15)+a.n;
+    b.innerHTML='<i class="acdot" style="background-color:'+ACOL[a.k]+
+      ';background-image:'+ATRAMA[a.k]+'"></i>'+icon(a.k,15)+a.n;
     b.title=a.n+" · tasto "+(i+1)+" · fase "+AFASE[a.k];
     b.onclick=()=>pickAct(a.k);
     box.appendChild(b);
@@ -3147,7 +3170,8 @@ function drawDay(dateIso,scope){
          che cresce faceva un'insalata; darla a quella limitata fa una
          legenda. E siccome le otto tinte seguono le fasi del metodo, una
          settimana si legge per quello che è: dove acquisisci, dove applichi. */
-      bl.style.background=ACOL[r.v.a]||"#98A1AD";
+      bl.style.backgroundColor=ACOL[r.v.a]||"#AEB6C0";
+      bl.style.backgroundImage=ATRAMA[r.v.a]||"none";
       bl.style.setProperty("--ac",o.color);
       /* sempre nera: i fondi sono tutti chiari apposta, così non c'è un blocco
          con la scritta bianca e uno con la nera a seconda della materia */
