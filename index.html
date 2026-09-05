@@ -51,7 +51,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* ============================================================
    Barra alta
    ============================================================ */
-.topbar{position:sticky;top:0;z-index:45;background:var(--bg);
+/* si incolla sotto la barra del pomodoro, non dietro: sono tutt'e due
+   appiccicate in cima e senza questo scostamento il timer se la mangiava */
+.topbar{position:sticky;top:var(--stick-pom, 0px);z-index:45;background:var(--bg);
   border-bottom:1px solid var(--line)}
 .tin{display:flex;align-items:flex-end;gap:12px;max-width:1440px;margin:0 auto;
   padding:6px var(--pad) 7px}
@@ -2569,7 +2571,7 @@ function beep(){
 function pomRender(onlyTime){
   const bar=document.getElementById("pombar");
   const r=state.pomRun;
-  if(!r){bar.className="pombar";bar.innerHTML="";return;}
+  if(!r){bar.className="pombar";bar.innerHTML="";stickyOffsets();return;}
   const c=pomConf(r.act);
   const left=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
   const tot=(r.phase==="work"?c.s:(r.phase==="long"?c.l:c.b))*60000;
@@ -2582,6 +2584,7 @@ function pomRender(onlyTime){
   const t=pomToday();
   const eti=r.phase==="work"?actOf(r.act).n
     :(r.phase==="long"?"Pausa lunga":"Pausa");
+  const prima=bar.classList.contains("on");
   bar.className="pombar on "+r.phase+(r.paused!=null?" pause":"");
   bar.innerHTML=
     '<div class="pfill" style="width:'+pct+'%"></div>'+
@@ -2610,6 +2613,8 @@ function pomRender(onlyTime){
       else pomStop();
     };
   });
+  /* appena compare cambia l'altezza di quello che sta incollato in cima */
+  if(!prima)stickyOffsets();
 }
 /* variante silenziosa: segna fatto senza toast né ridisegno completo */
 function setDoneQuiet(dateIso,start,lane,v){
@@ -4047,11 +4052,16 @@ function setRow(px){
 /* gli elementi agganciati si fermano dove finisce quello sopra, qualunque
    altezza abbia: le misure vengono prese, non indovinate */
 function stickyOffsets(){
-  const tb=document.querySelector(".topbar"),gb=document.querySelector(".gridbar");
+  const tb=document.querySelector(".topbar"),gb=document.querySelector(".gridbar"),
+        pb=document.querySelector(".pombar.on");
   if(!tb||!gb)return;
+  /* Il pomodoro sta in cima a tutto e si incolla anche lui: se non lo conto qui,
+     le barre sotto si incollano alla sua stessa altezza e ci finiscono sotto. */
+  const pom=pb?pb.offsetHeight:0;
   const r=document.documentElement.style;
-  r.setProperty("--stick-bar",tb.offsetHeight+"px");
-  r.setProperty("--stick-head",(tb.offsetHeight+gb.offsetHeight)+"px");
+  r.setProperty("--stick-pom",pom+"px");
+  r.setProperty("--stick-bar",(pom+tb.offsetHeight)+"px");
+  r.setProperty("--stick-head",(pom+tb.offsetHeight+gb.offsetHeight)+"px");
 }
 /* quanto spazio resta sotto l'intestazione della griglia */
 function gridTop(){
