@@ -1159,25 +1159,46 @@ function trama(w,h,d,op){
   return "url('data:image/svg+xml,"+
     encodeURIComponent(svg).replace(/%25/g,"%").replace(/'/g,"%27")+"')";
 }
+/* Le trame qui sopra sono tutte di tratto. Questa è piena: è l'unica del
+   gruppo, quindi non somiglia a nessun'altra qualunque forma le dia — ed è
+   proprio quello che serviva al laboratorio, che coi due cerchi finiva
+   addosso all'anello del ripasso. */
+function punti(w,h,d,op){
+  const svg="<svg xmlns='http://www.w3.org/2000/svg' width='"+w+"' height='"+h+
+    "' viewBox='0 0 "+w+" "+h+"'><g fill='%2314161B' fill-opacity='"+(op||.3)+"'>"+
+    d+"</g></svg>";
+  return "url('data:image/svg+xml,"+
+    encodeURIComponent(svg).replace(/%25/g,"%").replace(/'/g,"%27")+"')";
+}
+const PUNTI="<circle cx='3' cy='3' r='1.6'/><circle cx='9.5' cy='9' r='1.6'/>";
 const ATRAMA={
-  LEZ:"none",                                                       /* liscio */
+  /* la voce di chi spiega. È l'unica trama curva e continua del gruppo: la
+     lettura ha righe dritte alla stessa giacitura, ma un'onda e una riga si
+     separano subito, e qui serviva qualcosa di leggero perché la lezione è
+     l'attività che riempie più griglia. */
+  LEZ:trama(26,14,"<path d='M0 7q3.25-4.5 6.5 0t6.5 0t6.5 0t6.5 0'/>"),
   LET:trama(20,6,"<path d='M0 3h20'/>"),                            /* righe di quaderno */
-  SCH:trama(18,18,"<circle cx='4' cy='9' r='1.5'/><path d='M5.5 9h4M9.5 9l4-4M9.5 9l4 4'/>",.28),
+  /* la ramificazione, rada. Il nodo coi tre rami corti era troppo fitto:
+     a quella scala diventava uno scarabocchio invece di una struttura. */
+  SCH:trama(24,21,"<path d='M2 10.5h5M7 5v11M7 5h6M7 16h6'/>"),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>"),                      /* quadretti */
-  LAB:trama(17,17,"<circle cx='4.5' cy='5' r='2.4'/><circle cx='12' cy='12' r='3.2'/>"),
+  /* campione sul vetrino, non bolle: i due cerchi vuoti si confondevano con
+     l'anello del ripasso, perché erano tondi come lui e grandi uguale */
+  LAB:punti(13,13,PUNTI),
   PRO:trama(22,11,"<path d='M0 5.5h22M0 .6h22M0 10.4h22M5.5 0v5.5M16.5 0v5.5M11 5.5v5.5M.6 5.5v5.5M21.4 5.5v5.5'/>"),
   /* anello aperto con la freccia: il ciclo che si richiude. Scartati il tratto
      doppio (somigliava alle righe della lettura) e i cerchi concentrici
-     (somigliavano alle bolle del laboratorio). */
+     (somigliavano ai cerchi che allora aveva il laboratorio). */
   RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",.30),
   LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>")
 };
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
-const ATRAMALEG={LEZ:"none",
+const ATRAMALEG={
+  LEZ:trama(26,14,"<path d='M0 7q3.25-4.5 6.5 0t6.5 0t6.5 0t6.5 0'/>",1),
   LET:trama(20,6,"<path d='M0 3h20'/>",1),
-  SCH:trama(18,18,"<circle cx='4' cy='9' r='1.5'/><path d='M5.5 9h4M9.5 9l4-4M9.5 9l4 4'/>",1),
+  SCH:trama(24,21,"<path d='M2 10.5h5M7 5v11M7 5h6M7 16h6'/>",1),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>",1),
-  LAB:trama(17,17,"<circle cx='4.5' cy='5' r='2.4'/><circle cx='12' cy='12' r='3.2'/>",1),
+  LAB:punti(13,13,PUNTI,1),
   PRO:trama(22,11,"<path d='M0 5.5h22M0 .6h22M0 10.4h22M5.5 0v5.5M16.5 0v5.5M11 5.5v5.5M.6 5.5v5.5M21.4 5.5v5.5'/>",1),
   RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",1),
   LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>",1)};
