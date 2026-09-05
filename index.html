@@ -1596,7 +1596,11 @@ window.addEventListener("keydown",e=>{
   }
 });
 
+/* se i dati salvati contengono già le pieghe, la scelta è dell'utente e va
+   rispettata: l'apertura automatica sulla settimana di oggi vale solo al primo avvio */
+let pieghePresenti=false;
 function adopt(d){
+  if(d.collapsed!==undefined)pieghePresenti=true;
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
   setDayRange(state.dayFrom==null?DAY_FROM:state.dayFrom,
               state.dayTo==null?DAY_TO:state.dayTo);
@@ -1697,40 +1701,46 @@ function migrate(d){
    ============================================================ */
 const shortOf=n=>n.length>17?n.slice(0,16)+"…":n;
 
-/* I colori delle materie non sono casuali: raggruppano per natura, così due
-   corsi di intelligenza artificiale si assomigliano e uno di sicurezza no.
-   Dentro la famiglia cambia il grado. Sono ottimizzati non per essere tutti
-   e diciannove distinti — cosa impossibile e nemmeno desiderabile, visto che
-   la parentela è voluta — ma per il contrasto fra le materie che compaiono
-   nella STESSA schermata, cioè quelle di uno stesso semestre: lì il ΔE minimo
-   è 17. Tutti reggono il testo nero, da 6,4:1 a 13,6:1. */
+/* I colori delle materie raggruppano per natura — intelligenza artificiale,
+   sicurezza, linguaggi, dati, metodi numerici, lingua, chiusura del percorso —
+   ma la priorità è distinguerli, e sono ottimizzati per il contrasto fra tutte
+   quelle che possono comparire INSIEME: non quelle di uno stesso semestre, ma
+   di uno stesso anno, perché la vista Sessione Esami le mostra tutte in una
+   volta. ΔE minimo 30, contro i 17 del primo tentativo.
+   Il salto è venuto dal mollare un vincolo sbagliato: tenevo quasi grigi i
+   quattro della chiusura del percorso, che però stanno tutti nello stesso
+   semestre e dovendo distinguersi solo per luminosità strozzavano l'intera
+   tavolozza. Tutti reggono il testo nero, da 5,0:1 a 14,6:1. */
 const MATCOL={
   /* Dati e reti */
-  "c:1009070":"#8CC7D0",
-  "c:1014075":"#25C0C5",
+  "c:1009070":"#4D9EB0",
+  "c:1014075":"#9DF5F0",
   /* Metodi numerici */
-  "c:1013075":"#6E9EE0",
+  "c:1013075":"#8FB7FD",
   /* Linguaggi e programmazione */
-  "c:1009064":"#B5CD99",
-  "c:1009066":"#9AE3BA",
+  "c:1009064":"#A2CB7B",
+  "c:1009066":"#459E77",
   /* Sicurezza e affidabilità */
-  "c:1014073":"#FBCAC3",
-  "c:1010559":"#EB8D87",
-  "c:1009069":"#D59989",
-  "c:1013066":"#C79C9B",
+  "c:1014073":"#E35E60",
+  "c:1010559":"#ECB69A",
+  "c:1009069":"#E5A791",
+  "c:1013066":"#E48449",
   /* Intelligenza artificiale */
-  "c:1009065":"#C8A3E0",
-  "c:1013067":"#D1C6EC",
-  "c:1009071":"#C7ADD3",
-  "c:1009073":"#B88FD1",
+  "c:1009065":"#FAC7EB",
+  "c:1013067":"#B475BB",
+  "c:1009071":"#E6AAF9",
+  "c:1009073":"#6C8CE6",
   /* Lingua e competenze */
-  "c:1010779":"#D7CA98",
-  "c:1007808":"#AB9C55",
-  /* Chiusura */
-  "c:24688":"#C6CBBC",
-  "c:1006660":"#BAABB4",
-  "c:1006659":"#E9DBE7",
-  "c:1006658":"#939D90"
+  "c:1010779":"#D08939",
+  "c:1007808":"#F7DE72",
+  /* voci di servizio: ripasso senza materia e lavoro, neutre di proposito */
+  "_gen":"#B2B7BF",
+  "_lav":"#A1A781",
+  /* Chiusura del percorso */
+  "c:24688":"#A37F89",
+  "c:1006660":"#D05DA7",
+  "c:1006659":"#FF9BB7",
+  "c:1006658":"#FDDEF3"
 };
 
 /* Colore predefinito ricavato dall'id, così resta lo stesso in ogni anno e
@@ -2859,6 +2869,9 @@ function wipeWeek(p){
 /* all'avvio si apre la settimana che contiene oggi e si chiudono le altre:
    si atterra sul punto giusto invece che su quattro griglie impilate */
 function foldToToday(){
+  /* Solo la prima volta. Prima girava a ogni caricamento e cancellava le
+     settimane che avevi aperto tu: le apri, ricarichi, ne trovi una sola. */
+  if(pieghePresenti)return;
   let open=0;
   for(let p=0;p<PANELS;p++){
     if(panelDates(p).some(d=>iso(d)===TODAY)){open=p;break;}
