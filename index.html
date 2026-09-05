@@ -647,7 +647,42 @@ td.tot b{color:var(--tx2);font-weight:500}
 .gcol .gc i em{display:block;width:100%;border-radius:3px 3px 0 0;background:var(--action)}
 .gcol .gc u{text-decoration:none;font-family:"DM Mono",monospace;font-size:8.5px;
   color:var(--tx3);margin-top:4px;white-space:nowrap;overflow:hidden}
-/* barre orizzontali: attività, materie, giorni */
+.gcol .gc.ora u{color:var(--action)}
+.gcol .gc.ora i{box-shadow:inset 0 0 0 1px var(--action)}
+/* 1 — ce la fai: una riga per materia con obiettivo */
+.gp{padding:10px 0;border-bottom:1px solid var(--line-soft)}
+.gp:last-child{border-bottom:0}
+.gph{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.gph b{font-size:12.5px;font-weight:500;flex:1;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.gph em{font-style:normal;font-family:"DM Mono",monospace;font-size:9.5px;
+  color:var(--tx3);flex:0 0 auto}
+.gp.corto .gph em{color:var(--warn)}
+.gph u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;
+  color:var(--tx2);flex:0 0 auto}
+.gpb{display:flex;gap:2px;height:10px}
+.gpb i{height:100%;border-radius:3px;min-width:0}
+.gpb i.pl{opacity:.34}
+.gpb i.vu{background:var(--sunken);box-shadow:inset 0 0 0 1px var(--line)}
+.gpn{margin-top:5px;font-family:"DM Mono",monospace;font-size:9.5px;color:var(--tx3)}
+.gp.corto .gpn{color:var(--warn)}
+/* 4 — quando studi: sette giorni per tre fasce */
+.gmap{display:grid;grid-template-columns:64px repeat(7,1fr);gap:3px}
+.gmap .gmh{font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);
+  text-align:center;letter-spacing:.06em}
+.gmap .gmb{font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);
+  display:flex;align-items:center}
+/* Il colore sta su uno strato sotto e il numero sopra: l'opacità applicata
+   alla cella sbiadirebbe anche la cifra, e nelle celle leggere sparirebbe.
+   L'intensità si ferma a .55 perché oltre il testo chiaro non regge il
+   contrasto sul viola pieno — misurato, 2,1:1 contro 5,6:1. */
+.gmap .gmc{position:relative;display:flex;align-items:center;justify-content:center;
+  height:26px;border-radius:4px;color:var(--tx);
+  font-family:"DM Mono",monospace;font-size:9.5px}
+.gmap .gmc::before{content:"";position:absolute;inset:0;border-radius:4px;
+  background:var(--action);opacity:var(--a,.05)}
+.gmap .gmc span{position:relative}
+/* barre orizzontali: fasi del metodo */
 .gbar{display:flex;flex-direction:column;gap:6px}
 .gbar .gr{display:flex;align-items:center;gap:8px}
 .gbar .gl{text-decoration:none;flex:0 0 132px;max-width:132px;overflow:hidden;
@@ -655,7 +690,8 @@ td.tot b{color:var(--tx2);font-weight:500}
 .gbar .gt{position:relative;flex:1 1 auto;min-width:0;height:12px}
 .gbar .gr i,.gbar .gr em{position:absolute;left:0;top:0;height:100%;
   border-radius:4px;min-width:3px}
-.gbar .gr i{opacity:.3}
+.gbar .gr i{opacity:.3;background:var(--action)}
+.gbar .gr em{background:var(--action)}
 .gbar .gv{flex:0 0 auto;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
 @media (max-width:620px){.gbar .gl{flex:0 0 92px;max-width:92px}}
 .sembody .tally{display:flex;gap:12px 24px;flex-wrap:wrap;margin-bottom:16px}
@@ -2967,101 +3003,157 @@ function pomSettings(){
   });
 }
 
-/* ---------- come sta andando il semestre ----------
-   Quattro grafici invece dell'elenco di numeri: uno per la domanda "quanto
-   riesco a fare davvero" e tre per "l'ho distribuito bene". La colonna piena è
-   ciò che hai spuntato, quella tenue ciò che avevi messo in piano: la distanza
-   fra le due è la risposta, e si vede senza leggere una cifra. */
+/* ---------- come sta andando ----------
+   Non grafici di quello che ho, ma delle decisioni che uno deve prendere:
+   1. ce la faccio ad arrivare all'esame? (l'unica domanda che guarda avanti)
+   2. reggo il piano che mi do, o me ne scrivo il doppio di quello che faccio?
+   3. sto solo accumulando o rielaboro e ripasso anche?
+   4. quando studio davvero, e quel quando regge col lavoro?
+   Il resto — quante ore in totale, quante per materia — sta già nell'elenco a
+   sinistra e non merita un grafico. */
 function semSummary(){
   const box=document.getElementById("semBody");
   if(!state.semOpen){box.innerHTML="";return;}
-  const m=map(),pre=state.year+"."+state.ctx+".";
-  const wk={},per={},act={},gio={};
-  let tot=0,done=0;
+  const m=map(),pre=state.year+"."+state.ctx+".",oggi=TODAY;
+  const wk={},fase={},mappa={},mat={};
+  let tot=0,done=0,saltate=0;
   Object.keys(state.cells).forEach(k=>{
-    if(k.indexOf(pre)!==0)return;
-    const d=parse(k.split(".")[2]),lun=iso(monday(d)),g=(d.getDay()+6)%7;
+    const p=k.split("."),dt=p[2],sl=+p[3];
+    const d=parse(dt),g=(d.getDay()+6)%7;
+    const banda=sl<13*PERQ?0:(sl<19*PERQ?1:2);
+    const dentro=k.indexOf(pre)===0, futuro=dt>=oggi;
     at(k).forEach(v=>{
       if(!v||!m[v.i])return;
       const q=v.done?1:0;
+      /* La proiezione guarda tutto il piano e non solo il semestre aperto:
+         l'esame di gennaio sta nella sessione, le ore per prepararlo no. */
+      mat[v.i]=mat[v.i]||{f:0,fut:0,persa:0};
+      if(q)mat[v.i].f++;else if(futuro)mat[v.i].fut++;else mat[v.i].persa++;
+      if(!dentro)return;
+      const lun=iso(monday(d));
       wk[lun]=wk[lun]||{t:0,d:0};wk[lun].t++;wk[lun].d+=q;
-      per[v.i]=per[v.i]||{t:0,d:0};per[v.i].t++;per[v.i].d+=q;
-      act[v.a]=act[v.a]||{t:0,d:0};act[v.a].t++;act[v.a].d+=q;
-      gio[g]=gio[g]||{t:0,d:0};gio[g].t++;gio[g].d+=q;
-      tot++;done+=q;
+      const F=AFASE[v.a]||"Altro";
+      fase[F]=fase[F]||{t:0,d:0};fase[F].t++;fase[F].d+=q;
+      mappa[g+"|"+banda]=(mappa[g+"|"+banda]||0)+1;
+      tot++;done+=q;if(!q&&!futuro)saltate++;
     });
   });
-  if(!tot){box.innerHTML='<p class="empty">Niente in piano in questo semestre: i grafici arrivano appena metti qualche ora.</p>';return;}
+  if(!tot&&!Object.keys(mat).length){
+    box.innerHTML='<p class="empty">Niente in piano: i grafici arrivano appena metti qualche ora.</p>';return;}
 
   const sett=Object.keys(wk).sort();
-  const media=sett.length?tot/sett.length:0;
-  const tenuta=tot?Math.round(done/tot*100):0;
-  /* la tenuta media di una settimana conta solo quelle passate: le prossime
-     non le hai mancate, non sono ancora arrivate */
-  const oggiLun=iso(monday(new Date()));
-  const passate=sett.filter(w=>w<=oggiLun);
+  const passate=sett.filter(w=>w<iso(monday(new Date())));
+  const tenuta=(lista)=>{
+    const t=lista.reduce((a,w)=>a+wk[w].t,0),f=lista.reduce((a,w)=>a+wk[w].d,0);
+    return t?Math.round(f/t*100):null;
+  };
+  const tGen=tenuta(passate),tUlt=tenuta(passate.slice(-4));
 
   const cifra=(v,e)=>'<div><b>'+v+"</b><span>"+e+"</span></div>";
   let h='<div class="tally">'+
-    cifra(hrs(tot),"in piano")+
     cifra(hrs(done),"fatte")+
-    cifra(tenuta+"%","tenuta")+
-    cifra(hrs(Math.round(media)),"a settimana")+
-    cifra(sett.length,sett.length===1?"settimana":"settimane")+
+    cifra(tGen==null?"—":tGen+"%","tenuta")+
+    cifra(hrs(saltate),"saltate")+
+    cifra(hrs(tot-done-saltate),"ancora in piano")+
     "</div>";
 
-  /* 1 — settimana per settimana */
-  const max=Math.max.apply(null,sett.map(w=>wk[w].t));
-  h+='<div class="graf"><h4>Settimana per settimana'+
-    '<u>colonna tenue: in piano · piena: fatte</u></h4><div class="gcol">'+
-    sett.map(w=>{
-      const c=wk[w],alt=Math.round(c.t/max*100),pieno=c.t?Math.round(c.d/c.t*100):0;
-      const et=fmt(parse(w));
-      return '<span class="gc" title="'+et+" · "+hrs(c.t)+" in piano, "+hrs(c.d)+' fatte">'+
-        '<i style="height:'+alt+'%"><em style="height:'+pieno+'%"></em></i>'+
-        "<u>"+et.replace(/ .*/,"")+"</u></span>";
-    }).join("")+"</div>"+
-    (passate.length?'<p class="gnota">Nelle '+passate.length+
-      (passate.length===1?" settimana passata":" settimane passate")+" hai fatto "+
-      Math.round(passate.reduce((a,w)=>a+wk[w].d,0)/Math.max(1,passate.reduce((a,w)=>a+wk[w].t,0))*100)+
-      "% di quello che avevi messo in piano.</p>":"")+"</div>";
+  /* 1 — ce la fai? Solo le materie con un obiettivo: le voci libere no. */
+  const righe=Object.keys(mat).map(id=>{
+    const o=m[id],tgt=targetH(o.cfu);
+    if(!tgt)return null;
+    const f=mat[id].f/PERQ,fut=mat[id].fut/PERQ;
+    const gg=o.date?Math.round((parse(o.date)-parse(oggi))/86400000):null;
+    return {o:o,tgt:tgt,f:f,fut:fut,vuoto:Math.max(0,tgt-f-fut),gg:gg,
+            persa:mat[id].persa/PERQ};
+  }).filter(Boolean).sort((a,b)=>
+    (a.gg==null)-(b.gg==null)||(a.gg-b.gg)||(b.vuoto-a.vuoto));
+  if(righe.length){
+    h+='<div class="graf"><h4>Ce la fai?<u>fatte · in piano · scoperte, sul monte ore</u></h4>';
+    righe.forEach(r=>{
+      const scala=Math.max(r.tgt,r.f+r.fut)||1,pc=v=>(v/scala*100).toFixed(1)+"%";
+      const verdetto=r.vuoto>0
+        ? "mancano "+hrs(r.vuoto*PERQ)+" che non sono in piano"
+        : "il piano copre l'obiettivo";
+      h+='<div class="gp'+(r.vuoto>0?" corto":"")+'">'+
+        '<div class="gph"><b>'+r.o.name+"</b>"+
+          (r.gg!=null?'<em>'+(r.gg>=0?"esame fra "+r.gg+" g":"esame passato")+"</em>":"")+
+          "<u>"+hrs(r.f*PERQ)+" / "+r.tgt+" h</u></div>"+
+        '<div class="gpb">'+
+          '<i style="width:'+pc(r.f)+";background:"+r.o.color+'"></i>'+
+          '<i class="pl" style="width:'+pc(r.fut)+";background:"+r.o.color+'"></i>'+
+          '<i class="vu" style="width:'+pc(r.vuoto)+'"></i></div>'+
+        '<div class="gpn">'+verdetto+
+          (r.persa>0?" · "+hrs(r.persa*PERQ)+" già saltate":"")+"</div>"+
+      "</div>";
+    });
+    h+="</div>";
+  }
 
-  /* barre orizzontali riusate da tre grafici */
-  const barre=(righe)=>{
-    const mx=Math.max.apply(null,righe.map(r=>r.t))||1;
-    return '<div class="gbar">'+righe.map(r=>
-      '<span class="gr" title="'+r.n+" · "+hrs(r.t)+" in piano, "+hrs(r.d)+' fatte">'+
-        '<u class="gl">'+r.n+"</u>"+
-        /* la pista prende lo spazio che avanza, e la percentuale si misura su
-           quella: se la misuro sulla riga intera, etichetta compresa, il flex
-           poi la ricomprime e da un certo punto in su le barre vengono tutte
-           uguali. */
-        /* due barre sovrapposte sulla stessa scala, non una dentro l'altra:
-           l'opacità di un elemento vale anche per i suoi figli, quindi la parte
-           piena messa dentro quella tenue sbiadiva insieme a lei e spariva. */
-        '<span class="gt"><i style="width:'+Math.round(r.t/mx*100)+
-          '%;background:'+(r.c||"var(--tx3)")+'"></i>'+
-          '<em style="width:'+Math.round(r.d/mx*100)+'%;background:'+(r.c||"var(--tx2)")+'"></em>'+
-        "</span>"+
-        '<b class="gv">'+hrs(r.t)+"</b></span>").join("")+"</div>";
-  };
+  /* 2 — reggo il piano? */
+  if(sett.length){
+    const max=Math.max.apply(null,sett.map(w=>wk[w].t));
+    const oggiLun=iso(monday(new Date()));
+    h+='<div class="graf"><h4>Reggo il piano?'+
+      '<u>colonna tenue: messo in piano · piena: fatto</u></h4><div class="gcol">'+
+      sett.map(w=>{
+        const c=wk[w],et=fmt(parse(w));
+        return '<span class="gc'+(w===oggiLun?" ora":"")+'" title="'+et+" · "+
+          hrs(c.t)+" in piano, "+hrs(c.d)+' fatte">'+
+          '<i style="height:'+Math.round(c.t/max*100)+'%"><em style="height:'+
+            (c.t?Math.round(c.d/c.t*100):0)+'%"></em></i>'+
+          "<u>"+et.replace(/ .*/,"")+"</u></span>";
+      }).join("")+"</div>"+
+      '<p class="gnota">'+(tGen==null
+        ? "Nessuna settimana ancora conclusa: la tenuta si potrà leggere da lunedì prossimo."
+        : "Sulle "+passate.length+(passate.length===1?" settimana conclusa":" settimane concluse")+
+          " hai fatto il "+tGen+"% di quello che avevi messo in piano"+
+          (tUlt!=null&&passate.length>4?", il "+tUlt+"% nelle ultime quattro":"")+".")+
+      "</p></div>";
+  }
 
-  /* 2 — attività: la distribuzione che chiedevi */
-  const ra=ACTS.filter(a=>act[a.k]).map(a=>({n:a.n,t:act[a.k].t,d:act[a.k].d,c:"var(--action)"}))
-    .sort((x,y)=>y.t-x.t);
-  h+='<div class="graf"><h4>Per attività<u>quanto pesa ognuna sul totale</u></h4>'+
-    barre(ra)+"</div>";
+  /* 3 — solo accumulo o anche rielaboro? */
+  const ORD=["Acquisizione","Rielaborazione","Applicazione","Ricordo"];
+  const dentroMetodo=ORD.reduce((a,f)=>a+((fase[f]||{}).t||0),0);
+  if(dentroMetodo){
+    const mx=Math.max.apply(null,ORD.map(f=>(fase[f]||{}).t||0))||1;
+    const minF=ORD.slice().sort((a,b)=>((fase[a]||{}).t||0)-((fase[b]||{}).t||0))[0];
+    h+='<div class="graf"><h4>Le fasi del metodo<u>quanto pesa ognuna sulle ore del metodo</u></h4>'+
+      '<div class="gbar">'+ORD.map(f=>{
+        const c=fase[f]||{t:0,d:0},qt=Math.round(c.t/dentroMetodo*100);
+        return '<span class="gr" title="'+f+" · "+hrs(c.t)+" in piano, "+hrs(c.d)+' fatte">'+
+          '<u class="gl">'+f+"</u>"+
+          '<span class="gt"><i style="width:'+Math.round(c.t/mx*100)+'%"></i>'+
+          '<em style="width:'+Math.round(c.d/mx*100)+'%"></em></span>'+
+          '<b class="gv">'+qt+"%</b></span>";
+      }).join("")+"</div>"+
+      '<p class="gnota">La fase più scarsa è <b>'+minF.toLowerCase()+"</b>, "+
+        Math.round(((fase[minF]||{}).t||0)/dentroMetodo*100)+"% delle ore del metodo"+
+        ((fase["fuori dal metodo"]||{}).t?" · "+hrs(fase["fuori dal metodo"].t)+" di lavoro, fuori dal conto":"")+
+      ".</p></div>";
+  }
 
-  /* 3 — materie */
-  const rm=Object.keys(per).map(id=>({n:m[id].name,t:per[id].t,d:per[id].d,c:m[id].color}))
-    .sort((x,y)=>y.t-x.t);
-  h+='<div class="graf"><h4>Per materia<u>dove sono andate le ore</u></h4>'+barre(rm)+"</div>";
-
-  /* 4 — giorni: se il carico sta tutto su due giorni si vede qui */
-  const rg=[];
-  for(let g=0;g<7;g++)rg.push({n:DSH[g],t:(gio[g]||{}).t||0,d:(gio[g]||{}).d||0,c:"var(--done)"});
-  h+='<div class="graf"><h4>Per giorno della settimana'+
-    '<u>il carico è sparso o ammucchiato?</u></h4>'+barre(rg)+"</div>";
+  /* 4 — quando studi davvero */
+  if(tot){
+    const BANDE=["mattina","pomeriggio","sera"];
+    const mx=Math.max.apply(null,Object.keys(mappa).map(k=>mappa[k]))||1;
+    let g='<div class="gmap"><span class="gmh"></span>'+
+      DSH.map(d=>'<span class="gmh">'+d+"</span>").join("");
+    BANDE.forEach((b,bi)=>{
+      g+='<span class="gmb">'+b+"</span>";
+      for(let d=0;d<7;d++){
+        const n=mappa[d+"|"+bi]||0;
+        g+='<span class="gmc" title="'+DSH[d]+" "+b+" · "+hrs(n)+'" style="--a:'+
+          (n?(.14+.41*n/mx).toFixed(2):0.05)+'">'+(n?"<span>"+ore(n)+"</span>":"")+"</span>";
+      }
+    });
+    g+="</div>";
+    const vuoti=[];
+    for(let d=0;d<7;d++){let n=0;for(let b=0;b<3;b++)n+=mappa[d+"|"+b]||0;if(!n)vuoti.push(DSH[d]);}
+    h+='<div class="graf"><h4>Quando studi<u>ore messe in piano per giorno e fascia</u></h4>'+g+
+      '<p class="gnota">'+(vuoti.length
+        ? "Giorni ancora vuoti: "+vuoti.join(", ")+"."
+        : "Nessun giorno completamente vuoto.")+"</p></div>";
+  }
 
   box.innerHTML=h;
 }
