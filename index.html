@@ -1243,7 +1243,13 @@ const ATRAMA={
 };
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
-  LEZ:trama(16,11,"<rect x='1.5' y='2' width='8' height='6.5' rx='.8'/>"+"<circle cx='12.6' cy='3.4' r='1.1'/><path d='M12.6 4.9v3.6'/>",1),
+  /* La pastiglia della legenda è 17px e la tile del blocco è alta 11: ce ne
+     entrava una intera più mezza, e mezza figura non è un simbolo. Qui la
+     stessa figura sta in una tile alta quanto la pastiglia, così se ne vede
+     una sola. Le altre non hanno il problema: o sono trame, dove ripetersi è
+     il senso, o ci stanno una volta. */
+  LEZ:trama(17,17,"<rect x='2.4' y='5.25' width='8' height='6.5' rx='.8'/>"+
+    "<circle cx='13.5' cy='6.65' r='1.1'/><path d='M13.5 8.15v3.6'/>",1),
   LET:trama(20,6,"<path d='M0 3h20'/>",1),
   SCH:trama(24,18,"<path d='M2 9h5M7 3.5v11M7 3.5h6M7 14.5h6'/>",1),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>",1),
