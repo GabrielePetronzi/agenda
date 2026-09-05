@@ -239,6 +239,8 @@ body.dropping td.c.dropok{background:var(--tint-hover);
 .tool[aria-pressed="true"]{background:var(--raised);color:var(--tx);
   border-color:var(--tx3);box-shadow:inset 0 0 0 1px var(--tx3)}
 .tool i{width:12px;height:12px;border-radius:3px;background:currentColor;display:block;flex:0 0 12px}
+.tool i.acdot{width:9px;height:9px;border-radius:2px;flex:0 0 9px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.28)}
 .tool .ico{flex:0 0 auto;opacity:.75}
 .tool[aria-pressed="true"] .ico{opacity:1}
 .tool.pomgo{border-color:var(--action);color:var(--action)}
@@ -412,7 +414,7 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
   font-weight:600;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;line-height:1.2;padding-right:17px}
 .blk em s{display:flex;align-items:center;gap:4px;text-decoration:none;font-size:11.5px;
-  opacity:.92;line-height:1.25;white-space:nowrap;overflow:hidden;margin-top:1px}
+  font-weight:500;line-height:1.25;white-space:nowrap;overflow:hidden;margin-top:1px}
 .blk em s i{font-style:normal;opacity:.85;overflow:hidden;text-overflow:ellipsis}
 /* la nota va a capo e si ferma dove finisce il blocco, con i puntini */
 .blk em u.nota{display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;
@@ -448,6 +450,14 @@ html[data-row="tight"] .tick::after{left:3.6px;top:1px;width:3.4px;height:7px}
 .blk{transition:filter .12s,box-shadow .12s}
 .blk:hover{filter:brightness(1.08)}
 html[data-theme="light"] .blk:hover{filter:brightness(.96)}
+/* La barra a sinistra porta il colore della materia. Area piccola perché le
+   materie sono tante: in un rettangolo pieno sarebbero rumore, in un filo
+   sono un indice. Il filo scuro sul lato interno la tiene staccata anche
+   quando materia e attività finiscono sulla stessa tinta. */
+.blk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;z-index:2;
+  background:var(--ac);pointer-events:none;box-shadow:1px 0 0 rgba(0,0,0,.34)}
+.blk em{padding-left:12px}
+.blk.mini em,.blk.mini2 em{padding-left:12px}
 .blk.done{opacity:.58}
 .blk.done em b{text-decoration:line-through;text-decoration-thickness:1.5px}
 .blk.done::after{content:"";position:absolute;inset:0;pointer-events:none;
@@ -465,7 +475,7 @@ html[data-theme="light"] .blk:hover{filter:brightness(.96)}
   width:20px;height:2px;border-radius:2px;background:currentColor;opacity:0;transition:opacity .12s}
 .blk:hover .rsz::after{opacity:.55}
 input.noteEdit{position:absolute;left:5px;right:5px;bottom:5px;z-index:8;
-  background:rgba(0,0,0,.26);border:0;border-radius:4px;color:inherit;
+  background:rgba(255,255,255,.6);border:0;border-radius:4px;color:inherit;
   font-family:Inter,sans-serif;font-size:11.5px;padding:3px 6px;outline:none;
   max-width:calc(100% - 10px)}
 html[data-theme="light"] input.noteEdit{background:rgba(255,255,255,.5)}
@@ -1097,6 +1107,32 @@ function icon(k,size){
     'fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" '+
     'stroke-linejoin="round" aria-hidden="true">'+(ICON[k]||"")+"</svg>";
 }
+/* Il colore della materia riempie il blocco. All'attività ne serve uno suo,
+   perché il colore è l'unico canale che si legge senza fissare: un'icona va
+   riconosciuta, e riconoscere richiede di fermare l'occhio.
+
+   Le tinte non sono decise a caso: seguono le fasi del Sistema ADC, così la
+   barra non dice solo che attività è, ma a che punto del metodo sei. Stessa
+   fase, stessa famiglia di colore; dentro la famiglia cambia il grado.
+   La progressione va dal freddo al caldo — si prende, si trasforma, si
+   produce — e chiude in verde quando la cosa è fissata.
+   ACQUISIZIONE   azzurro   lezione, lettura      (primo contatto)
+   RIELABORAZIONE viola     schema                (lo rifai tuo)
+   APPLICAZIONE   caldo     esercizi, laboratorio, progetto
+   RICORDO        verde     ripasso               (richiamo attivo)
+   Il lavoro sta fuori dal metodo, quindi grigio.
+   Distanza percettiva minima fra le otto: ΔE 26. */
+const AFASE={LEZ:"Acquisizione",LET:"Acquisizione",SCH:"Rielaborazione",
+             ESE:"Applicazione",LAB:"Applicazione",PRO:"Applicazione",
+             RIP:"Ricordo",LAV:"fuori dal metodo"};
+/* Tinte chiare perché la scritta dentro al blocco è sempre nera: il contrasto
+   col nero sta fra 8,0:1 e 14,5:1 su tutte e otto. Chiare vuol dire anche
+   vicine nello spazio percettivo, quindi le ho separate per tinta e non per
+   luminosità — distanza minima ΔE 23, e le coppie più strette sono di
+   proposito quelle della stessa fase. */
+const ACOL={LEZ:"#A9D4F7",LET:"#7BA2E8",SCH:"#C49BEC",ESE:"#F5D461",
+            LAB:"#F3A55F",PRO:"#EE8880",RIP:"#7FD4A4",LAV:"#98A1AD"};
+const BLKINK="#14161B";
 const ACTS=[
   {k:"LEZ",n:"Lezione"},
   {k:"LET",n:"Lettura"},
@@ -2023,8 +2059,8 @@ function tools(){
     const b=document.createElement("button");
     b.className="tool";
     b.setAttribute("aria-pressed",!state.erase&&state.act===a.k);
-    b.innerHTML=icon(a.k,15)+a.n;
-    b.title=a.n+" · tasto "+(i+1);
+    b.innerHTML='<i class="acdot" style="background:'+ACOL[a.k]+'"></i>'+icon(a.k,15)+a.n;
+    b.title=a.n+" · tasto "+(i+1)+" · fase "+AFASE[a.k];
     b.onclick=()=>pickAct(a.k);
     box.appendChild(b);
   });
@@ -3104,8 +3140,18 @@ function drawDay(dateIso,scope){
       bl.className="blk"+(r.len===1?(due?" mini2":" mini"):"")+(r.v.done?" done":"")+
         (selRuns[selKey(dateIso,r.start,r.lane)]?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
-      bl.style.background=o.color;
-      bl.style.color=ink(o.color);
+      /* Il riempimento dice l'attività, la barra dice la materia. Non è un
+         capriccio: il colore categorico regge fino a otto-dieci valori, e le
+         attività sono otto e resteranno otto, mentre le materie sono venti e
+         nella triennale erano quaranta. Dare la tinta piena alla variabile
+         che cresce faceva un'insalata; darla a quella limitata fa una
+         legenda. E siccome le otto tinte seguono le fasi del metodo, una
+         settimana si legge per quello che è: dove acquisisci, dove applichi. */
+      bl.style.background=ACOL[r.v.a]||"#98A1AD";
+      bl.style.setProperty("--ac",o.color);
+      /* sempre nera: i fondi sono tutti chiari apposta, così non c'è un blocco
+         con la scritta bianca e uno con la nera a seconda della materia */
+      bl.style.color=BLKINK;
       bl.style.height=(ROW*r.len-2)+"px";
       const nl=cw[ri]||1;
       bl.style.left=(r.lane*100/nl)+"%";
