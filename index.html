@@ -1221,8 +1221,9 @@ const ATRAMA={
   /* qualcuno che spiega alla lavagna. I telaietti da soli somigliavano troppo
      al quadratino della spunta — che è pure lui un rettangolo vuoto, e a due
      passi di distanza. Una figura no: non si confonde con nessun comando.
-     La tile resta bassa apposta, se no si taglia nelle fasce sottili. */
-  LEZ:trama(28,17,"<rect x='2' y='2.5' width='12' height='8.5' rx='1'/>"+"<circle cx='19.5' cy='5' r='1.5'/>"+"<path d='M19.5 6.6v4M19.5 7.8L16.4 6.2M19.5 10.6l-1.5 3M19.5 10.6l1.5 3'/>"),
+     Alta undici pixel: a un blocco da un'ora la fascia che resta è sedici,
+     e una tile più alta si taglierebbe sempre invece di ripetersi. */
+  LEZ:trama(17,11,"<rect x='1.5' y='2' width='8' height='6.5' rx='.8'/>"+"<circle cx='13' cy='3.2' r='1'/>"+"<path d='M13 4.4v3.4M13 5.2l-2-1M13 7.8l-1 2M13 7.8l1 2'/>"),
   LET:trama(20,6,"<path d='M0 3h20'/>"),                            /* righe di quaderno */
   /* la ramificazione, rada. Il nodo coi tre rami corti era troppo fitto:
      a quella scala diventava uno scarabocchio invece di una struttura. */
@@ -1240,7 +1241,7 @@ const ATRAMA={
 };
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
-  LEZ:trama(28,17,"<rect x='2' y='2.5' width='12' height='8.5' rx='1'/>"+"<circle cx='19.5' cy='5' r='1.5'/>"+"<path d='M19.5 6.6v4M19.5 7.8L16.4 6.2M19.5 10.6l-1.5 3M19.5 10.6l1.5 3'/>",1),
+  LEZ:trama(17,11,"<rect x='1.5' y='2' width='8' height='6.5' rx='.8'/>"+"<circle cx='13' cy='3.2' r='1'/>"+"<path d='M13 4.4v3.4M13 5.2l-2-1M13 7.8l-1 2M13 7.8l1 2'/>",1),
   LET:trama(20,6,"<path d='M0 3h20'/>",1),
   SCH:trama(24,18,"<path d='M2 9h5M7 3.5v11M7 3.5h6M7 14.5h6'/>",1),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>",1),
@@ -1249,25 +1250,45 @@ const ATRAMALEG={
   RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",1),
   LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>",1)};
 
-/* I CFU del titolo non sono la somma dell'elenco: gli insegnamenti a scelta
-   offerti sono più di quelli che servono, e lingua e tirocinio sono alternative.
-   Quindi il traguardo è un numero del manifesto, non un totale calcolato.
-   102 obbligatori (69 di insegnamenti + 27 di tesi + 6 di tirocinio) e 18 a
-   scelta (6 dalla tabella B, 6 di scelta libera per anno). */
-const CFU_TOT=120, CFU_OBB=102, CFU_SCE=18;
+/* I CFU del titolo. Questo numero va scritto, non dedotto: l'elenco contiene
+   più insegnamenti a scelta di quanti ne servano, quindi la somma del piano
+   non è il totale della laurea. È l'unica cosa da cambiare se cambia il corso
+   — a 0 se lo ricava sommando tutto il piano, che è la cosa giusta per un
+   piano dove non c'è niente a scelta. */
+const CFU_TITOLO=120;
+/* Quanto pesa la parte dovuta e quanto quella a scelta, ricavati dal piano
+   invece che scritti a mano: se il piano cambia cambiano da soli. Le
+   alternative (una lingua fra due, un tirocinio fra tre) contano una volta.
+   Un piano senza niente marcato obbligatorio non ha la distinzione, e allora
+   l'indicatore fa una barra sola invece di inventarsi due parti. */
+function pianoCfu(){
+  const visti={};let obb=0,somma=0;
+  allCourses().forEach(o=>{
+    if(o.alt){if(visti[o.alt])return;visti[o.alt]=1;}
+    somma+=o.cfu||0;
+    if(o.ob)obb+=o.cfu||0;
+  });
+  const distingue=obb>0&&obb<somma;
+  /* Se il piano non ha niente a scelta, il piano è la laurea: il totale è la
+     sua somma e non c'è nessun numero da tenere aggiornato a mano. Il numero
+     scritto serve solo quando l'elenco offre più scelte di quante ne servano. */
+  const tot=distingue?(CFU_TITOLO||somma):somma;
+  return distingue?{tot:tot,obb:obb,sce:Math.max(0,tot-obb),due:true}
+                  :{tot:tot,obb:tot,sce:0,due:false};
+}
 function cfuFatti(){
-  const m=map(),p=state.pass||{},visti={};
+  const P=pianoCfu(),m=map(),p=state.pass||{},visti={};
   let ob=0,sc=0,n=0;
   Object.keys(p).forEach(id=>{
     if(!p[id])return;
     const o=m[id];if(!o||o.kind!=="c")return;
     if(o.alt){if(visti[o.alt])return;visti[o.alt]=1;}
     n++;
-    if(o.ob)ob+=o.cfu||0;else sc+=o.cfu||0;
+    if(o.ob||!P.due)ob+=o.cfu||0;else sc+=o.cfu||0;
   });
   /* i CFU a scelta oltre il richiesto non contano per la laurea */
-  return {ob:Math.min(ob,CFU_OBB),sc:Math.min(sc,CFU_SCE),n:n,
-          tot:Math.min(ob,CFU_OBB)+Math.min(sc,CFU_SCE)};
+  ob=Math.min(ob,P.obb);sc=Math.min(sc,P.sce);
+  return {ob:ob,sc:sc,n:n,tot:ob+sc,piano:P};
 }
 const BLKINK="#14161B";
 const ACTS=[
@@ -2099,6 +2120,7 @@ function picklist(){
   box.classList.toggle("grow",!!q);
 
   cfuBar();
+  const distingue=pianoCfu().due;
   const info=document.getElementById("pickinfo");
   info.textContent=q?(list.length+scad.length)+" risultati in tutto il piano":"";
 
@@ -2116,7 +2138,7 @@ function picklist(){
     const tag=((q&&o.kind==="c")?'<em>'+(ANNI_ROMANI[o.year-1]||o.year)+" · sem "+o.sem+"</em>":"")+
       /* dal manifesto: quelle senza ob sono a scelta, e vale la pena saperlo
          guardando l'elenco, non aprendo l'editor */
-      (o.kind==="c"&&!o.ob?'<em class="opz">a scelta</em>':"")+
+      (o.kind==="c"&&!o.ob&&distingue?'<em class="opz">a scelta</em>':"")+
       (fatta?'<em style="color:var(--done)">superato</em>':"")+
       (note[o.id]?'<em style="color:var(--action)">'+note[o.id]+" in nota</em>":"");
     const cl=clash[o.id];
@@ -2199,15 +2221,15 @@ function picklist(){
    dovuta e quella a scelta invece di due barre uguali che mentono. */
 function cfuBar(){
   const box=document.getElementById("cfubar");if(!box)return;
-  const f=cfuFatti();
+  const f=cfuFatti(),P=f.piano;
   const pezzo=(v,t,cl)=>'<span class="'+cl+'" style="flex:'+t+' 0 0" title="'+
     v+" su "+t+' CFU"><i style="width:'+(t?Math.min(100,v/t*100):0)+'%"></i></span>';
   box.innerHTML=
-    '<span class="n"><b>'+f.tot+'</b><u>su '+CFU_TOT+" CFU · "+f.n+
+    '<span class="n"><b>'+f.tot+'</b><u>su '+P.tot+" CFU · "+f.n+
       (f.n===1?" esame":" esami")+'</u></span>'+
-    '<span class="cfb">'+pezzo(f.ob,CFU_OBB,"ob")+pezzo(f.sc,CFU_SCE,"sc")+"</span>"+
-    '<span class="leg"><u>obbligatori '+f.ob+"/"+CFU_OBB+"</u>"+
-      '<u class="sc">a scelta '+f.sc+"/"+CFU_SCE+"</u></span>";
+    '<span class="cfb">'+pezzo(f.ob,P.obb,"ob")+(P.due?pezzo(f.sc,P.sce,"sc"):"")+"</span>"+
+    (P.due?'<span class="leg"><u>obbligatori '+f.ob+"/"+P.obb+"</u>"+
+      '<u class="sc">a scelta '+f.sc+"/"+P.sce+"</u></span>":"");
 }
 
 /* form di modifica della materia: nome, CFU, scadenza */
@@ -3381,6 +3403,15 @@ function drawDay(dateIso,scope){
       if(r.len===1){
         corpo="<s>"+icon(r.v.a,11)+(nt?"<i>"+nt+"</i>":"")+"</s>"+
               (due?"":'<span class="tr"></span>');
+      }else if(nt&&alt<62){
+        /* Quando la colonna è stretta — la vista settimana sta a 147 pixel —
+           materia e attività non stanno su una riga e vanno a capo: il testo
+           diventa tre righe, cinquantadue pixel, e in un blocco da un'ora al
+           motivo non resta niente. Sessantadue perché è quel caso lì a dover
+           entrare, non il migliore. Sotto, vale la regola della mezz'ora: la
+           nota prende il posto della parola dell'attività, che motivo e icona
+           dicono già. */
+        corpo="<s>"+icon(r.v.a,11)+"<i>"+nt+"</i></s>";
       }else{
         corpo="<s>"+icon(r.v.a,11)+"<i>"+a.n+"</i></s>";
         if(nt){
