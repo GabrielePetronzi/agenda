@@ -432,11 +432,24 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
 .blk.mini2 em b{font-size:10.5px;line-height:1.25;padding-right:15px}
 .blk.mini2 em s{font-size:10px;line-height:1.2;margin-top:0}
 .blk.mini2 .rsz{height:6px}
-/* mezz'ora: non c'è spazio per due righe, titolo e attività stanno affiancati */
+/* mezz'ora: una riga sola, e il nome dell'attività non c'è. Lo dice il motivo,
+   e la parola gli rubava esattamente lo spazio in cui farsi vedere. Qui il
+   motivo è una voce del flex: si prende quello che avanza a destra, quindi
+   non finisce mai sotto le scritte comunque sia largo il blocco. */
 .blk.mini em{display:flex;align-items:center;gap:6px;padding:0 20px 0 7px}
-.blk.mini em b{padding-right:0;flex:0 0 auto;max-width:58%}
-.blk.mini em s{margin-top:0;flex:1 1 auto;min-width:0}
+.blk.mini em b{padding-right:0;flex:0 1 auto;max-width:74%}
+.blk.mini em s{margin-top:0;flex:0 1 auto;min-width:0}
+.blk.mini em span.tr{flex:1 1 0;min-width:0;align-self:stretch;margin-left:1px;
+  background-image:var(--tr)}
+.blk.mini::before{content:none}
 .blk.mini .rsz{height:6px}
+/* un'ora: materia e attività sulla stessa riga. Su due righe il testo si
+   mangiava trentaquattro pixel su cinquantaquattro e al motivo ne restavano
+   dodici; così ne restano venticinque. */
+.blk.riga1 em{padding-right:20px}
+.blk.riga1 em .l1{display:flex;align-items:baseline;gap:6px;min-width:0}
+.blk.riga1 em .l1 b{flex:0 1 auto;padding-right:0}
+.blk.riga1 em .l1 s{flex:0 1 auto;min-width:0;margin-top:0}
 html[data-row="micro"] .blk em{padding:1px 5px 0}
 html[data-row="micro"] .blk em b{font-size:10px;padding-right:13px;line-height:1.15}
 html[data-row="micro"] .blk em s{font-size:9.5px}
@@ -455,17 +468,20 @@ html[data-row="tight"] .tick::after{left:3.6px;top:1px;width:3.4px;height:7px}
 .blk:hover{filter:brightness(1.08)}
 html[data-theme="light"] .blk:hover{filter:brightness(.96)}
 /* Il motivo sta su un livello suo, sotto al testo, e si scansa dalle scritte
-   con una maschera: sparisce nella fascia alta dove vivono il nome della
-   materia e quello dell'attività, e compare sotto. Sulle mezz'ore non c'è una
-   fascia alta — il testo occupa tutto — quindi lì la maschera lavora in
-   orizzontale e il motivo sta nella parte destra, dove testo non ce n'è. */
+   con una maschera: sparisce dove vive il testo e compare sotto. Dove finisce
+   il testo lo sa solo chi disegna il blocco — dipende da quante righe ci sono
+   finite dentro — quindi glielo fa sapere con --mkt invece di tirare a
+   indovinare con un valore fisso buono per nessuna altezza. Le mezz'ore non
+   passano di qui: il loro motivo è una voce del flex, qui sopra. */
 .blk::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
   background-image:var(--tr);
-  -webkit-mask-image:linear-gradient(180deg,transparent 0 24px,#000 42px);
-  mask-image:linear-gradient(180deg,transparent 0 24px,#000 42px)}
-.blk.mini::before,.blk.mini2::before{
-  -webkit-mask-image:linear-gradient(90deg,transparent 0 50%,#000 78%);
-  mask-image:linear-gradient(90deg,transparent 0 50%,#000 78%)}
+  -webkit-mask-image:linear-gradient(180deg,transparent 0 var(--mkt,34px),
+    #000 calc(var(--mkt,34px) + 8px));
+  mask-image:linear-gradient(180deg,transparent 0 var(--mkt,34px),
+    #000 calc(var(--mkt,34px) + 8px))}
+.blk.mini2::before{
+  -webkit-mask-image:linear-gradient(90deg,transparent 0 60%,#000 68%);
+  mask-image:linear-gradient(90deg,transparent 0 60%,#000 68%)}
 .blk.done{opacity:.58}
 .blk.done em b{text-decoration:line-through;text-decoration-thickness:1.5px}
 .blk.done::after{content:"";position:absolute;inset:0;pointer-events:none;
@@ -3205,7 +3221,10 @@ function drawDay(dateIso,scope){
       /* mezz'ora con una nota: se la riga è alta abbastanza la nota va sotto
          il nome della materia, se no le sta accanto al posto dell'attività */
       const due=r.len===1&&!!nt&&ROW>=MINI2;
-      bl.className="blk"+(r.len===1?(due?" mini2":" mini"):"")+(r.v.done?" done":"")+
+      /* un'ora: una riga sola, vedi il css */
+      const riga1=r.len===2;
+      bl.className="blk"+(r.len===1?(due?" mini2":" mini"):riga1?" riga1":"")+
+        (r.v.done?" done":"")+
         (selRuns[selKey(dateIso,r.start,r.lane)]?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
       /* Il riempimento dice l'attività, la barra dice la materia. Non è un
@@ -3225,21 +3244,29 @@ function drawDay(dateIso,scope){
       bl.style.left=(r.lane*100/nl)+"%";
       bl.style.width=(100/nl)+"%";
       /* La nota è la cosa più utile scritta dentro il blocco, quindi:
-         su mezz'ora prende il posto del nome dell'attività (che l'icona dice già),
-         più in alto va a capo su una riga sua, con quante righe ci stanno. */
-      let corpo;
+         su mezz'ora prende il posto dell'attività (che motivo e icona dicono già),
+         più in alto va a capo su una riga sua, con quante righe ci stanno.
+         mkt dice al motivo dove finisce il testo: le righe le conto qui. */
+      let corpo,nota="",mkt=34;
       if(r.len===1){
-        corpo=due?"<s>"+icon(r.v.a,11)+"<i>"+nt+"</i></s>"
-                 :"<s>"+icon(r.v.a,11)+(nt?"<i>"+nt+"</i>":a.n)+"</s>";
+        corpo="<s>"+icon(r.v.a,11)+(nt?"<i>"+nt+"</i>":"")+"</s>"+
+              (due?"":'<span class="tr"></span>');
       }else{
-        corpo="<s>"+icon(r.v.a,11)+a.n+"</s>";
+        corpo="<s>"+icon(r.v.a,11)+"<i>"+a.n+"</i></s>";
+        if(riga1)mkt=21;
         if(nt){
-          const righe=Math.max(1,Math.min(5,Math.floor((ROW*r.len-36)/14)));
-          corpo+='<u class="nota" style="-webkit-line-clamp:'+righe+'">'+nt+"</u>";
+          /* le righe della nota si fermano sedici pixel prima del fondo: una
+             fascia di motivo deve restare sempre, se no il blocco pieno di
+             note è l'unico che non si riconosce a colpo d'occhio */
+          const righe=riga1?1:Math.max(1,Math.min(5,Math.floor((ROW*r.len-52)/14)));
+          nota='<u class="nota" style="-webkit-line-clamp:'+righe+'">'+nt+"</u>";
+          mkt=(riga1?23:36)+righe*14;
         }
       }
+      bl.style.setProperty("--mkt",mkt+"px");
+      const testa='<b>'+o.short.toUpperCase()+"</b>"+corpo;
       bl.innerHTML='<span class="tick" role="button" aria-label="Segna come fatto"></span>'+
-        '<em><b>'+o.short.toUpperCase()+"</b>"+corpo+"</em>"+
+        "<em>"+(riga1?'<span class="l1">'+testa+"</span>":testa)+nota+"</em>"+
         '<span class="rsz"></span>';
       bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
         (r.v.n?" ("+r.v.n+")":"")+(r.v.done?" · fatto":"");
