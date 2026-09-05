@@ -1172,15 +1172,16 @@ function punti(w,h,d,op){
 }
 const PUNTI="<circle cx='3' cy='3' r='1.6'/><circle cx='9.5' cy='9' r='1.6'/>";
 const ATRAMA={
-  /* la voce di chi spiega. È l'unica trama curva e continua del gruppo: la
-     lettura ha righe dritte alla stessa giacitura, ma un'onda e una riga si
-     separano subito, e qui serviva qualcosa di leggero perché la lezione è
-     l'attività che riempie più griglia. */
-  LEZ:trama(26,14,"<path d='M0 7q3.25-4.5 6.5 0t6.5 0t6.5 0t6.5 0'/>"),
+  /* la lavagna, o la slide: telaietti staccati a passo largo. Scartata l'onda
+     (faceva decorazione, non diceva niente) e i tratti verticali (fitti come un
+     codice a barre, e la lezione è l'attività che riempie più griglia, quindi
+     dev'essere la più leggera). Col progetto non si confonde: là i mattoni sono
+     attaccati e coprono tutto, qui i telai sono isolati. */
+  LEZ:trama(27,20,"<rect x='4' y='5' width='12' height='7.5' rx='1.4'/>"),
   LET:trama(20,6,"<path d='M0 3h20'/>"),                            /* righe di quaderno */
   /* la ramificazione, rada. Il nodo coi tre rami corti era troppo fitto:
      a quella scala diventava uno scarabocchio invece di una struttura. */
-  SCH:trama(24,21,"<path d='M2 10.5h5M7 5v11M7 5h6M7 16h6'/>"),
+  SCH:trama(24,18,"<path d='M2 9h5M7 3.5v11M7 3.5h6M7 14.5h6'/>"),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>"),                      /* quadretti */
   /* campione sul vetrino, non bolle: i due cerchi vuoti si confondevano con
      l'anello del ripasso, perché erano tondi come lui e grandi uguale */
@@ -1194,9 +1195,9 @@ const ATRAMA={
 };
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
-  LEZ:trama(26,14,"<path d='M0 7q3.25-4.5 6.5 0t6.5 0t6.5 0t6.5 0'/>",1),
+  LEZ:trama(27,20,"<rect x='4' y='5' width='12' height='7.5' rx='1.4'/>",1),
   LET:trama(20,6,"<path d='M0 3h20'/>",1),
-  SCH:trama(24,21,"<path d='M2 10.5h5M7 5v11M7 5h6M7 16h6'/>",1),
+  SCH:trama(24,18,"<path d='M2 9h5M7 3.5v11M7 3.5h6M7 14.5h6'/>",1),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>",1),
   LAB:punti(13,13,PUNTI,1),
   PRO:trama(22,11,"<path d='M0 5.5h22M0 .6h22M0 10.4h22M5.5 0v5.5M16.5 0v5.5M11 5.5v5.5M.6 5.5v5.5M21.4 5.5v5.5'/>",1),
