@@ -458,6 +458,7 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
 .blk.mini .rsz{height:6px}
 
 html[data-row="micro"] .blk em{padding:1px 5px 0}
+html[data-row="micro"] .blk.mini em{padding:1px 14px 0 5px}
 html[data-row="micro"] .blk em b{font-size:10px;padding-right:13px;line-height:1.15}
 html[data-row="micro"] .blk em s{font-size:9.5px}
 html[data-row="micro"] .blk.mini em s{display:none}
@@ -487,12 +488,21 @@ html[data-theme="light"] .blk:hover{filter:brightness(.96)}
   background:repeating-linear-gradient(45deg,rgba(0,0,0,.11) 0 4px,transparent 4px 9px)}
 .blk.selblk{box-shadow:0 0 0 2px var(--action),0 0 0 3px rgba(0,0,0,.3)}
 .blk.running{box-shadow:0 0 0 2px var(--action),0 0 0 4px rgba(139,147,255,.24)}
+/* Il quadratino era solo un bordo su un elemento trasparente: dentro ci passava
+   il motivo, e un quadratino pieno di trama da lontano sembra già spuntato.
+   Ora ha il fondo del blocco — background:inherit prende il colore della materia
+   qualunque essa sia — e la trasparenza sta nel bordo, non su tutto l'elemento,
+   se no il fondo sarebbe trasparente anche lui e non coprirebbe niente. */
 .tick{position:absolute;right:4px;top:4px;width:14px;height:14px;border-radius:4px;z-index:4;
-  box-shadow:inset 0 0 0 1.4px currentColor;opacity:.45;cursor:pointer;transition:opacity .12s}
-.tick:hover{opacity:1}
-.blk.done .tick{opacity:1;background:currentColor}
+  background:inherit;box-shadow:inset 0 0 0 1.4px rgba(20,22,27,.45);
+  cursor:pointer;transition:box-shadow .12s}
+.tick:hover{box-shadow:inset 0 0 0 1.4px rgba(20,22,27,.95)}
+.blk.done .tick{background:currentColor}
+/* Il quadratino pieno è sempre BLKINK, in tutt'e due i temi, quindi la spunta
+   dev'essere chiara e basta: era var(--surface), che al buio fa 1,02:1 su quel
+   fondo — cioè non si vedeva. */
 .blk.done .tick::after{content:"";position:absolute;left:4.5px;top:1.5px;width:4px;height:8px;
-  border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(42deg)}
+  border:solid #F4F3EF;border-width:0 2px 2px 0;transform:rotate(42deg)}
 .rsz{position:absolute;left:0;right:0;bottom:0;height:9px;z-index:5;cursor:ns-resize}
 .rsz::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:2.5px;
   width:20px;height:2px;border-radius:2px;background:currentColor;opacity:0;transition:opacity .12s}
