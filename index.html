@@ -1222,8 +1222,10 @@ const ATRAMA={
      al quadratino della spunta — che è pure lui un rettangolo vuoto, e a due
      passi di distanza. Una figura no: non si confonde con nessun comando.
      Alta undici pixel: a un blocco da un'ora la fascia che resta è sedici,
-     e una tile più alta si taglierebbe sempre invece di ripetersi. */
-  LEZ:trama(17,11,"<rect x='1.5' y='2' width='8' height='6.5' rx='.8'/>"+"<circle cx='13' cy='3.2' r='1'/>"+"<path d='M13 4.4v3.4M13 5.2l-2-1M13 7.8l-1 2M13 7.8l1 2'/>"),
+     e una tile più alta si taglierebbe sempre invece di ripetersi. Della
+     figura restano testa e busto: braccia e gambe erano quattro tratti che a
+     misura vera diventavano rumore, non un uomo. */
+  LEZ:trama(16,11,"<rect x='1.5' y='2' width='8' height='6.5' rx='.8'/>"+"<circle cx='12.6' cy='3.4' r='1.1'/><path d='M12.6 4.9v3.6'/>"),
   LET:trama(20,6,"<path d='M0 3h20'/>"),                            /* righe di quaderno */
   /* la ramificazione, rada. Il nodo coi tre rami corti era troppo fitto:
      a quella scala diventava uno scarabocchio invece di una struttura. */
@@ -1241,7 +1243,7 @@ const ATRAMA={
 };
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
-  LEZ:trama(17,11,"<rect x='1.5' y='2' width='8' height='6.5' rx='.8'/>"+"<circle cx='13' cy='3.2' r='1'/>"+"<path d='M13 4.4v3.4M13 5.2l-2-1M13 7.8l-1 2M13 7.8l1 2'/>",1),
+  LEZ:trama(16,11,"<rect x='1.5' y='2' width='8' height='6.5' rx='.8'/>"+"<circle cx='12.6' cy='3.4' r='1.1'/><path d='M12.6 4.9v3.6'/>",1),
   LET:trama(20,6,"<path d='M0 3h20'/>",1),
   SCH:trama(24,18,"<path d='M2 9h5M7 3.5v11M7 3.5h6M7 14.5h6'/>",1),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>",1),
