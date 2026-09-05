@@ -3615,7 +3615,12 @@ function drawDay(dateIso,scope){
          il nome della materia, se no le sta accanto al posto dell'attività */
       const due=r.len===1&&!!nt&&ROW>=MINI2;
       const alt=ROW*r.len-2;
-      bl.className="blk"+(r.len===1?(due?" mini2":" mini"):"")+
+      /* Sotto i trenta pixel un blocco è una striscia, qualunque durata abbia:
+         su una finestra bassa un'ora è alta ventiquattro e la prima riga va a
+         capo, lasciando zero al motivo. Lì vale il trattamento della mezz'ora,
+         che a quell'altezza è già disegnato e provato. */
+      const striscia=r.len===1||alt<30;
+      bl.className="blk"+(striscia?(due?" mini2":" mini"):"")+
         (r.v.done?" done":"")+
         (selRuns[selKey(dateIso,r.start,r.lane)]?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
@@ -3639,7 +3644,7 @@ function drawDay(dateIso,scope){
          su mezz'ora prende il posto dell'attività (che motivo e icona dicono già),
          più in alto va a capo su una riga sua, con quante righe ci stanno. */
       let corpo,nota="";
-      if(r.len===1){
+      if(striscia){
         corpo="<s>"+icon(r.v.a,11)+(nt?"<i>"+nt+"</i>":"")+"</s>"+
               (due?"":'<span class="tr"></span>');
       }else if(nt&&alt<62){
@@ -3663,7 +3668,7 @@ function drawDay(dateIso,scope){
       }
       const testa='<b>'+o.short.toUpperCase()+"</b>"+corpo;
       bl.innerHTML='<span class="tick" role="button" aria-label="Segna come fatto"></span>'+
-        "<em>"+(r.len===1?testa
+        "<em>"+(striscia?testa
                 :'<span class="l1">'+testa+"</span>"+nota+'<span class="tr"></span>')+
         "</em>"+'<span class="rsz"></span>';
       bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
