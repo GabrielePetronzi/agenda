@@ -184,9 +184,14 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 .pnm{flex:1;min-width:0;font-size:12.5px;font-weight:450;line-height:1.3;letter-spacing:-.005em}
 .pnm em{font-style:normal;display:inline-block;margin-left:7px;font-family:"DM Mono",monospace;
   font-size:9px;letter-spacing:.06em;color:var(--tx3);vertical-align:middle}
-.pnm .bar{position:relative;display:block;height:4px;border-radius:3px;background:var(--sunken);
-  margin-top:7px;overflow:hidden}
-.pnm .bar i{position:absolute;left:0;top:0;height:100%;min-width:3px;border-radius:3px}
+/* La barra deve dirti a colpo d'occhio a che punto sei: più alta, con il
+   pianificato in trasparenza e il fatto pieno sopra, e una tacca a metà
+   strada per avere un riferimento invece di stimare a occhio. */
+.pnm .bar{position:relative;display:block;height:8px;border-radius:4px;background:var(--sunken);
+  margin-top:8px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+.pnm .bar i{position:absolute;left:0;top:0;height:100%;min-width:3px;border-radius:4px}
+.pnm .bar u.mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--bg);
+  opacity:.55;text-decoration:none}
 .ph{font-family:"DM Mono",monospace;font-size:11.5px;color:var(--tx);flex:0 0 auto;
   text-align:right;line-height:1.25}
 .ph u{display:block;text-decoration:none;font-size:9px;color:var(--tx3);margin-top:3px}
@@ -239,8 +244,14 @@ body.dropping td.c.dropok{background:var(--tint-hover);
 .tool[aria-pressed="true"]{background:var(--raised);color:var(--tx);
   border-color:var(--tx3);box-shadow:inset 0 0 0 1px var(--tx3)}
 .tool i{width:12px;height:12px;border-radius:3px;background:currentColor;display:block;flex:0 0 12px}
-.tool i.acdot{width:17px;height:17px;border-radius:4px;flex:0 0 17px;
-  background-color:#C8CDD4;box-shadow:0 0 0 1px rgba(0,0,0,.28)}
+/* La pastiglia non ha un fondo suo — il colore appartiene alle materie. Il
+   motivo è una maschera, quindi prende il colore del testo del pulsante e si
+   vede su tema scuro e chiaro senza doverne generare due versioni. */
+.tool i.acdot{width:17px;height:17px;border-radius:3px;flex:0 0 17px;
+  background-color:currentColor;opacity:.85;
+  -webkit-mask-size:auto;mask-size:auto;-webkit-mask-repeat:repeat;mask-repeat:repeat}
+.tool i.acdot[data-liscio]{background:none;box-shadow:inset 0 0 0 1.4px currentColor;
+  opacity:.5;border-radius:3px}
 .tool .ico{flex:0 0 auto;opacity:.75}
 .tool[aria-pressed="true"] .ico{opacity:1}
 .tool.pomgo{border-color:var(--action);color:var(--action)}
@@ -315,7 +326,6 @@ html[data-fit="compact"] .ptitle{padding:0}
 html[data-fit="compact"] th{padding-bottom:3px}
 html[data-fit="compact"] th u{font-size:8px}
 html[data-fit="compact"] th s{font-size:12.5px}
-html[data-fit="compact"] th .load{margin-top:3px;height:2px}
 
 /* ============================================================
    Settimana
@@ -372,13 +382,6 @@ th.we u,th.we s{opacity:.72}
 th[data-date]{cursor:pointer;border-radius:6px}
 th[data-date]:hover s{color:var(--tx)}
 th.exam u::after{content:" ●";color:var(--warn)}
-/* nastro di carico: quanto è piena la giornata */
-th .load{display:block;height:3px;border-radius:2px;background:var(--line-soft);
-  margin:6px 3px 0;overflow:hidden}
-th .load i{display:block;height:100%;border-radius:2px;background:var(--tx3);
-  transition:width .2s}
-th .load.hi i{background:var(--warn)}
-th.today .load i{background:var(--action)}
 
 td.hr{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);text-align:right;
   padding:0 7px 0 0;vertical-align:top;height:var(--row);line-height:1;border:0;white-space:nowrap;
@@ -907,15 +910,6 @@ td.tot b{color:var(--tx2);font-weight:500}
     </div>
     <p class="pmnote" id="dayNote"></p>
 
-    <p class="lbl" data-ico="TDY" style="margin:22px 0 9px">Carico della giornata</p>
-    <div class="pmrow" style="padding-top:2px;border-bottom:0">
-      <span class="nm">Giornata piena a</span>
-      <span class="pair">
-        <label class="f"><input id="dayTgt" type="number" min="1" max="16" step="1"
-          aria-label="Ore che riempiono una giornata"><u>ore</u></label>
-      </span>
-    </div>
-    <p class="pmnote" id="tgtNote"></p>
   </div>
 </div>
 
@@ -1142,28 +1136,36 @@ const AFASE={LEZ:"Acquisizione",LET:"Acquisizione",SCH:"Rielaborazione",
 function trama(w,h,d,op){
   const svg="<svg xmlns='http://www.w3.org/2000/svg' width='"+w+"' height='"+h+
     "' viewBox='0 0 "+w+" "+h+"'><g fill='none' stroke='%2314161B' stroke-opacity='"+
-    (op||.22)+"' stroke-width='1.3' stroke-linecap='round'>"+d+"</g></svg>";
-  return "url(\"data:image/svg+xml,"+encodeURIComponent(svg).replace(/%25/g,"%")+"\")";
+    (op||.24)+"' stroke-width='1.2' stroke-linecap='round'>"+d+"</g></svg>";
+  /* encodeURIComponent lascia passare gli apici singoli, e l'SVG qui sopra li
+     usa per gli attributi: se non li codifico a mano chiudono l'url() e il
+     motivo sparisce, sia nel blocco sia nella maschera della legenda. */
+  return "url('data:image/svg+xml,"+
+    encodeURIComponent(svg).replace(/%25/g,"%").replace(/'/g,"%27")+"')";
 }
 const ATRAMA={
-  LEZ:"none",                                                    /* liscio */
-  LET:trama(24,7,"<path d='M0 3.5h24'/>"),                       /* righe di quaderno */
-  SCH:trama(34,34,"<circle cx='9' cy='17' r='2'/><path d='M11 17h7M18 17l7-6M18 17l7 6'/>",.26),
-  ESE:trama(9,9,"<path d='M0 .5h9M.5 0v9'/>"),                   /* quadretti */
-  LAB:trama(26,26,"<circle cx='6' cy='7' r='3.2'/><circle cx='17' cy='15' r='4.4'/><circle cx='9' cy='20' r='2'/>"),
-  PRO:trama(28,16,"<path d='M0 8h28M0 .7h28M0 15.3h28M7 0v8M21 0v8M14 8v8M.7 8v8M27.3 8v8'/>"),
-  RIP:trama(30,18,"<path d='M-2 16a9 9 0 0 1 17 0M13 16a9 9 0 0 1 17 0'/>",.26),
-  LAV:trama(10,10,"<path d='M-2 8L8 -2M2 12L12 2'/>")
+  LEZ:"none",                                                       /* liscio */
+  LET:trama(20,6,"<path d='M0 3h20'/>"),                            /* righe di quaderno */
+  SCH:trama(18,18,"<circle cx='4' cy='9' r='1.5'/><path d='M5.5 9h4M9.5 9l4-4M9.5 9l4 4'/>",.28),
+  ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>"),                      /* quadretti */
+  LAB:trama(17,17,"<circle cx='4.5' cy='5' r='2.4'/><circle cx='12' cy='12' r='3.2'/>"),
+  PRO:trama(22,11,"<path d='M0 5.5h22M0 .6h22M0 10.4h22M5.5 0v5.5M16.5 0v5.5M11 5.5v5.5M.6 5.5v5.5M21.4 5.5v5.5'/>"),
+  /* anello aperto con la freccia: il ciclo che si richiude. Scartati il tratto
+     doppio (somigliava alle righe della lettura) e i cerchi concentrici
+     (somigliavano alle bolle del laboratorio). */
+  RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",.30),
+  LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>")
 };
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={LEZ:"none",
-  LET:trama(24,7,"<path d='M0 3.5h24'/>",.5),
-  SCH:trama(34,34,"<circle cx='9' cy='17' r='2'/><path d='M11 17h7M18 17l7-6M18 17l7 6'/>",.55),
-  ESE:trama(9,9,"<path d='M0 .5h9M.5 0v9'/>",.5),
-  LAB:trama(26,26,"<circle cx='6' cy='7' r='3.2'/><circle cx='17' cy='15' r='4.4'/><circle cx='9' cy='20' r='2'/>",.5),
-  PRO:trama(28,16,"<path d='M0 8h28M0 .7h28M0 15.3h28M7 0v8M21 0v8M14 8v8M.7 8v8M27.3 8v8'/>",.5),
-  RIP:trama(30,18,"<path d='M-2 16a9 9 0 0 1 17 0M13 16a9 9 0 0 1 17 0'/>",.55),
-  LAV:trama(10,10,"<path d='M-2 8L8 -2M2 12L12 2'/>",.5)};
+  LET:trama(20,6,"<path d='M0 3h20'/>",1),
+  SCH:trama(18,18,"<circle cx='4' cy='9' r='1.5'/><path d='M5.5 9h4M9.5 9l4-4M9.5 9l4 4'/>",1),
+  ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>",1),
+  LAB:trama(17,17,"<circle cx='4.5' cy='5' r='2.4'/><circle cx='12' cy='12' r='3.2'/>",1),
+  PRO:trama(22,11,"<path d='M0 5.5h22M0 .6h22M0 10.4h22M5.5 0v5.5M16.5 0v5.5M11 5.5v5.5M.6 5.5v5.5M21.4 5.5v5.5'/>",1),
+  RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",1),
+  LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>",1)};
+
 const BLKINK="#14161B";
 const ACTS=[
   {k:"LEZ",n:"Lezione"},
@@ -1223,7 +1225,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
 const KEY="piano-6272-v5";
 let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
-           pomConf:null,pomRun:null,pomLog:null,log:{},dayTarget:8,dayFrom:8,dayTo:24,
+           pomConf:null,pomRun:null,pomLog:null,log:{},dayFrom:8,dayTo:24,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
 let painting=false,val=null,openColor=null,armed=null,armTmr=null,mMonth=null,drag=null;
 let lastTap={sig:null,t:0},tapUndo=null,editId=null;
@@ -1260,7 +1262,7 @@ function panelDates(p){
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
 const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
-  "pomConf","pomRun","pomLog","log","dayTarget","dayFrom","dayTo"];
+  "pomConf","pomRun","pomLog","log","dayFrom","dayTo"];
 const LSKEY="piano-6272-local";
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
         localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
@@ -1695,6 +1697,42 @@ function migrate(d){
    ============================================================ */
 const shortOf=n=>n.length>17?n.slice(0,16)+"…":n;
 
+/* I colori delle materie non sono casuali: raggruppano per natura, così due
+   corsi di intelligenza artificiale si assomigliano e uno di sicurezza no.
+   Dentro la famiglia cambia il grado. Sono ottimizzati non per essere tutti
+   e diciannove distinti — cosa impossibile e nemmeno desiderabile, visto che
+   la parentela è voluta — ma per il contrasto fra le materie che compaiono
+   nella STESSA schermata, cioè quelle di uno stesso semestre: lì il ΔE minimo
+   è 17. Tutti reggono il testo nero, da 6,4:1 a 13,6:1. */
+const MATCOL={
+  /* Dati e reti */
+  "c:1009070":"#8CC7D0",
+  "c:1014075":"#25C0C5",
+  /* Metodi numerici */
+  "c:1013075":"#6E9EE0",
+  /* Linguaggi e programmazione */
+  "c:1009064":"#B5CD99",
+  "c:1009066":"#9AE3BA",
+  /* Sicurezza e affidabilità */
+  "c:1014073":"#FBCAC3",
+  "c:1010559":"#EB8D87",
+  "c:1009069":"#D59989",
+  "c:1013066":"#C79C9B",
+  /* Intelligenza artificiale */
+  "c:1009065":"#C8A3E0",
+  "c:1013067":"#D1C6EC",
+  "c:1009071":"#C7ADD3",
+  "c:1009073":"#B88FD1",
+  /* Lingua e competenze */
+  "c:1010779":"#D7CA98",
+  "c:1007808":"#AB9C55",
+  /* Chiusura */
+  "c:24688":"#C6CBBC",
+  "c:1006660":"#BAABB4",
+  "c:1006659":"#E9DBE7",
+  "c:1006658":"#939D90"
+};
+
 /* Colore predefinito ricavato dall'id, così resta lo stesso in ogni anno e
    semestre. L'hash da solo però sprecava metà tavolozza: con diciannove materie
    e ventidue colori le collisioni sono quasi certe. Qui l'hash dice solo da dove
@@ -1721,6 +1759,7 @@ function autoBuild(){
   });
 }
 function autoColor(id){
+  if(MATCOL[id])return MATCOL[id];
   const voci=((state&&state.custom)||[]).map(c=>c.id).filter(Boolean);
   if(!autoMap||voci.slice().sort().join("|")!==autoFirma)autoBuild();
   return autoMap[id]||PAL[idHash(id)%PAL.length];
@@ -1960,10 +1999,11 @@ function picklist(){
       (cl?' title="Stesso colore di '+cl.name.replace(/"/g,"")+'"':"")+"></span>"+
       '<span class="pnm">'+o.name+tag+
         (tgt?'<span class="bar"><i style="width:'+Math.max(h?2:0,pct)+"%;background:"+o.color+
-          ';opacity:.34"></i><i class="dn" style="width:'+((fh/PERQ)/tgt*100)+"%;background:"+o.color+'"></i></span>':"")+
+          ';opacity:.3"></i><i class="dn" style="width:'+
+          Math.min(100,(fh/PERQ)/tgt*100)+"%;background:"+o.color+'"></i><u class="mid"></u></span>':"")+
       "</span>"+
-      '<span class="ph">'+(h?hrs(h):"—")+
-        (h?"<u>"+hrs(fh)+" fatte"+(tgt?" · su "+tgt+" h":"")+"</u>":(tgt?"<u>su "+tgt+" h</u>":""))+"</span>"+
+      '<span class="ph">'+(tgt?Math.round((fh/PERQ)/tgt*100)+"%":(h?hrs(h):"—"))+
+        (tgt?"<u>"+hrs(fh)+" su "+tgt+" h</u>":(h?"<u>"+hrs(fh)+" fatte</u>":""))+"</span>"+
       '<span class="pen'+(editId===o.id?" on":"")+'" role="button" title="Modifica nome, CFU, scadenza" '+
         'aria-label="Modifica">'+icon("ESE",12)+"</span>";
     b.onclick=()=>{
@@ -2091,8 +2131,9 @@ function tools(){
     const b=document.createElement("button");
     b.className="tool";
     b.setAttribute("aria-pressed",!state.erase&&state.act===a.k);
-    b.innerHTML='<i class="acdot" style="background-image:'+ATRAMALEG[a.k]+'"></i>'+
-      icon(a.k,15)+a.n;
+    b.innerHTML='<i class="acdot"'+(ATRAMALEG[a.k]==="none"?' data-liscio="1"':
+      ' style="-webkit-mask-image:'+ATRAMALEG[a.k]+';mask-image:'+ATRAMALEG[a.k]+'"')+
+      '></i>'+icon(a.k,15)+a.n;
     b.title=a.n+" · tasto "+(i+1)+" · fase "+AFASE[a.k];
     b.onclick=()=>pickAct(a.k);
     box.appendChild(b);
@@ -2626,14 +2667,6 @@ function dayNote(){
     (fuori?'<br><span class="warn">Fuori da qui hai <b>'+hrs(fuori)+"</b>: non si perde niente, "+
       "torna in griglia appena riallarghi.</span>":"");
 }
-function tgtNote(){
-  const el=document.getElementById("tgtNote");
-  if(!el)return;
-  const t=state.dayTarget||8;
-  el.className="pmnote";
-  el.innerHTML="È la misura del nastrino sotto ogni data: si riempie man mano che pianifichi "+
-    "e arriva in fondo a <b>"+t+" h</b>. Oltre diventa rosso.";
-}
 
 /* i quattro campi di ogni attività, definiti una volta sola: testata della
    tabella ed etichette dei campi non possono più raccontare cose diverse */
@@ -2657,14 +2690,7 @@ function daySettings(){
     ROW=0;render();dayNote();
   };
   df.onchange=fascia;dt.onchange=fascia;
-  const tg=document.getElementById("dayTgt");
-  tg.value=state.dayTarget||8;
-  tg.onchange=()=>{
-    state.dayTarget=Math.min(16,Math.max(1,+tg.value||8));
-    tg.value=state.dayTarget;
-    save("Giornata piena a "+state.dayTarget+" h");panels();tgtNote();
-  };
-  dayNote();tgtNote();
+  dayNote();
 }
 
 function pomSettings(){
@@ -2925,16 +2951,12 @@ function buildPanel(p,m){
     const ex=examsOn(iso(dates[d]));
     const cls=(d>4?"we ":"")+(iso(dates[d])===TODAY?"today ":"")+(ex.length?"exam":"");
     let nh=0;HOURS.forEach(sl=>{nh+=at(ck(iso(dates[d]),sl)).filter(Boolean).length;});
-    const TG=(state.dayTarget||8)*PERQ;
     const ttl=ex.length?ex.map(x=>x.t).join(", ")
-      :(nh?hrs(nh)+" pianificate su "+(state.dayTarget||8)+
-           " h di obiettivo · tocca per copiare o svuotare il giorno"
+      :(nh?hrs(nh)+" pianificate · tocca per copiare o svuotare il giorno"
           :"tocca per incollare o svuotare il giorno");
     head+='<th class="'+cls+'" data-date="'+iso(dates[d])+'" tabindex="0" '+
       'title="'+ttl+'">'+
       "<u>"+DSH[d]+"</u><s>"+dates[d].getDate()+"</s>"+
-      '<span class="load'+(nh>TG?" hi":"")+'"><i style="width:'+
-        Math.min(100,Math.round(nh/TG*100))+'%"></i></span>'+
       "</th>";
   }
   const th=document.createElement("thead");th.innerHTML="<tr>"+head+"</tr>";t.appendChild(th);
@@ -3268,13 +3290,6 @@ function refreshMetrics(){
   document.querySelectorAll(".psum").forEach(el=>{
     const p=+el.dataset.p;
     el.replaceWith(panelSummary(p,map()));
-  });
-  const TG=(state.dayTarget||8)*PERQ;
-  document.querySelectorAll("th[data-date]").forEach(th=>{
-    const ld=th.querySelector(".load");if(!ld)return;
-    let n=0;HOURS.forEach(sl=>{n+=at(ck(th.dataset.date,sl)).filter(Boolean).length;});
-    ld.className="load"+(n>TG?" hi":"");
-    ld.firstChild.style.width=Math.min(100,Math.round(n/TG*100))+"%";
   });
   document.querySelectorAll("table[data-p] tfoot").forEach(tf=>{
     const p=+tf.closest("table").dataset.p,dates=panelDates(p);
