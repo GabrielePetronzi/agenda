@@ -2646,12 +2646,16 @@ function logAdd(act,min,ids,dateIso){
   const q=min/who.length;
   who.forEach(id=>{const f=id+"|"+act;day[f]=Math.round((day[f]||0)+q);});
 }
-/* la sessione interrotta a metà: il girato finisce comunque nel registro */
+/* la sessione interrotta a metà: il girato finisce comunque nel registro, e
+   vale anche per la pausa, che è studio anche lei */
 function logPartial(r){
-  if(!r||r.phase!=="work")return;
+  if(!r)return;
   const c=pomConf(r.act);
+  /* la durata è quella della fase in corso: usare sempre quella della sessione
+     farebbe risultare una pausa da cinque minuti lunga quarantacinque */
+  const dur=(r.phase==="work"?c.s:(r.phase==="long"?c.l:c.b))*60000;
   const rest=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
-  logAdd(r.act,(c.s*60000-rest)/60000,linkedIds(r));
+  logAdd(r.act,(dur-rest)/60000,linkedIds(r));
 }
 /* le materie dei blocchi agganciati al timer: la sessione va a loro */
 function linkedIds(r){
@@ -2703,6 +2707,21 @@ function askNotify(){
   }catch(e){}
 }
 
+/* Lo slot di oggi su cui far girare il timer, senza doverlo andare a toccare:
+   quello che copre l'ora corrente, se no il primo che viene dopo, se no il
+   primo rimasto da fare. Sempre e solo di quell'attività: se adesso hai in
+   piano un ripasso e avvii un pomodoro di esercizi, spuntarti il ripasso
+   sarebbe una bugia. */
+function slotDiOggi(act){
+  const d=iso(new Date()),n=new Date();
+  const ora=n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
+  const rs=runsOf(d).filter(r=>r.v.a===act&&!r.v.done)
+    .sort((a,b)=>a.start-b.start||a.lane-b.lane);
+  if(!rs.length)return null;
+  const r=rs.find(x=>ora>=x.start&&ora<x.start+x.len)||
+          rs.find(x=>x.start>=ora)||rs[0];
+  return {date:d,start:r.start,lane:r.lane,len:r.len};
+}
 function pomStart(act,linked){
   logPartial(state.pomRun);
   const c=pomConf(act);
@@ -2733,6 +2752,13 @@ function pomAdvance(auto){
     r.phase=lunga?"long":"break";
     r.ends=Date.now()+(lunga?c.l:c.b)*60000;
   }else{
+    /* La pausa fa parte dello studio: il quarto d'ora in cui la testa sedimenta
+       è dentro il blocco che hai messo in piano, non fuori. Quindi finisce nel
+       registro come il resto, sulla stessa materia. */
+    const durP=(r.phase==="long"?c.l:c.b);
+    const restP=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
+    logAdd(r.act,auto?durP:(durP*60000-restP)/60000,linkedIds(r));
+    if(auto)pomToday().min+=durP;
     if(auto)notify("Pausa finita","Riprendi con "+actOf(r.act).n.toLowerCase());
     r.cycle=r.phase==="long"?1:r.cycle+1;
     r.phase="work";
@@ -2893,11 +2919,22 @@ function pomPanel(){
   go.innerHTML=icon(act,15)+"Avvia "+c.s+" min";
   go.title=sel.length
     ? "Al termine segna come fatti i "+sel.length+" blocchi selezionati"
-    : "Avvia una sessione di "+actOf(act).n.toLowerCase();
+    : "Prende da solo lo slot di oggi di questa attività e a fine sessione lo spunta";
   go.onclick=()=>{
     if(typeof Notification!=="undefined"&&Notification.permission==="default")
       Notification.requestPermission().catch(()=>{});
-    pomStart(act,sel.map(r=>({date:r.date,start:r.start,lane:r.lane})));
+    /* se non hai selezionato niente, il timer si prende lo slot di oggi da solo */
+    let ag=sel.map(r=>({date:r.date,start:r.start,lane:r.lane}));
+    let preso=null;
+    if(!ag.length){
+      preso=slotDiOggi(act);
+      if(preso)ag=[{date:preso.date,start:preso.start,lane:preso.lane}];
+    }
+    pomStart(act,ag);
+    if(preso)toast("Agganciato a "+slotTime(preso.start)+"–"+
+      slotTime(preso.start+preso.len)+" di oggi");
+    else if(!ag.length)toast("Nessuno slot di "+actOf(act).n.toLowerCase()+
+      " oggi: il timer gira senza agganciarsi");
   };
   box.appendChild(go);
   box.appendChild(pick);
