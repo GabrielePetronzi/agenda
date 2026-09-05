@@ -433,7 +433,7 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
 /* Nome e attività sulla stessa riga se ci stanno; se no l'attività va a capo
    da sola, invece di troncarle tutt'e due come faceva la riga forzata. */
 .blk em .l1{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px;
-  flex:0 0 auto;padding-right:20px}
+  flex:0 0 auto;padding-right:24px}
 .blk em .l1 b{flex:0 1 auto;max-width:100%;padding-right:0}
 .blk em .l1 s{flex:0 1 auto;min-width:0;margin-top:0}
 .blk em span.tr{flex:1 1 0;min-height:0;margin:2px -7px 0;background-image:var(--tr)}
@@ -459,7 +459,8 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
    e la parola gli rubava esattamente lo spazio in cui farsi vedere. Qui il
    motivo è una voce del flex: si prende quello che avanza a destra, quindi
    non finisce mai sotto le scritte comunque sia largo il blocco. */
-.blk.mini em{display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 20px 0 7px}
+/* 24 e non 20: a 20 la fascia arrivava a due pixel dal quadratino */
+.blk.mini em{display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 24px 0 7px}
 .blk.mini em b{padding-right:0;flex:0 1 auto;max-width:74%}
 .blk.mini em s{margin-top:0;flex:0 1 auto;min-width:0}
 .blk.mini em span.tr{flex:1 1 0;min-width:0;align-self:stretch;margin-left:1px;
@@ -1191,12 +1192,11 @@ function punti(w,h,d,op){
 }
 const PUNTI="<circle cx='3' cy='3' r='1.6'/><circle cx='9.5' cy='9' r='1.6'/>";
 const ATRAMA={
-  /* la lavagna, o la slide: telaietti staccati a passo largo. Scartata l'onda
-     (faceva decorazione, non diceva niente) e i tratti verticali (fitti come un
-     codice a barre, e la lezione è l'attività che riempie più griglia, quindi
-     dev'essere la più leggera). Col progetto non si confonde: là i mattoni sono
-     attaccati e coprono tutto, qui i telai sono isolati. */
-  LEZ:trama(27,20,"<rect x='4' y='5' width='12' height='7.5' rx='1.4'/>"),
+  /* qualcuno che spiega alla lavagna. I telaietti da soli somigliavano troppo
+     al quadratino della spunta — che è pure lui un rettangolo vuoto, e a due
+     passi di distanza. Una figura no: non si confonde con nessun comando.
+     La tile resta bassa apposta, se no si taglia nelle fasce sottili. */
+  LEZ:trama(28,17,"<rect x='2' y='2.5' width='12' height='8.5' rx='1'/>"+"<circle cx='19.5' cy='5' r='1.5'/>"+"<path d='M19.5 6.6v4M19.5 7.8L16.4 6.2M19.5 10.6l-1.5 3M19.5 10.6l1.5 3'/>"),
   LET:trama(20,6,"<path d='M0 3h20'/>"),                            /* righe di quaderno */
   /* la ramificazione, rada. Il nodo coi tre rami corti era troppo fitto:
      a quella scala diventava uno scarabocchio invece di una struttura. */
@@ -1214,7 +1214,7 @@ const ATRAMA={
 };
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
-  LEZ:trama(27,20,"<rect x='4' y='5' width='12' height='7.5' rx='1.4'/>",1),
+  LEZ:trama(28,17,"<rect x='2' y='2.5' width='12' height='8.5' rx='1'/>"+"<circle cx='19.5' cy='5' r='1.5'/>"+"<path d='M19.5 6.6v4M19.5 7.8L16.4 6.2M19.5 10.6l-1.5 3M19.5 10.6l1.5 3'/>",1),
   LET:trama(20,6,"<path d='M0 3h20'/>",1),
   SCH:trama(24,18,"<path d='M2 9h5M7 3.5v11M7 3.5h6M7 14.5h6'/>",1),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>",1),
