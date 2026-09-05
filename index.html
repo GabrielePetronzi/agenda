@@ -240,7 +240,7 @@ body.dropping td.c.dropok{background:var(--tint-hover);
   border-color:var(--tx3);box-shadow:inset 0 0 0 1px var(--tx3)}
 .tool i{width:12px;height:12px;border-radius:3px;background:currentColor;display:block;flex:0 0 12px}
 .tool i.acdot{width:17px;height:17px;border-radius:4px;flex:0 0 17px;
-  box-shadow:0 0 0 1px rgba(0,0,0,.28)}
+  background-color:#C8CDD4;box-shadow:0 0 0 1px rgba(0,0,0,.28)}
 .tool .ico{flex:0 0 auto;opacity:.75}
 .tool[aria-pressed="true"] .ico{opacity:1}
 .tool.pomgo{border-color:var(--action);color:var(--action)}
@@ -409,7 +409,8 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
 /* blocchi */
 .blk{position:absolute;top:0;z-index:2;border-radius:5px;overflow:hidden;cursor:grab;
   box-shadow:0 0 0 1px rgba(0,0,0,.28), 0 1px 3px rgba(0,0,0,.22)}
-.blk em{display:block;font-style:normal;padding:4px 7px 0;overflow:hidden;height:100%}
+.blk em{display:block;font-style:normal;padding:4px 7px 0;overflow:hidden;height:100%;
+  position:relative;z-index:1}
 .blk em b{display:block;font-family:"Familjen Grotesk",sans-serif;font-size:12px;
   font-weight:600;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;line-height:1.2;padding-right:17px}
@@ -450,14 +451,18 @@ html[data-row="tight"] .tick::after{left:3.6px;top:1px;width:3.4px;height:7px}
 .blk{transition:filter .12s,box-shadow .12s}
 .blk:hover{filter:brightness(1.08)}
 html[data-theme="light"] .blk:hover{filter:brightness(.96)}
-/* La barra a sinistra porta il colore della materia. Area piccola perché le
-   materie sono tante: in un rettangolo pieno sarebbero rumore, in un filo
-   sono un indice. Il filo scuro sul lato interno la tiene staccata anche
-   quando materia e attività finiscono sulla stessa tinta. */
-.blk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;z-index:2;
-  background:var(--ac);pointer-events:none;box-shadow:1px 0 0 rgba(0,0,0,.34)}
-.blk em{padding-left:12px}
-.blk.mini em,.blk.mini2 em{padding-left:12px}
+/* Il motivo sta su un livello suo, sotto al testo, e si scansa dalle scritte
+   con una maschera: sparisce nella fascia alta dove vivono il nome della
+   materia e quello dell'attività, e compare sotto. Sulle mezz'ore non c'è una
+   fascia alta — il testo occupa tutto — quindi lì la maschera lavora in
+   orizzontale e il motivo sta nella parte destra, dove testo non ce n'è. */
+.blk::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:var(--tr);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0 24px,#000 42px);
+  mask-image:linear-gradient(180deg,transparent 0 24px,#000 42px)}
+.blk.mini::before,.blk.mini2::before{
+  -webkit-mask-image:linear-gradient(90deg,transparent 0 50%,#000 78%);
+  mask-image:linear-gradient(90deg,transparent 0 50%,#000 78%)}
 .blk.done{opacity:.58}
 .blk.done em b{text-decoration:line-through;text-decoration-thickness:1.5px}
 .blk.done::after{content:"";position:absolute;inset:0;pointer-events:none;
@@ -1124,8 +1129,7 @@ function icon(k,size){
    Distanza percettiva minima fra le otto: ΔE 26. */
 /* Due canali, ognuno con il suo lavoro.
 
-   IL COLORE dice la FASE del metodo: cinque tinte e non otto, così la griglia
-   resta calma anche con venti materie. Chiare perché la scritta è sempre nera.
+   IL COLORE dice la MATERIA, come è sempre stato in quest'app.
 
    IL MOTIVO dice l'ATTIVITÀ, e non è astratto: righe di quaderno per leggere,
    quadretti per gli esercizi, mattoni per costruire un progetto, bolle per il
@@ -1135,25 +1139,31 @@ function icon(k,size){
 const AFASE={LEZ:"Acquisizione",LET:"Acquisizione",SCH:"Rielaborazione",
              ESE:"Applicazione",LAB:"Applicazione",PRO:"Applicazione",
              RIP:"Ricordo",LAV:"fuori dal metodo"};
-const FCOL={"Acquisizione":"#A9D4F7","Rielaborazione":"#C49BEC",
-            "Applicazione":"#F5C96B","Ricordo":"#7FD4A4","fuori dal metodo":"#AEB6C0"};
-const ACOL=(()=>{const o={};Object.keys(AFASE).forEach(k=>o[k]=FCOL[AFASE[k]]);return o;})();
 function trama(w,h,d,op){
   const svg="<svg xmlns='http://www.w3.org/2000/svg' width='"+w+"' height='"+h+
     "' viewBox='0 0 "+w+" "+h+"'><g fill='none' stroke='%2314161B' stroke-opacity='"+
-    (op||.34)+"' stroke-width='1.4' stroke-linecap='round'>"+d+"</g></svg>";
+    (op||.22)+"' stroke-width='1.3' stroke-linecap='round'>"+d+"</g></svg>";
   return "url(\"data:image/svg+xml,"+encodeURIComponent(svg).replace(/%25/g,"%")+"\")";
 }
 const ATRAMA={
   LEZ:"none",                                                    /* liscio */
   LET:trama(24,7,"<path d='M0 3.5h24'/>"),                       /* righe di quaderno */
-  SCH:trama(34,34,"<circle cx='9' cy='17' r='2'/><path d='M11 17h7M18 17l7-6M18 17l7 6'/>",.38),
+  SCH:trama(34,34,"<circle cx='9' cy='17' r='2'/><path d='M11 17h7M18 17l7-6M18 17l7 6'/>",.26),
   ESE:trama(9,9,"<path d='M0 .5h9M.5 0v9'/>"),                   /* quadretti */
   LAB:trama(26,26,"<circle cx='6' cy='7' r='3.2'/><circle cx='17' cy='15' r='4.4'/><circle cx='9' cy='20' r='2'/>"),
   PRO:trama(28,16,"<path d='M0 8h28M0 .7h28M0 15.3h28M7 0v8M21 0v8M14 8v8M.7 8v8M27.3 8v8'/>"),
-  RIP:trama(30,18,"<path d='M-2 16a9 9 0 0 1 17 0M13 16a9 9 0 0 1 17 0'/>",.38),
+  RIP:trama(30,18,"<path d='M-2 16a9 9 0 0 1 17 0M13 16a9 9 0 0 1 17 0'/>",.26),
   LAV:trama(10,10,"<path d='M-2 8L8 -2M2 12L12 2'/>")
 };
+/* per la pastiglia del pulsante servono più marcati: sono 17px */
+const ATRAMALEG={LEZ:"none",
+  LET:trama(24,7,"<path d='M0 3.5h24'/>",.5),
+  SCH:trama(34,34,"<circle cx='9' cy='17' r='2'/><path d='M11 17h7M18 17l7-6M18 17l7 6'/>",.55),
+  ESE:trama(9,9,"<path d='M0 .5h9M.5 0v9'/>",.5),
+  LAB:trama(26,26,"<circle cx='6' cy='7' r='3.2'/><circle cx='17' cy='15' r='4.4'/><circle cx='9' cy='20' r='2'/>",.5),
+  PRO:trama(28,16,"<path d='M0 8h28M0 .7h28M0 15.3h28M7 0v8M21 0v8M14 8v8M.7 8v8M27.3 8v8'/>",.5),
+  RIP:trama(30,18,"<path d='M-2 16a9 9 0 0 1 17 0M13 16a9 9 0 0 1 17 0'/>",.55),
+  LAV:trama(10,10,"<path d='M-2 8L8 -2M2 12L12 2'/>",.5)};
 const BLKINK="#14161B";
 const ACTS=[
   {k:"LEZ",n:"Lezione"},
@@ -1200,8 +1210,8 @@ const COURSES={
 
 const PAL=["#6E8BFF","#4FB3A0","#E0A458","#D96C7B","#9B7FD4","#5FA8D3",
            "#82B356","#E08A5B","#C97BB0","#63C2C2","#B0A24E","#7C8CA6",
-           "#8FA4E8","#3F8F7E","#C98A3C","#B85566","#7C63B8","#4A8FBE",
-           "#6B9440","#BF6E44","#A85F93","#4EA5A5"];
+           "#8FA4E8","#3F907F","#C98A3C","#C06978","#8C77C1","#4A8FBE",
+           "#6B9440","#BF6E44","#B06D9C","#4EA5A5"];
 const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
                 "#4FB3A0","#3F8F7E","#82B356","#6B9440","#B0A24E","#E0A458",
                 "#C98A3C","#E08A5B","#BF6E44","#D96C7B","#B85566","#C97BB0",
@@ -2081,8 +2091,8 @@ function tools(){
     const b=document.createElement("button");
     b.className="tool";
     b.setAttribute("aria-pressed",!state.erase&&state.act===a.k);
-    b.innerHTML='<i class="acdot" style="background-color:'+ACOL[a.k]+
-      ';background-image:'+ATRAMA[a.k]+'"></i>'+icon(a.k,15)+a.n;
+    b.innerHTML='<i class="acdot" style="background-image:'+ATRAMALEG[a.k]+'"></i>'+
+      icon(a.k,15)+a.n;
     b.title=a.n+" · tasto "+(i+1)+" · fase "+AFASE[a.k];
     b.onclick=()=>pickAct(a.k);
     box.appendChild(b);
@@ -3170,9 +3180,8 @@ function drawDay(dateIso,scope){
          che cresce faceva un'insalata; darla a quella limitata fa una
          legenda. E siccome le otto tinte seguono le fasi del metodo, una
          settimana si legge per quello che è: dove acquisisci, dove applichi. */
-      bl.style.backgroundColor=ACOL[r.v.a]||"#AEB6C0";
-      bl.style.backgroundImage=ATRAMA[r.v.a]||"none";
-      bl.style.setProperty("--ac",o.color);
+      bl.style.background=o.color;
+      bl.style.setProperty("--tr",ATRAMA[r.v.a]||"none");
       /* sempre nera: i fondi sono tutti chiari apposta, così non c'è un blocco
          con la scritta bianca e uno con la nera a seconda della materia */
       bl.style.color=BLKINK;
