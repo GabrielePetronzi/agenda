@@ -1099,6 +1099,9 @@ const slotLabel=s=>slotQ(s)===0?String(slotHour(s)):"";
 const slotTime=s=>slotHour(s)+":"+(isHalf(s)?"30":"00");
 /* conversione slot → ore, con la virgola solo quando serve */
 const hrs=n=>{const v=n/PERQ;return (v%1?v.toFixed(1).replace(".",","):String(v))+" h";};
+/* lo stesso numero senza unità: nella colonna stretta dell'elenco l'unità
+   ripetuta tre volte costava sedici pixel al nome della materia */
+const ore=n=>{const v=n/PERQ;return v%1?v.toFixed(1).replace(".",","):String(v);};
 const ICON={
   LEZ:'<rect x="2" y="3" width="12" height="9" rx="1"/><path d="M5 6h6M5 8.6h4"/>',
   LET:'<path d="M2 4c2-1.1 4-1.1 6 0 2-1.1 4-1.1 6 0v8c-2-1.1-4-1.1-6 0-2-1.1-4-1.1-6 0z"/><path d="M8 4v8"/>',
@@ -2150,6 +2153,7 @@ function picklist(){
       (fatta?'<em style="color:var(--done)">superato</em>':"")+
       (note[o.id]?'<em style="color:var(--action)">'+note[o.id]+" in nota</em>":"");
     const cl=clash[o.id];
+    b.title=tgt?(hrs(h)+" in piano su "+tgt+" h · "+hrs(fh)+" già fatte"):"";
     b.innerHTML='<span class="swatch'+(cl?" clash":"")+'" style="background:'+o.color+'"'+
       (cl?' title="Stesso colore di '+cl.name.replace(/"/g,"")+'"':"")+"></span>"+
       '<span class="pnm">'+o.name+tag+
@@ -2157,8 +2161,15 @@ function picklist(){
           ';opacity:.3"></i><i class="dn" style="width:'+
           Math.min(100,(fh/PERQ)/tgt*100)+"%;background:"+o.color+'"></i><u class="mid"></u></span>':"")+
       "</span>"+
-      '<span class="ph">'+(tgt?Math.round((fh/PERQ)/tgt*100)+"%":(h?hrs(h):"—"))+
-        (tgt?"<u>"+hrs(fh)+" su "+tgt+" h</u>":(h?"<u>"+hrs(fh)+" fatte</u>":""))+"</span>"+
+      /* Il numero grande è quanto hai messo in piano rispetto al monte ore:
+         è quello che si muove mentre pianifichi, ed è la domanda che ci si fa
+         guardando l'elenco. Le ore fatte — quelle spuntate — stanno sotto e
+         nella parte piena della barra. Prima il numero grande erano le ore
+         fatte e sotto c'era scritto "0 h su 150 h" senza dire di che ore
+         parlasse: uno riempiva la settimana e non vedeva muoversi niente. */
+      '<span class="ph">'+(tgt?Math.round((h/PERQ)/tgt*100)+"%":(h?hrs(h):"—"))+
+        (tgt?"<u>"+ore(h)+"/"+tgt+" h · "+ore(fh)+" ✓</u>"
+            :(h?"<u>"+hrs(fh)+" fatte</u>":""))+"</span>"+
       '<span class="pen'+(editId===o.id?" on":"")+'" role="button" title="Modifica nome, CFU, scadenza" '+
         'aria-label="Modifica">'+icon("ESE",12)+"</span>";
     b.onclick=()=>{
