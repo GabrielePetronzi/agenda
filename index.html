@@ -412,8 +412,19 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
 /* blocchi */
 .blk{position:absolute;top:0;z-index:2;border-radius:5px;overflow:hidden;cursor:grab;
   box-shadow:0 0 0 1px rgba(0,0,0,.28), 0 1px 3px rgba(0,0,0,.22)}
-.blk em{display:block;font-style:normal;padding:4px 7px 0;overflow:hidden;height:100%;
-  position:relative;z-index:1}
+/* Il testo è una colonna, e l'ultima riga della colonna è il motivo: si prende
+   quello che avanza sotto le scritte. Prima era una maschera che indovinava
+   dove finisse il testo con un numero fisso — e indovinava male ogni volta che
+   la riga della griglia cambiava misura o il testo andava a capo. */
+.blk em{display:flex;flex-direction:column;font-style:normal;padding:4px 7px 0;
+  overflow:hidden;height:100%;position:relative;z-index:1}
+/* Nome e attività sulla stessa riga se ci stanno; se no l'attività va a capo
+   da sola, invece di troncarle tutt'e due come faceva la riga forzata. */
+.blk em .l1{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px;
+  flex:0 0 auto;padding-right:20px}
+.blk em .l1 b{flex:0 1 auto;max-width:100%;padding-right:0}
+.blk em .l1 s{flex:0 1 auto;min-width:0;margin-top:0}
+.blk em span.tr{flex:1 1 0;min-height:0;margin:2px -7px 0;background-image:var(--tr)}
 .blk em b{display:block;font-family:"Familjen Grotesk",sans-serif;font-size:12px;
   font-weight:600;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;line-height:1.2;padding-right:17px}
@@ -436,20 +447,14 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
    e la parola gli rubava esattamente lo spazio in cui farsi vedere. Qui il
    motivo è una voce del flex: si prende quello che avanza a destra, quindi
    non finisce mai sotto le scritte comunque sia largo il blocco. */
-.blk.mini em{display:flex;align-items:center;gap:6px;padding:0 20px 0 7px}
+.blk.mini em{display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 20px 0 7px}
 .blk.mini em b{padding-right:0;flex:0 1 auto;max-width:74%}
 .blk.mini em s{margin-top:0;flex:0 1 auto;min-width:0}
 .blk.mini em span.tr{flex:1 1 0;min-width:0;align-self:stretch;margin-left:1px;
   background-image:var(--tr)}
 .blk.mini::before{content:none}
 .blk.mini .rsz{height:6px}
-/* un'ora: materia e attività sulla stessa riga. Su due righe il testo si
-   mangiava trentaquattro pixel su cinquantaquattro e al motivo ne restavano
-   dodici; così ne restano venticinque. */
-.blk.riga1 em{padding-right:20px}
-.blk.riga1 em .l1{display:flex;align-items:baseline;gap:6px;min-width:0}
-.blk.riga1 em .l1 b{flex:0 1 auto;padding-right:0}
-.blk.riga1 em .l1 s{flex:0 1 auto;min-width:0;margin-top:0}
+
 html[data-row="micro"] .blk em{padding:1px 5px 0}
 html[data-row="micro"] .blk em b{font-size:10px;padding-right:13px;line-height:1.15}
 html[data-row="micro"] .blk em s{font-size:9.5px}
@@ -467,19 +472,11 @@ html[data-row="tight"] .tick::after{left:3.6px;top:1px;width:3.4px;height:7px}
 .blk{transition:filter .12s,box-shadow .12s}
 .blk:hover{filter:brightness(1.08)}
 html[data-theme="light"] .blk:hover{filter:brightness(.96)}
-/* Il motivo sta su un livello suo, sotto al testo, e si scansa dalle scritte
-   con una maschera: sparisce dove vive il testo e compare sotto. Dove finisce
-   il testo lo sa solo chi disegna il blocco — dipende da quante righe ci sono
-   finite dentro — quindi glielo fa sapere con --mkt invece di tirare a
-   indovinare con un valore fisso buono per nessuna altezza. Le mezz'ore non
-   passano di qui: il loro motivo è una voce del flex, qui sopra. */
-.blk::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+/* La mezz'ora con la nota è l'unico caso che non ha una fascia libera sotto il
+   testo: le due righe riempiono il blocco. Lì il motivo resta una maschera, e
+   lavora in orizzontale sulla destra. */
+.blk.mini2::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
   background-image:var(--tr);
-  -webkit-mask-image:linear-gradient(180deg,transparent 0 var(--mkt,34px),
-    #000 calc(var(--mkt,34px) + 8px));
-  mask-image:linear-gradient(180deg,transparent 0 var(--mkt,34px),
-    #000 calc(var(--mkt,34px) + 8px))}
-.blk.mini2::before{
   -webkit-mask-image:linear-gradient(90deg,transparent 0 60%,#000 68%);
   mask-image:linear-gradient(90deg,transparent 0 60%,#000 68%)}
 .blk.done{opacity:.58}
@@ -3243,9 +3240,8 @@ function drawDay(dateIso,scope){
       /* mezz'ora con una nota: se la riga è alta abbastanza la nota va sotto
          il nome della materia, se no le sta accanto al posto dell'attività */
       const due=r.len===1&&!!nt&&ROW>=MINI2;
-      /* un'ora: una riga sola, vedi il css */
-      const riga1=r.len===2;
-      bl.className="blk"+(r.len===1?(due?" mini2":" mini"):riga1?" riga1":"")+
+      const alt=ROW*r.len-2;
+      bl.className="blk"+(r.len===1?(due?" mini2":" mini"):"")+
         (r.v.done?" done":"")+
         (selRuns[selKey(dateIso,r.start,r.lane)]?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
@@ -3261,35 +3257,32 @@ function drawDay(dateIso,scope){
       /* sempre nera: i fondi sono tutti chiari apposta, così non c'è un blocco
          con la scritta bianca e uno con la nera a seconda della materia */
       bl.style.color=BLKINK;
-      bl.style.height=(ROW*r.len-2)+"px";
+      bl.style.height=alt+"px";
       const nl=cw[ri]||1;
       bl.style.left=(r.lane*100/nl)+"%";
       bl.style.width=(100/nl)+"%";
       /* La nota è la cosa più utile scritta dentro il blocco, quindi:
          su mezz'ora prende il posto dell'attività (che motivo e icona dicono già),
-         più in alto va a capo su una riga sua, con quante righe ci stanno.
-         mkt dice al motivo dove finisce il testo: le righe le conto qui. */
-      let corpo,nota="",mkt=34;
+         più in alto va a capo su una riga sua, con quante righe ci stanno. */
+      let corpo,nota="";
       if(r.len===1){
         corpo="<s>"+icon(r.v.a,11)+(nt?"<i>"+nt+"</i>":"")+"</s>"+
               (due?"":'<span class="tr"></span>');
       }else{
         corpo="<s>"+icon(r.v.a,11)+"<i>"+a.n+"</i></s>";
-        if(riga1)mkt=21;
         if(nt){
           /* le righe della nota si fermano sedici pixel prima del fondo: una
              fascia di motivo deve restare sempre, se no il blocco pieno di
              note è l'unico che non si riconosce a colpo d'occhio */
-          const righe=riga1?1:Math.max(1,Math.min(5,Math.floor((ROW*r.len-52)/14)));
+          const righe=Math.max(1,Math.min(5,Math.floor((alt-50)/14)));
           nota='<u class="nota" style="-webkit-line-clamp:'+righe+'">'+nt+"</u>";
-          mkt=(riga1?23:36)+righe*14;
         }
       }
-      bl.style.setProperty("--mkt",mkt+"px");
       const testa='<b>'+o.short.toUpperCase()+"</b>"+corpo;
       bl.innerHTML='<span class="tick" role="button" aria-label="Segna come fatto"></span>'+
-        "<em>"+(riga1?'<span class="l1">'+testa+"</span>":testa)+nota+"</em>"+
-        '<span class="rsz"></span>';
+        "<em>"+(r.len===1?testa
+                :'<span class="l1">'+testa+"</span>"+nota+'<span class="tr"></span>')+
+        "</em>"+'<span class="rsz"></span>';
       bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
         (r.v.n?" ("+r.v.n+")":"")+(r.v.done?" · fatto":"");
       td.setAttribute("aria-label",
