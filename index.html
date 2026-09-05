@@ -55,11 +55,17 @@ button,input,select,textarea{font:inherit;color:inherit}
    appiccicate in cima e senza questo scostamento il timer se la mangiava */
 .topbar{position:sticky;top:var(--stick-pom, 0px);z-index:45;background:var(--bg);
   border-bottom:1px solid var(--line)}
-.tin{display:flex;align-items:flex-end;gap:12px;max-width:1440px;margin:0 auto;
-  padding:6px var(--pad) 7px}
-.ctxpick{display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
+/* L'etichetta stava sopra al gruppo di pulsanti e costava quattordici pixel di
+   altezza, per sempre, su una barra che di larghezza ne aveva centinaia di
+   vuoti. Ora sta di fianco: stessa informazione, una riga in meno. */
+/* va a capo invece di traboccare: senza, sotto i 720 i pulsanti uscivano dalla
+   barra e finivano tagliati (succedeva anche prima) */
+.tin{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;max-width:1440px;
+  margin:0 auto;padding:8px var(--pad)}
+.ctxpick{display:flex;flex-direction:row;align-items:center;gap:8px;flex:0 0 auto}
 .ctxpick .lbl{margin:0;font-size:8.5px;letter-spacing:.12em}
-@media (max-width:620px){.ctxpick .lbl{display:none}}
+/* sotto i 960 la larghezza non basta più per tenerle in riga */
+@media (max-width:960px){.ctxpick .lbl{display:none}}
 .tin .spacer{flex:1}
 .seg{display:flex;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r-sm);padding:2px;flex:0 0 auto}
@@ -104,12 +110,12 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .shell{max-width:1440px;margin:0 auto;padding:0 var(--pad) 80px;
   display:grid;grid-template-columns:1fr;gap:0}
 @media (min-width:1060px){
-  .shell{grid-template-columns:308px minmax(0,1fr);gap:26px;padding-top:10px}
-  .sidebar{position:sticky;top:calc(var(--stick-bar, 62px) + 9px);align-self:start;
+  .shell{grid-template-columns:308px minmax(0,1fr);gap:24px;padding-top:12px}
+  .sidebar{position:sticky;top:calc(var(--stick-bar, 62px) + 8px);align-self:start;
     max-height:calc(100vh - var(--stick-bar, 62px) - 26px);
     overflow-y:auto;padding-right:4px;scrollbar-width:thin}
 }
-.sidebar{padding:16px 0 6px}
+.sidebar{padding:16px 0 8px}
 .canvas{min-width:0;padding-top:0}
 /* colonna singola: prima la settimana, gli strumenti sotto — così la fascia
    si vede appena apri, senza dover scorrere oltre l'elenco materie */
@@ -120,14 +126,14 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 
 /* sezioni della colonna strumenti */
 .sec{margin-bottom:20px}
-.sechead{display:flex;align-items:center;justify-content:space-between;gap:10px;
-  margin-bottom:9px}
+.sechead{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-bottom:8px}
 .sechead .lbl{margin:0}
 .pinfo{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
 
 /* apri/chiudi le sezioni secondarie */
 .fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
-  padding:9px 0;border-top:1px solid var(--line-soft)}
+  padding:8px 0;border-top:1px solid var(--line-soft)}
 .fold>summary::-webkit-details-marker{display:none}
 .fold>summary .lbl{margin:0;flex:1}
 .fold>summary .cv{display:flex;align-items:center;color:var(--tx3);
@@ -172,8 +178,12 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 @media (min-width:1060px){.picklist{max-height:none}}
 @media (max-width:1059px){.picklist{max-height:330px;overflow-y:auto}}
 .picklist.grow{max-height:62vh;overflow-y:auto}
+/* Il rientro stringe in verticale ma non in orizzontale: qui la colonna del
+   nome è la cosa stretta, e due pixel in più di bordo mandano "Finanza
+   computazionale" a capo. Lo spazio sta alla scala finché la scala non
+   peggiora quello che deve reggere. */
 .prow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;
-  border:0;border-bottom:1px solid var(--line-soft);padding:10px 11px;cursor:pointer;
+  border:0;border-bottom:1px solid var(--line-soft);padding:8px 10px;cursor:pointer;
   color:inherit;transition:background .12s}
 .prow:last-child{border-bottom:0}
 .prow:hover{background:var(--raised)}
@@ -190,7 +200,7 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
    pianificato in trasparenza e il fatto pieno sopra, e una tacca a metà
    strada per avere un riferimento invece di stimare a occhio. */
 .pnm .bar{position:relative;display:block;height:8px;border-radius:4px;background:var(--sunken);
-  margin-top:8px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+  margin-top:6px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
 .pnm .bar i{position:absolute;left:0;top:0;height:100%;min-width:3px;border-radius:4px}
 .pnm .bar u.mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--bg);
   opacity:.55;text-decoration:none}
@@ -302,11 +312,11 @@ body.dropping td.c.dropok{background:var(--tint-hover);
 
 .printhead{display:none}
 .status{font-family:"DM Mono",monospace;font-size:11px;color:var(--tx2);
-  margin:5px 0 6px;min-height:16px;line-height:1.5}
+  margin:4px 0;min-height:16px;line-height:1.5}
 .status b{color:var(--tx);font-weight:500;letter-spacing:.02em}
 .selbar{display:none}
 .selbar.on{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;
-  padding:9px 13px;border:1px solid var(--action);border-radius:var(--r);
+  padding:8px 12px;border:1px solid var(--action);border-radius:var(--r);
   background:var(--surface)}
 .selbar b{font-family:"DM Mono",monospace;font-size:12px;font-weight:500;color:var(--action)}
 .selbar span{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
@@ -332,9 +342,9 @@ html[data-fit="compact"] th s{font-size:12.5px}
 /* ============================================================
    Settimana
    ============================================================ */
-.panel{border-top:1px solid var(--line);padding-top:15px;margin-top:19px}
+.panel{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
 .panel:first-of-type{border-top:0;margin-top:0;padding-top:0}
-.phead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
 .ptitle{background:none;border:0;color:inherit;cursor:pointer;text-align:left;padding:3px 0;
   display:flex;align-items:baseline;gap:8px;flex:1;min-width:0}
 .ptitle .chev{display:flex;align-items:center;color:var(--tx3);transition:transform .16s}
@@ -683,9 +693,9 @@ td.tot b{color:var(--tx2);font-weight:500}
 @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.985)}
                to{opacity:1;transform:none}}
 .sheet{background:var(--surface);border:1px solid var(--line);border-radius:14px;
-  width:100%;max-width:404px;padding:18px;max-height:90vh;overflow-y:auto;
+  width:100%;max-width:404px;padding:20px;max-height:90vh;overflow-y:auto;
   box-shadow:var(--shadow)}
-.mhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px}
+.mhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
 .mhead b{font-family:"Familjen Grotesk",sans-serif;font-size:16px;font-weight:600;
   letter-spacing:-.01em}
 .mhead button{display:inline-flex;align-items:center;justify-content:center;
