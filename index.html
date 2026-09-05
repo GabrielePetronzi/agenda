@@ -1287,19 +1287,35 @@ function pianoCfu(){
   return distingue?{tot:tot,obb:obb,sce:Math.max(0,tot-obb),due:true}
                   :{tot:tot,obb:tot,sce:0,due:false};
 }
+/* Le mezz'ore spuntate di una materia, in tutto il piano e non solo nel
+   semestre che si sta guardando: una materia a cavallo di due contesti, o
+   ripresa l'anno dopo, se no non arriverebbe mai al suo monte ore. */
+function oreFatte(id){
+  const c=countAll()[id];
+  return c?c.done:0;
+}
+/* Un esame porta i suoi CFU quando tutt'e due le cose sono vere: le ore
+   previste fatte e l'esame superato. Superato da solo non basta, e le ore da
+   sole nemmeno. */
+function cfuOk(o){
+  if(!(state.pass||{})[o.id])return false;
+  const tgt=targetH(o.cfu);
+  return !tgt||oreFatte(o.id)/PERQ>=tgt;
+}
 function cfuFatti(){
   const P=pianoCfu(),m=map(),p=state.pass||{},visti={};
-  let ob=0,sc=0,n=0;
+  let ob=0,sc=0,n=0,attesa=0;
   Object.keys(p).forEach(id=>{
     if(!p[id])return;
     const o=m[id];if(!o||o.kind!=="c")return;
     if(o.alt){if(visti[o.alt])return;visti[o.alt]=1;}
+    if(!cfuOk(o)){attesa++;return;}     /* superato ma le ore non ci sono */
     n++;
     if(o.ob||!P.due)ob+=o.cfu||0;else sc+=o.cfu||0;
   });
   /* i CFU a scelta oltre il richiesto non contano per la laurea */
   ob=Math.min(ob,P.obb);sc=Math.min(sc,P.sce);
-  return {ob:ob,sc:sc,n:n,tot:ob+sc,piano:P};
+  return {ob:ob,sc:sc,n:n,attesa:attesa,tot:ob+sc,piano:P};
 }
 const BLKINK="#14161B";
 const ACTS=[
@@ -2150,7 +2166,11 @@ function picklist(){
       /* dal manifesto: quelle senza ob sono a scelta, e vale la pena saperlo
          guardando l'elenco, non aprendo l'editor */
       (o.kind==="c"&&!o.ob&&distingue?'<em class="opz">a scelta</em>':"")+
-      (fatta?'<em style="color:var(--done)">superato</em>':"")+
+      /* Superato ma senza le ore non porta CFU: dirlo, se no è di nuovo un
+         numero che non si muove e non si sa perché. */
+      (fatta?(cfuOk(o)?'<em style="color:var(--done)">superato · '+o.cfu+' CFU</em>'
+        :'<em style="color:var(--warn)">superato · mancano '+
+          ore(Math.max(0,targetH(o.cfu)*PERQ-oreFatte(o.id)))+' h</em>'):"")+
       (note[o.id]?'<em style="color:var(--action)">'+note[o.id]+" in nota</em>":"");
     const cl=clash[o.id];
     b.title=tgt?(hrs(h)+" in piano su "+tgt+" h · "+hrs(fh)+" già fatte"):"";
@@ -2245,7 +2265,8 @@ function cfuBar(){
     v+" su "+t+' CFU"><i style="width:'+(t?Math.min(100,v/t*100):0)+'%"></i></span>';
   box.innerHTML=
     '<span class="n"><b>'+f.tot+'</b><u>su '+P.tot+" CFU · "+f.n+
-      (f.n===1?" esame":" esami")+'</u></span>'+
+      (f.n===1?" esame":" esami")+
+      (f.attesa?" · "+f.attesa+" senza le ore":"")+'</u></span>'+
     '<span class="cfb">'+pezzo(f.ob,P.obb,"ob")+(P.due?pezzo(f.sc,P.sce,"sc"):"")+"</span>"+
     (P.due?'<span class="leg"><u>obbligatori '+f.ob+"/"+P.obb+"</u>"+
       '<u class="sc">a scelta '+f.sc+"/"+P.sce+"</u></span>":"");
