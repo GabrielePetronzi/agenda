@@ -565,5 +565,69 @@
     document.documentElement.setAttribute("data-theme",prima||"dark");render();
     return col==="rgb(20, 22, 27)"?true:"il colore del testo è "+col;});
 
+
+  /* ---------- il debito ---------- */
+  t("un blocco passato e non spuntato risulta in ritardo",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"ESE",len:2},0);
+    return eq(arretrati().length,1);});
+  t("un blocco passato e spuntato non è in ritardo",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"ESE",len:2,done:1},0);
+    return eq(arretrati().length,0);});
+  t("un blocco di domani non è in ritardo",function(){
+    pulisci();apri();
+    placeRun(iso(addDays(new Date(),1)),HOURS[2],{i:it[0].id,a:"ESE",len:2},0);
+    return eq(arretrati().length,0);});
+  t("le lezioni non finiscono mai fra gli arretrati",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:AUTOACT,len:2},0);
+    return eq(arretrati().length,0);});
+  t("di oggi conta solo quello che l'ora ha già superato",function(){
+    pulisci();apri();
+    var ora=oraAdesso();
+    if(ora<HOURS[2]||ora>HOURS[HOURS.length-4])return true;   /* ora scomoda: salto */
+    placeRun(oggi,ora-2,{i:it[0].id,a:"ESE",len:2},0);        /* finito */
+    placeRun(oggi,ora+2,{i:it[1].id,a:"ESE",len:2},0);        /* deve ancora venire */
+    var a=arretrati();
+    return (a.length===1&&a[0].start===ora-2)?true:
+      "trovati "+a.length+" alle "+(a[0]?slotTime(a[0].start):"-");});
+  t("l'avviso compare con quello che serve e sparisce quando non serve",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"ESE",len:3},0);
+    render();
+    var box=document.getElementById("latebar");
+    var acceso=box.className.indexOf("on")>=0;
+    var testo=box.textContent;
+    var bottoni=box.querySelectorAll("button").length;
+    pulisci();render();
+    var spento=document.getElementById("latebar").className.indexOf("on")<0;
+    return (acceso&&spento&&bottoni===2&&testo.indexOf("1,5 h")>=0)?true:
+      "acceso="+acceso+" spento dopo="+spento+" bottoni="+bottoni+" testo="+testo;});
+  t("«erano fatti» li spunta tutti e l'avviso sparisce",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"ESE",len:2},0);
+    placeRun(ieri,HOURS[6],{i:it[1].id,a:"RIP",len:2},0);
+    render();
+    var b=document.querySelectorAll("#latebar button")[1];
+    b.click();
+    return (arretrati().length===0&&
+            document.getElementById("latebar").className.indexOf("on")<0)?true:
+      "restano "+arretrati().length+" arretrati";});
+  t("nella griglia il blocco in ritardo è segnato",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    state.anchor[state.ctx]=iso(monday(parse(ieri)));applySpan();
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"ESE",len:2},0);
+    render();
+    var seg=document.querySelectorAll(".blk.tardi").length;
+    apri();
+    return seg>=1?true:"nessun blocco segnato";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

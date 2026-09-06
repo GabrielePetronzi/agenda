@@ -339,6 +339,23 @@ body.dropping td.c.dropok{background:var(--tint-hover);
 .status{font-family:"DM Mono",monospace;font-size:11px;color:var(--tx2);
   margin:4px 0;min-height:16px;line-height:1.5}
 .status b{color:var(--tx);font-weight:500;letter-spacing:.02em}
+/* Il debito: blocchi che l'ora di adesso ha superato senza che li spuntassi.
+   Sta sopra le settimane e non si chiude da solo, perché è quello il punto: o
+   li recuperi, o li spunti, o li sposti — ma non devono sparire in silenzio. */
+.latebar{display:none}
+.latebar.on{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;
+  padding:8px 12px;border:1px solid var(--warn);border-radius:var(--r);
+  background:var(--surface)}
+.latebar b{font-size:12.5px;font-weight:500}
+.latebar b i{font-style:normal;color:var(--warn)}
+.latebar u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;
+  color:var(--tx3);flex:1;min-width:0}
+.latebar button{border:1px solid var(--line);background:var(--raised);color:var(--tx2);
+  border-radius:var(--r-sm);padding:4px 10px;font-size:11.5px;cursor:pointer}
+.latebar button:hover{color:var(--tx);border-color:var(--tx3)}
+/* e nella griglia si vedono uno per uno */
+.blk.tardi{box-shadow:inset 4px 0 0 var(--warn),0 0 0 1px rgba(0,0,0,.28),
+  0 1px 3px rgba(0,0,0,.22)}
 .selbar{display:none}
 .selbar.on{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;
   padding:8px 12px;border:1px solid var(--action);border-radius:var(--r);
@@ -983,6 +1000,7 @@ td.tot b{color:var(--tx2);font-weight:500}
     <p class="status" id="status" role="status" aria-live="polite"></p>
     <p class="modeflag" id="modeflag" role="status" aria-live="assertive"></p>
     <div class="selbar" id="selbar"></div>
+    <div class="latebar" id="latebar"></div>
     <div id="panels"></div>
 
     <div class="sum" id="semSum">
@@ -3141,6 +3159,59 @@ function pomSettings(){
   });
 }
 
+/* ---------- il debito: quello che la linea di adesso ha superato ----------
+   Un blocco è in ritardo se la sua ora è passata e non l'hai spuntato. Le
+   lezioni non contano: quelle si spuntano da sole al passare dell'ora. */
+function oraAdesso(){
+  const n=new Date();return n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
+}
+function inRitardo(dateIso,r){
+  if(r.v.done||r.v.a===AUTOACT)return false;
+  const oggi=iso(new Date());
+  if(dateIso>oggi)return false;
+  return dateIso<oggi||r.start+r.len<=oraAdesso();
+}
+function arretrati(){
+  const pre=state.year+"."+state.ctx+".",giorni={},out=[];
+  Object.keys(state.cells).forEach(k=>{
+    if(k.indexOf(pre)===0)giorni[k.split(".")[2]]=1;
+  });
+  Object.keys(giorni).sort().forEach(d=>{
+    runsOf(d).forEach(r=>{
+      if(inRitardo(d,r))out.push({date:d,start:r.start,lane:r.lane,len:r.len,v:r.v});
+    });
+  });
+  return out;
+}
+function lateBar(){
+  const box=document.getElementById("latebar");if(!box)return;
+  const a=arretrati();
+  if(!a.length){box.className="latebar";box.innerHTML="";return;}
+  const mez=a.reduce((n,x)=>n+x.len,0),primo=a[0],ultimo=a[a.length-1];
+  box.className="latebar on";
+  box.innerHTML='<b><i>'+a.length+(a.length===1?" blocco":" blocchi")+
+      "</i> che l'ora ha superato senza spunta</b>"+
+    "<u>"+hrs(mez)+" · dal "+fmt(parse(primo.date))+
+      (primo.date===ultimo.date?"":" al "+fmt(parse(ultimo.date)))+"</u>"+
+    '<button data-l="vai">Vai al primo</button>'+
+    '<button data-l="fatti">Erano fatti</button>';
+  box.querySelectorAll("button").forEach(b=>{
+    b.onclick=()=>{
+      if(b.dataset.l==="vai"){
+        state.anchor[state.ctx]=iso(monday(parse(primo.date)));
+        save();weeknav();panels();lateBar();
+        const el=document.querySelector('.blk[data-date="'+primo.date+
+          '"][data-start="'+primo.start+'"]');
+        if(el)el.scrollIntoView({block:"center",behavior:"smooth"});
+      }else{
+        a.forEach(x=>setDoneQuiet(x.date,x.start,x.lane,1));
+        save(a.length+(a.length===1?" blocco segnato":" blocchi segnati")+" come fatto");
+        commit();render();
+      }
+    };
+  });
+}
+
 /* ---------- come sta andando ----------
    Non grafici di quello che ho, ma delle decisioni che uno deve prendere:
    1. ce la faccio ad arrivare all'esame? (l'unica domanda che guarda avanti)
@@ -3725,8 +3796,9 @@ function drawDay(dateIso,scope){
          capo, lasciando zero al motivo. Lì vale il trattamento della mezz'ora,
          che a quell'altezza è già disegnato e provato. */
       const striscia=r.len===1||alt<30;
+      const tardi=inRitardo(dateIso,r);
       bl.className="blk"+(striscia?(due?" mini2":" mini"):"")+
-        (r.v.done?" done":"")+
+        (r.v.done?" done":"")+(tardi?" tardi":"")+
         (selRuns[selKey(dateIso,r.start,r.lane)]?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
       /* Il riempimento dice l'attività, la barra dice la materia. Non è un
@@ -4676,6 +4748,7 @@ function themeIcon(){
 
 function render(){
   applySpan();controls();picklist();tools();examList();weeknav();panels();status();modeFlag();selInfo();
+  lateBar();
   pomPanel();pomRender();
   document.querySelector("#semToggle .chev").classList.toggle("open",!!state.semOpen);
   semSummary();
