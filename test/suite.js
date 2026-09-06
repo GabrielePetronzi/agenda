@@ -7,7 +7,8 @@
   }
   var eq=function(a,b,q){return a===b?true:(q||"")+" ho "+JSON.stringify(a)+" invece di "+JSON.stringify(b);};
   var pulisci=function(){state.cells={};state.pass={};state.log={};state.pomLog=null;
-    state.pomRun=null;state.over={};state.colors={};state.exams=[];selRuns={};};
+    state.pomRun=null;state.over={};state.colors={};state.exams=[];
+    state.seguite={};selRuns={};};
   var it=items(), oggi=iso(new Date()), G=[], H0=0;
   /* La giornata mostrata va riaperta a mano ogni volta che adopt() la rimette
      com'era: placeRun scarta gli slot fuori dalla fascia, quindi senza questo
@@ -910,6 +911,34 @@
     var prima=Object.keys(state.cells).length;
     daGist("questo non è un link");
     return eq(Object.keys(state.cells).length,prima,"celle ");});
+
+
+  /* ---------- i grafici parlano solo di quello che hai messo ---------- */
+  t("i grafici mostrano solo le materie che hai negli slot",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"LET",len:4},0);
+    placeRun(G[1],H0,{i:it[2].id,a:"SCH",len:4},0);
+    state.semOpen=true;semSummary();
+    var nomi=[].map.call(document.querySelectorAll("#semBody .gp .gph b"),
+      function(e){return e.textContent;});
+    return (nomi.length===2)?true:"materie in Ce la fai: "+nomi.join(", ")+
+      " (attese 2, quelle con blocchi)";});
+  t("una materia con blocchi in un altro periodo non entra qui",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"LET",len:4},0);
+    /* stessa data, ma periodo 2 */
+    state.cells[state.year+".2."+G[0]+"."+H0]=[{i:it[4].id,a:"ESE"}];
+    state.semOpen=true;semSummary();
+    var nomi=[].map.call(document.querySelectorAll("#semBody .gp .gph b"),
+      function(e){return e.textContent;});
+    return (nomi.length===1&&nomi[0]===items()[0].name)?true:
+      "materie in Ce la fai: "+nomi.join(", ")+" (attesa solo quella del periodo aperto)";});
+  t("le ore però si contano anche fuori dal periodo",function(){
+    pulisci();apri();
+    var id=items()[0].id;
+    placeRun(G[0],H0,{i:id,a:"LET",len:2,done:1},0);
+    state.cells[state.year+".2."+G[1]+"."+H0]=[{i:id,a:"LET",done:1}];
+    return eq(oreFatte(id),3,"mezz'ore fatte in tutto il piano ");});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

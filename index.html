@@ -3473,7 +3473,7 @@ function semSummary(){
   const box=document.getElementById("semBody");
   if(!state.semOpen){box.innerHTML="";return;}
   const m=map(),pre=state.year+"."+state.ctx+".",oggi=TODAY;
-  const wk={},fase={},mappa={},mat={},ritmo4={};
+  const wk={},fase={},mappa={},mat={},ritmo4={},qui={};
   const lun4=iso(addDays(monday(new Date()),-28)),lunOra=iso(monday(new Date()));
   let tot=0,done=0,saltate=0;
   Object.keys(state.cells).forEach(k=>{
@@ -3491,6 +3491,11 @@ function semSummary(){
       /* il ritmo tenuto davvero nelle quattro settimane già chiuse */
       if(q&&dt>=lun4&&dt<lunOra)ritmo4[v.i]=(ritmo4[v.i]||0)+1;
       if(!dentro)return;
+      /* Le materie di cui parlano i grafici sono quelle che hai messo negli
+         slot di questo periodo. Le ore invece si contano su tutto il piano,
+         perché per un esame di gennaio si studia anche a dicembre: una cosa è
+         di chi parlare, un'altra è quanto ha fatto. */
+      qui[v.i]=1;
       const lun=iso(monday(d));
       wk[lun]=wk[lun]||{t:0,d:0};wk[lun].t++;wk[lun].d+=q;
       const F=AFASE[v.a]||"Altro";
@@ -3526,7 +3531,7 @@ function semSummary(){
     const gg=o.date?Math.round((parse(o.date)-parse(oggi))/86400000):null;
     return {o:o,tgt:tgt,f:f,fut:fut,vuoto:Math.max(0,tgt-f-fut),gg:gg,
             persa:mat[id].persa/PERQ,ritmo:(ritmo4[id]||0)/PERQ/4};
-  }).filter(Boolean).filter(r=>segui(r.o.id)).sort((a,b)=>
+  }).filter(Boolean).filter(r=>qui[r.o.id]&&segui(r.o.id)).sort((a,b)=>
     (a.gg==null)-(b.gg==null)||(a.gg-b.gg)||(b.vuoto-a.vuoto));
   if(righe.length){
     h+='<div class="graf"><h4>Ce la fai?<u>fatte · in piano · scoperte, sul monte ore'+
