@@ -177,9 +177,9 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
   font-size:14px;transition:border-color .13s}
 .adder input:focus,.searchbox input:focus{border-color:var(--tx3);outline:none}
 .adder input::placeholder,.searchbox input::placeholder{color:var(--tx3)}
-.adder input.cfu,.vedit input.cfu{flex:0 0 68px;width:68px;text-align:center;
+.adder input.cfu{flex:0 0 68px;width:68px;text-align:center;
   font-family:"DM Mono",monospace;font-size:12.5px}
-.adder input.tm,.vedit input.tm,.adder input[type=date]{flex:0 0 auto;
+.adder input.tm,.adder input[type=date]{flex:0 0 auto;
   font-family:"DM Mono",monospace;font-size:12px}
 .adder select{flex:1 1 160px;min-width:0;border:1px solid var(--line);
   background:var(--surface);color:var(--tx);padding:10px 12px;
@@ -247,7 +247,10 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
   opacity:.55;text-decoration:none}
 .pnm em.dat{cursor:pointer;border:1px solid var(--line);border-radius:4px;
   padding:1px 5px;margin-left:6px;color:var(--tx2);transition:opacity .12s,color .12s}
-.pnm em.dat.vuota{opacity:.4}
+/* vuota e' un posto da riempire, e si deve vedere che lo e': il bordo
+   tratteggiato e il piu' la distinguono dalle targhette accanto — "a scelta",
+   "superato" — che invece non si toccano */
+.pnm em.dat.vuota{opacity:.55;border-style:dashed}
 .prow:hover .pnm em.dat{opacity:1}
 .pnm em.dat:hover{color:var(--tx);border-color:var(--tx3)}
 .pnm em.dat.soon{color:var(--warn);border-color:var(--warn)}
@@ -266,18 +269,33 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 .picker button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--sunken),0 0 0 3.5px var(--tx)}
 .picker input[type=color]{width:24px;height:24px;padding:0;border:1px solid var(--line);
   border-radius:6px;background:var(--surface);cursor:pointer}
-.vedit{display:none;gap:6px;padding:12px;flex-wrap:wrap;align-items:center;
+.vedit{display:none;flex-direction:column;gap:9px;padding:12px;
   background:var(--sunken);border-bottom:1px solid var(--line-soft)}
 .vedit.open{display:flex}
-.vedit input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);
-  color:var(--tx);padding:8px 10px;border-radius:var(--r-sm);font-size:13px}
+.vrow{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+/* ogni campo con la sua scritta sopra: e' l'unico modo perche' si sappia che
+   quella e' la data dell'esame e non una data qualunque */
+.vf{display:flex;flex-direction:column;gap:4px;flex:1 1 130px;min-width:0}
+.vf.stretta{flex:0 0 86px}
+.vf>span{font-family:"DM Mono",monospace;font-size:9.5px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--tx3)}
+.vf input{width:100%;box-sizing:border-box;border:1px solid var(--line);
+  background:var(--surface);color:var(--tx);padding:7px 9px;
+  border-radius:var(--r-sm);font-size:12.5px}
+.vf input:focus{border-color:var(--action);outline:none}
+.vf input.dt,.vf input.tm,.vf input.cfu{font-family:"DM Mono",monospace;font-size:12px}
+.vf input.cfu{text-align:center}
+.vrow.bts{gap:6px}
+/* lo spazio vuoto occupa una riga intera: cosi' gli interruttori di stato
+   stanno sopra e le azioni sotto, invece di andare a capo a caso quando la
+   colonna e' stretta */
+.vrow.bts .sp{flex:1 1 100%;height:0}
 .vedit button{border:1px solid var(--line);background:var(--raised);color:var(--tx2);
-  padding:8px 12px;border-radius:var(--r-sm);font-family:"DM Mono",monospace;
+  padding:7px 11px;border-radius:var(--r-sm);font-family:"DM Mono",monospace;
   font-size:11px;cursor:pointer}
 .vedit button:hover{color:var(--tx)}
-.vedit .cap{flex:0 0 auto;font-family:"DM Mono",monospace;font-size:10px;
-  letter-spacing:.06em;text-transform:uppercase;color:var(--tx3);margin-left:2px}
-#vDel.armed{border-color:var(--warn);color:var(--warn)}
+.vedit button.armed{border-color:var(--action);color:var(--tx)}
+.vedit button.via.armed{border-color:var(--warn);color:var(--warn)}
 
 /* trascinamento di una materia dall'elenco fin dentro la griglia:
    l'etichetta segue il dito, la casella sotto si illumina */
@@ -1032,10 +1050,10 @@ td.tot b{color:var(--tx2);font-weight:500}
     </div>
 
     <details class="fold">
-      <summary><span class="cv">›</span><span class="lbl" data-ico="PLS">Aggiungi una voce</span></summary>
+      <summary><span class="cv">›</span><span class="lbl" data-ico="PLS">Aggiungi una materia</span></summary>
       <div class="inner">
         <div class="adder">
-          <input id="newName" type="text" maxlength="46" placeholder="Tirocinio, lavoro, palestra…">
+          <input id="newName" type="text" maxlength="46" placeholder="Materia, tirocinio, lavoro…">
           <input id="newCfu" type="number" min="0" max="40" placeholder="CFU" class="cfu" aria-label="CFU">
           <button id="addBtn">Aggiungi</button>
         </div>
@@ -2510,7 +2528,7 @@ function picklist(){
         (o.date&&daysTo(o.date)>=0&&daysTo(o.date)<=7?" soon":"")+
         '" role="button" tabindex="0" title="'+
         (o.date?"Esame il "+o.date+" — clicca per cambiarlo":"Segna la data dell'esame")+
-        '">'+(o.date?"esame "+fmt(parse(o.date)):"esame —")+"</em>":"");
+        '">'+(o.date?"esame "+fmt(parse(o.date)):"+ data d\'esame")+"</em>":"");
     const cl=clash[o.id];
     b.title=tgt?(hrs(h)+" in piano su "+tgt+" h · "+hrs(fh)+" già fatte"):"";
     b.innerHTML='<span class="swatch'+(cl?" clash":"")+'" style="background:'+o.color+'"'+
@@ -2625,56 +2643,92 @@ function cfuBar(){
 }
 
 /* form di modifica della materia: nome, CFU, scadenza */
+/* Il modulo della materia. Prima era una fila sola di campi che andavano a
+   capo dove capitava: il nome si stringeva a due lettere e la data d'esame
+   diventava un quadratino con dentro un calendario — non si capiva nemmeno che
+   fosse una data, e infatti non la trovava nessuno. Adesso ogni campo ha la
+   sua scritta sopra e la sua riga, e la data e' larga quanto serve a leggerla.
+   Non c'e' piu' il pulsante Salva: quello che scrivi vale quando esci dal
+   campo. Un modulo con dentro anche degli interruttori che agivano subito
+   (in sessione, superato) e dei campi che aspettavano un salvataggio era due
+   comportamenti in una cornice sola, ed era il posto giusto per perdere una
+   data messa e mai confermata. */
 function editForm(o){
   const custom=o.id.indexOf("x:")===0;
   const wrap=document.createElement("div");wrap.className="vedit open";
 
-  const nm=document.createElement("input");
-  nm.type="text";nm.maxLength=60;nm.value=o.name;nm.setAttribute("aria-label","Nome");
-  const cf=document.createElement("input");
-  cf.type="number";cf.min=0;cf.max=40;cf.className="cfu";cf.placeholder="CFU";
-  cf.value=o.cfu||"";cf.setAttribute("aria-label","CFU");
-  /* senza scritta era un campo data in mezzo ad altri due: uno arriva qui
-     cercando la data d'esame e non riconosce quale sia */
-  const cap=document.createElement("span");
-  cap.className="cap";cap.textContent="esame";
-  const dt=document.createElement("input");
-  dt.type="date";dt.className="dt";dt.value=o.date||"";
-  dt.title="Data dell'esame";dt.setAttribute("aria-label","Data dell'esame");
-  const tmEl=document.createElement("input");
-  tmEl.type="time";tmEl.className="tm";tmEl.setAttribute("aria-label","Ora della scadenza");
-  const ex0=(state.exams||[]).find(x=>x.mid===o.id);
-  tmEl.value=(ex0&&ex0.hm)||"";
-
-  const ok=document.createElement("button");ok.textContent="Salva";
-  ok.onclick=()=>{
-    const nv=nm.value.trim();if(!nv){nm.focus();return;}
+  function campo(etichetta,el,stretta){
+    const l=document.createElement("label");
+    l.className="vf"+(stretta?" stretta":"");
+    const c=document.createElement("span");c.textContent=etichetta;
+    l.appendChild(c);l.appendChild(el);
+    return l;
+  }
+  function riga(cls){
+    const r=document.createElement("div");r.className="vrow"+(cls?" "+cls:"");
+    return r;
+  }
+  /* scrive nome e CFU dove vanno a finire: il piano ha i suoi, e quello che
+     cambi qui e' una correzione sopra al piano, non il piano */
+  function applica(){
+    const nv=nm.value.trim();if(!nv){nm.value=o.name;return false;}
     if(custom){
       normCustom();
       const c=state.custom.find(x=>x.id===o.id);
-      if(c){c.name=nv;c.cfu=+cf.value||0;c.d=dt.value||"";}
+      if(c){c.name=nv;c.cfu=+cf.value||0;}
     }else{
       state.over=state.over||{};
-      state.over[o.id]={n:nv,c:(cf.value===""?null:+cf.value),d:dt.value||""};
+      const ov=Object.assign({},state.over[o.id]||{});
+      ov.n=nv;ov.c=(cf.value===""?null:+cf.value);
+      state.over[o.id]=ov;
     }
-    syncExam(o.id,nv,dt.value||"",tmEl.value||"");
-    editId=null;save("Materia aggiornata");commit();render();
-  };
-  const del=document.createElement("button");
-  del.textContent=custom?"Elimina":"Ripristina";
-  del.title=custom?"Elimina la voce":"Torna al nome e ai CFU del piano didattico";
-  del.onclick=()=>{
-    if(del.className==="armed"){
-      if(custom)delVoce(o.id);else delete state.over[o.id];
-      syncExam(o.id,"","");
-      editId=null;save(custom?"Voce eliminata":"Ripristinata");commit();render();
-    }else{
-      del.className="armed";del.textContent="Confermi?";
-      setTimeout(()=>{if(del.className==="armed"){
-        del.className="";del.textContent=custom?"Elimina":"Ripristina";}},4000);
+    return true;
+  }
+
+  /* Ridisegnare rimette in piedi anche questo modulo, e il campo dove stavi
+     andando col tabulatore diventa un altro oggetto: senza questo, uscire dal
+     nome col tabulatore ti lasciava senza fuoco da nessuna parte. */
+  function rifai(){
+    const cl=(document.activeElement&&document.activeElement.className||"")
+      .trim().split(/\s+/)[0];
+    render();
+    if(cl){
+      const el=document.querySelector(".vedit.open input."+cl);
+      if(el)el.focus();
     }
+  }
+  const nm=document.createElement("input");
+  nm.type="text";nm.className="nm";nm.maxLength=60;nm.value=o.name;
+  nm.setAttribute("aria-label","Nome");
+  const cf=document.createElement("input");
+  cf.type="number";cf.min=0;cf.max=40;cf.className="cfu";cf.placeholder="—";
+  cf.value=o.cfu||"";cf.setAttribute("aria-label","CFU");
+  nm.onchange=cf.onchange=()=>{
+    if(!applica())return;
+    save("Materia aggiornata");commit();rifai();
   };
-  /* l'esame o l'hai dato o no: è un interruttore, non un campo da compilare */
+
+  const dt=document.createElement("input");
+  dt.type="date";dt.className="dt";dt.value=o.date||"";
+  dt.setAttribute("aria-label","Data dell\'esame");
+  const tmEl=document.createElement("input");
+  tmEl.type="time";tmEl.className="tm";tmEl.setAttribute("aria-label","Ora dell\'esame");
+  const ex0=(state.exams||[]).find(x=>x.mid===o.id);
+  tmEl.value=(ex0&&ex0.hm)||"";
+  dt.onchange=tmEl.onchange=()=>{
+    setDataEsame(o.id,dt.value||"",tmEl.value||"");
+    save(dt.value?"Data d\'esame segnata":"Data d\'esame tolta");
+    commit();rifai();
+  };
+
+  const r1=riga();
+  r1.appendChild(campo("nome",nm));
+  r1.appendChild(campo("CFU",cf,true));
+  const r2=riga();
+  r2.appendChild(campo("data d\'esame",dt));
+  r2.appendChild(campo("ora",tmEl,true));
+
+  /* l\'esame o l\'hai dato o no: e\' un interruttore, non un campo da compilare */
   const sup=document.createElement("button");
   const fatta=()=>!!(state.pass||{})[o.id];
   const etichetta=()=>{sup.textContent=fatta()?"Superato ✓":"Superato";
@@ -2703,10 +2757,30 @@ function editForm(o){
     commit();etSeg();render();
   };
 
+  const del=document.createElement("button");
+  del.className="via";
+  del.textContent=custom?"Elimina":"Ripristina";
+  del.title=custom?"Elimina la materia aggiunta a mano"
+                  :"Torna al nome e ai CFU del piano didattico";
+  del.onclick=()=>{
+    if(del.classList.contains("armed")){
+      if(custom)delVoce(o.id);else delete state.over[o.id];
+      syncExam(o.id,"","");
+      editId=null;save(custom?"Materia eliminata":"Ripristinata");commit();render();
+    }else{
+      del.classList.add("armed");del.textContent="Confermi?";
+      setTimeout(()=>{if(del.classList.contains("armed")){
+        del.classList.remove("armed");
+        del.textContent=custom?"Elimina":"Ripristina";}},4000);
+    }
+  };
   const cl=document.createElement("button");cl.textContent="Chiudi";
   cl.onclick=()=>{editId=null;picklist();};
 
-  [nm,cf,cap,dt,tmEl,seg,sup,ok,del,cl].forEach(el=>wrap.appendChild(el));
+  const r3=riga("bts");
+  const sp=document.createElement("span");sp.className="sp";
+  [seg,sup,sp,del,cl].forEach(el=>r3.appendChild(el));
+  [r1,r2,r3].forEach(el=>wrap.appendChild(el));
   return wrap;
 }
 

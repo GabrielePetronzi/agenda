@@ -1342,18 +1342,18 @@
     pulisci();state.exams=[];state.over={};
     var r=rigaMateria();if(!r)return "nessuna riga nell'elenco";
     var d=r.querySelector("em.dat");
-    return d?eq(d.textContent,"esame —"):"manca la pastiglia della data";});
+    return d?eq(d.textContent,"+ data d'esame"):"manca la pastiglia della data";});
   t("cliccarla apre il modulo con dentro il campo della data",function(){
     document.querySelector("#picklist .prow em.dat").onclick(
       {stopPropagation:function(){}});
     return document.querySelector(".vedit.open input.dt")?true:
       "il modulo non si e' aperto sul campo data";});
-  t("salvando, la data finisce nella materia e fra le scadenze",function(){
+  t("scegliendo la data, finisce nella materia e fra le scadenze",function(){
+    /* niente pulsante Salva: vale quando esci dal campo */
     var campo=document.querySelector(".vedit.open input.dt");
     campo.value="2027-01-20";
     document.querySelector(".vedit.open input.tm").value="09:30";
-    [].filter.call(document.querySelectorAll(".vedit.open button"),
-      function(b){return b.textContent==="Salva";})[0].click();
+    campo.onchange();
     var o=map()[_mat.id],ex=(state.exams||[]).filter(function(x){return x.mid===_mat.id;});
     if(ex.length!==1)return "scadenze collegate: "+ex.length+" invece di 1";
     if(o.date!=="2027-01-20")return "la materia dice "+JSON.stringify(o.date);
@@ -1374,6 +1374,17 @@
     setDataEsame(_mat.id,"","");
     return (!(state.exams||[]).some(function(x){return x.mid===_mat.id;})&&
             !map()[_mat.id].date)?true:"resta "+JSON.stringify(map()[_mat.id].date);});
+  t("nel modulo ogni campo ha la sua scritta, data compresa",function(){
+    rigaMateria();
+    document.querySelector("#picklist .prow em.dat").onclick({stopPropagation:function(){}});
+    var scritte=[].map.call(document.querySelectorAll(".vedit.open .vf>span"),
+      function(s){return s.textContent;});
+    if(scritte.indexOf("data d'esame")<0)
+      return "le scritte sono: "+scritte.join(", ");
+    /* il campo della data deve essere largo abbastanza da leggerla: schiacciato
+       mostra solo l'icona del calendario, ed e' li' che nessuno la trovava */
+    var w=document.querySelector(".vedit.open input.dt").getBoundingClientRect().width;
+    return w>=120?true:"il campo della data e' largo "+Math.round(w)+"px";});
   t("i promemoria liberi restano sotto le materie, gli esami no",function(){
     state.exams=[{d:"2027-03-01",t:"Consegna progetto"},
                  {d:"2027-03-05",t:"Un esame",mid:_mat.id}];
