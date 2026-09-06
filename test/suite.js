@@ -1161,5 +1161,55 @@
     var r=runAt(G[0],ultimo,0);
     return (r&&r.len===1)?true:"lunghezza "+(r?r.len:"nessun blocco");});
 
+
+  /* ---------- il motivo si deve vedere ---------- */
+  t("a mezz'ora la fascia del motivo è larga almeno trenta pixel",function(){
+    pulisci();apri();
+    var lungo=items().filter(function(x){return /dichiar/i.test(x.name||"");})[0]||it[2];
+    var G7=[];document.querySelectorAll("td.c").forEach(function(x){
+      if(G7.indexOf(x.dataset.date)<0)G7.push(x.dataset.date);});
+    state.span=7;state.from=0;state.to=6;applySpan();
+    G7.slice(0,5).forEach(function(d){
+      placeRun(d,HOURS[6],{i:lungo.id,a:"SCH",len:1},0);});
+    render();
+    /* in proporzione, non in pixel: su una colonna da settantotto trenta pixel
+       non ci sono, e il controllo direbbe una cosa falsa */
+    var q=[].map.call(document.querySelectorAll(".blk.mini"),function(b){
+      var tr=b.querySelector("span.tr");if(!tr)return 100;
+      return Math.round(tr.getBoundingClientRect().width/b.getBoundingClientRect().width*100);});
+    if(!q.length)return "nessun blocco da mezz'ora";
+    var min=Math.min.apply(null,q);
+    return min>=20?true:"il motivo occupa solo il "+min+"% della larghezza (prima era il 7%)";});
+  t("a un'ora la fascia del motivo è alta almeno ventidue pixel",function(){
+    pulisci();apri();
+    var lungo=items().filter(function(x){return /dichiar/i.test(x.name||"");})[0]||it[2];
+    var G7=[];document.querySelectorAll("td.c").forEach(function(x){
+      if(G7.indexOf(x.dataset.date)<0)G7.push(x.dataset.date);});
+    state.span=7;state.from=0;state.to=6;applySpan();
+    G7.slice(0,5).forEach(function(d){
+      placeRun(d,HOURS[6],{i:lungo.id,a:"SCH",len:2},0);});
+    render();
+    var q=[].map.call(document.querySelectorAll(".blk"),function(b){
+      var tr=b.querySelector("span.tr");if(!tr)return 100;
+      return Math.round(tr.getBoundingClientRect().height/b.getBoundingClientRect().height*100);});
+    if(!q.length)return "nessun blocco da un'ora";
+    var min=Math.min.apply(null,q);
+    return min>=35?true:"il motivo occupa solo il "+min+"% dell'altezza (prima era il 30%)";});
+  t("quando la prima riga va a capo, la parola dell'attività sparisce",function(){
+    pulisci();apri();
+    var lungo=items().filter(function(x){return /dichiar/i.test(x.name||"");})[0]||it[2];
+    var G7=[];document.querySelectorAll("td.c").forEach(function(x){
+      if(G7.indexOf(x.dataset.date)<0)G7.push(x.dataset.date);});
+    state.span=7;state.from=0;state.to=6;applySpan();
+    placeRun(G7[0],HOURS[6],{i:lungo.id,a:"LEZ",len:2},0);
+    render();
+    var l1=document.querySelector(".blk em .l1");
+    /* a riga bassa un blocco da un'ora è una striscia e non ha la prima riga:
+       lì questa regola non si applica */
+    if(!l1)return ROW*2-2<30?true:"nessun blocco con la prima riga";
+    var b=l1.querySelector("b");
+    var doppia=l1.getBoundingClientRect().height>b.getBoundingClientRect().height*1.5;
+    return !doppia?true:"la prima riga è ancora doppia";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

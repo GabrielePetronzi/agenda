@@ -513,9 +513,13 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
    e la parola gli rubava esattamente lo spazio in cui farsi vedere. Qui il
    motivo è una voce del flex: si prende quello che avanza a destra, quindi
    non finisce mai sotto le scritte comunque sia largo il blocco. */
-/* 24 e non 20: a 20 la fascia arrivava a due pixel dal quadratino */
-.blk.mini em{display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 24px 0 7px}
-.blk.mini em b{padding-right:0;flex:0 1 auto;max-width:74%}
+/* Venti di rientro destro bastano: il quadratino comincia a diciotto dal
+   bordo, e i quattro pixel risparmiati vanno al motivo. */
+.blk.mini em{display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 20px 0 7px}
+/* Il nome si ferma al 56% e lascia il resto al motivo: su una colonna da
+   centoquarantotto pixel gli restavano dieci, cioè niente. Meglio un nome
+   troncato e un'attività riconoscibile che il contrario. */
+.blk.mini em b{padding-right:0;flex:0 1 auto;max-width:56%}
 .blk.mini em s{margin-top:0;flex:0 1 auto;min-width:0}
 /* margine suo: quello della fascia orizzontale esce di sette pixel dai bordi
    per arrivare al filo del blocco, ma qui la fascia sta di fianco al testo e
@@ -1363,7 +1367,7 @@ const AFASE={LEZ:"Acquisizione",LET:"Acquisizione",SCH:"Rielaborazione",
 function trama(w,h,d,op){
   const svg="<svg xmlns='http://www.w3.org/2000/svg' width='"+w+"' height='"+h+
     "' viewBox='0 0 "+w+" "+h+"'><g fill='none' stroke='%2314161B' stroke-opacity='"+
-    (op||.24)+"' stroke-width='1.2' stroke-linecap='round'>"+d+"</g></svg>";
+    (op||.30)+"' stroke-width='1.2' stroke-linecap='round'>"+d+"</g></svg>";
   /* encodeURIComponent lascia passare gli apici singoli, e l'SVG qui sopra li
      usa per gli attributi: se non li codifico a mano chiudono l'url() e il
      motivo sparisce, sia nel blocco sia nella maschera della legenda. */
@@ -3856,6 +3860,8 @@ function panels(){
   const box=document.getElementById("panels");box.innerHTML="";
   const m=map();
   for(let p=0;p<PANELS;p++)box.appendChild(buildPanel(p,m));
+  /* adesso i pannelli sono nella pagina e si possono misurare */
+  sfoltisci();
   nowLine();
 }
 
@@ -4131,6 +4137,23 @@ function clearRun(dateIso,start,len,lane){
   }
 }
 
+/* Se materia e attività non stanno su una riga, la riga diventa due e al
+   motivo restano quindici pixel invece di trenta. Allora la parola se ne va e
+   resta l'icona: l'attività si legge lo stesso, dal motivo e dall'icona, e la
+   fascia raddoppia. Si può sapere solo misurando, perché dipende da quanto è
+   lungo il nome e da quanto è larga la colonna. */
+function sfoltisci(root){
+  (root||document).querySelectorAll(".blk em .l1").forEach(l1=>{
+    const par=l1.querySelector("s > i"),nome=l1.querySelector("b");
+    if(!par||!nome)return;
+    /* una riga è alta quanto il nome della materia: se la prima riga è alta di
+       più, vuol dire che l'attività è andata a capo. Misurare l'interlinea
+       calcolata non funziona, perché le due righe hanno corpi diversi. */
+    const riga=nome.getBoundingClientRect().height||14;
+    if(l1.getBoundingClientRect().height>riga*1.5)par.remove();
+  });
+}
+
 /* ---------- disegno di un giorno ---------- */
 function cell(td,m){
   td.className="c"+(+td.dataset.d>4?" we":"")+(td.dataset.mark==="true"?" mark":"")+
@@ -4211,8 +4234,12 @@ function drawDay(dateIso,scope){
          più in alto va a capo su una riga sua, con quante righe ci stanno. */
       let corpo,nota="";
       if(striscia){
-        corpo="<s>"+icon(r.v.a,11)+(nt?"<i>"+nt+"</i>":"")+"</s>"+
-              (due?"":'<span class="tr"></span>');
+        /* Niente icona: a mezz'ora si prende ventun pixel di una fascia che ne
+           aveva dieci, e dice la stessa cosa che dice il motivo. Con una nota
+           l'icona resta, perché lì il motivo cede il posto al testo. */
+        corpo=nt?"<s>"+icon(r.v.a,11)+"<i>"+nt+"</i></s>"
+                :"<s></s>";
+        corpo+=(due?"":'<span class="tr"></span>');
       }else if(nt&&alt<62){
         /* Quando la colonna è stretta — la vista settimana sta a 147 pixel —
            materia e attività non stanno su una riga e vanno a capo: il testo
@@ -4245,6 +4272,10 @@ function drawDay(dateIso,scope){
       td.appendChild(bl);
     });
   });
+  /* Solo se il pannello è già a schermo: durante la costruzione l'albero è
+     staccato dalla pagina e ogni misura vale zero. Per quel caso ci pensa la
+     chiamata alla fine di panels(). */
+  if(root===document||document.body.contains(root))sfoltisci(root);
   /* scadenze con ora */
   examsOn(dateIso).forEach(x=>{
     const sl=examSlot(x);if(sl===null)return;
@@ -5157,6 +5188,7 @@ function redrawGrid(){
     t.querySelectorAll("td.c[data-date]").forEach(td=>ds.add(td.dataset.date));
     ds.forEach(d=>drawDay(d,t));
   });
+  sfoltisci();
 }
 /* Sceglie l'altezza di riga più grande che fa comunque entrare la fascia
    dalle 8 a FIT_TO. Tre tentativi, in quest'ordine:
