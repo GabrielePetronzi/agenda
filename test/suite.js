@@ -108,6 +108,33 @@
     var q=runAt(oggi,ORA,0);
     state.pomRun=null;
     return eq(!!(q&&q.done),true,"spuntato: ");});
+  t("un blocco da un'ora e mezza non si spunta tutto in quarantacinque minuti",function(){
+    /* il caso vero: schemi da 1h30 e pomodoro da 45 minuti. Una sessione vale
+       45 minuti, cioè una mezz'ora spuntata e un quarto d'ora in cassa. */
+    pulisci();apri();
+    state.pomConf={SCH:{s:45,b:15,l:30,n:4}};
+    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:3},0);
+    var g=slotDiOggi("SCH");
+    pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
+    var conta=function(){var n=0;for(var i=0;i<3;i++){
+      var v=at(ck(oggi,ORA+i))[0];if(v&&v.done)n++;}return n;};
+    pomAdvance(true);                       /* fine sessione: 45 min */
+    var dopoSess=conta();
+    pomAdvance(true);                       /* fine pausa: +15 = 60 min */
+    var dopoPausa=conta();
+    pomAdvance(true);                       /* seconda sessione: +45 */
+    var dopoSecondo=conta();
+    state.pomRun=null;state.pomConf={};
+    return (dopoSess===1&&dopoPausa===2&&dopoSecondo===3)?true:
+      "mezz'ore spuntate: dopo la sessione "+dopoSess+" (attesa 1), dopo la pausa "+
+      dopoPausa+" (attese 2), dopo la seconda sessione "+dopoSecondo+" (attese 3)";});
+  t("la parte fatta e quella da fare diventano due blocchi",function(){
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:3},0);
+    var key=ck(oggi,ORA),arr=at(key).slice();arr[0].done=1;setAt(key,arr);
+    var rs=runsOf(oggi).filter(function(x){return x.lane===0;});
+    return (rs.length===2&&rs[0].len===1&&rs[1].len===2)?true:
+      "blocchi: "+JSON.stringify(rs.map(function(x){return x.len+(x.v.done?" fatto":" da fare");}));});
   t("una pausa interrotta non vale quanto una sessione",function(){
     state.log={};
     var c=pomConf("ESE");

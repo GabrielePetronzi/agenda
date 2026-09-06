@@ -2730,21 +2730,49 @@ function pomStart(act,linked){
   save();pomRender();pomLoop();redrawLinked();
   toast(actOf(act).n+" · "+c.s+" min");
 }
+/* Spende i minuti maturati sui blocchi agganciati, una mezz'ora alla volta.
+   Prima spuntava il blocco intero a fine sessione: con sessioni da 45 minuti e
+   un blocco da un'ora e mezza, tre quarti d'ora di lavoro ne segnavano novanta
+   come fatti — e quel numero gonfiato finiva nelle ore fatte, nella tenuta e
+   nei CFU. Il resto sotto la mezz'ora resta in cassa per la volta dopo. */
+function spuntaMaturato(r){
+  if(!r||!r.linked||!r.linked.length)return 0;
+  let n=Math.floor((r.credito||0)/(60/PERQ)),fatte=0;
+  if(n<=0)return 0;
+  r.linked.forEach(b=>{
+    if(n<=0)return;
+    const base=at(ck(b.date,b.start))[b.lane];
+    if(!base)return;
+    for(let sl=b.start;n>0;sl++){
+      const key=ck(b.date,sl),arr=at(key).slice(),v=arr[b.lane];
+      if(!v||v.i!==base.i||v.a!==base.a)break;
+      if(!v.done){v.done=1;setAt(key,arr);n--;fatte++;}
+    }
+  });
+  r.credito=(r.credito||0)-fatte*(60/PERQ);
+  /* finito un blocco, il timer si sposta sul prossimo di oggi: se no i minuti
+     maturati dopo non avrebbero più dove andare */
+  if(fatte&&r.linked.every(b=>{
+      const q=runAt(b.date,b.start,b.lane);return q&&q.done;})){
+    const g=slotDiOggi(r.act);
+    if(g)r.linked=[{date:g.date,start:g.start,lane:g.lane}];
+  }
+  return fatte;
+}
 function pomAdvance(auto){
   const r=state.pomRun;if(!r)return;
   const c=pomConf(r.act);
   if(r.phase==="work"){
     /* a fine sessione conta tutta la durata, se la salti conta solo il girato */
     const rest=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
-    logAdd(r.act,auto?c.s:(c.s*60000-rest)/60000,linkedIds(r));
+    const min=auto?c.s:(c.s*60000-rest)/60000;
+    logAdd(r.act,min,linkedIds(r));
+    r.credito=(r.credito||0)+min;
+    const k=spuntaMaturato(r);
+    if(k)afterEdit(hrs(k)+" segnate come fatte");
     if(auto){
       const t=pomToday();
       t.n++;t.min+=c.s;t.byAct[r.act]=(t.byAct[r.act]||0)+1;
-      /* i blocchi agganciati vengono segnati come fatti */
-      if(r.linked&&r.linked.length){
-        r.linked.forEach(b=>setDoneQuiet(b.date,b.start,b.lane,1));
-        afterEdit("Sessione completata: blocchi segnati come fatti");
-      }
       notify("Sessione finita","Pausa di "+
         (r.cycle%c.n===0?c.l:c.b)+" minuti");
     }
@@ -2757,7 +2785,11 @@ function pomAdvance(auto){
        registro come il resto, sulla stessa materia. */
     const durP=(r.phase==="long"?c.l:c.b);
     const restP=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
-    logAdd(r.act,auto?durP:(durP*60000-restP)/60000,linkedIds(r));
+    const minP=auto?durP:(durP*60000-restP)/60000;
+    logAdd(r.act,minP,linkedIds(r));
+    r.credito=(r.credito||0)+minP;
+    const kp=spuntaMaturato(r);
+    if(kp)afterEdit(hrs(kp)+" segnate come fatte");
     if(auto)pomToday().min+=durP;
     if(auto)notify("Pausa finita","Riprendi con "+actOf(r.act).n.toLowerCase());
     r.cycle=r.phase==="long"?1:r.cycle+1;
@@ -3504,7 +3536,11 @@ function lanesOf(dateIso){
   HOURS.forEach(sl=>{n=Math.max(n,at(ck(dateIso,sl)).length);});
   return Math.min(MAXLANE,n);
 }
-function sameBlock(a,b){return a&&b&&a.i===b.i&&a.a===b.a;}
+/* Anche la spunta separa: se di un blocco da un'ora e mezza ne hai fatta
+   un'ora, quell'ora è un blocco fatto e la mezz'ora che resta è un blocco da
+   fare. Senza questo il disegno prenderebbe lo stato dalla prima mezz'ora e
+   direbbe che è tutto fatto. */
+function sameBlock(a,b){return a&&b&&a.i===b.i&&a.a===b.a&&!a.done===!b.done;}
 
 /* elenca i blocchi contigui di un giorno, corsia per corsia */
 function runsOf(dateIso){
