@@ -690,7 +690,7 @@ td.tot b{color:var(--tx2);font-weight:500}
   text-overflow:ellipsis;white-space:nowrap}
 .gph em{font-style:normal;font-family:"DM Mono",monospace;font-size:9.5px;
   color:var(--tx3);flex:0 0 auto}
-.gp.corto .gph em{color:var(--warn)}
+.gp.corto .gph em{color:var(--late)}
 .gph u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;
   color:var(--tx2);flex:0 0 auto}
 .gpb{display:flex;gap:2px;height:10px}
@@ -702,7 +702,23 @@ td.tot b{color:var(--tx2);font-weight:500}
   color:var(--late);display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
 .gritmo.ok{color:var(--done)}
 .gritmo b{font-family:"Familjen Grotesk",sans-serif;font-size:12px;font-weight:600}
-.gp.corto .gpn{color:var(--warn)}
+/* la corsa: il tratto non si deforma con lo stiramento del viewBox */
+/* Alto abbastanza da far vedere le pendenze: il viewBox è cento unità stirate
+   su mille pixel, e con un grafico basso ogni salita diventa una riga piatta. */
+.gsvg{display:block;width:100%;height:92px;margin-top:8px}
+.gsvg line,.gsvg polyline{vector-effect:non-scaling-stroke;fill:none}
+.gsvg .gzona{fill:var(--late);opacity:.13;stroke:none}
+.gsvg .gzona.ok{fill:var(--done);opacity:.11}
+.gsvg .gbase{stroke:var(--line);stroke-width:1}
+.gsvg .gmeta{stroke:var(--tx3);stroke-width:1;stroke-dasharray:2 3;opacity:.85}
+.gsvg .goggi{stroke:var(--line-soft);stroke-width:1}
+.gsvg .greale{stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.gsvg .gpiano{stroke:var(--late);stroke-width:1.4;stroke-dasharray:4 3;opacity:.9}
+.gsvg .gpiano.ok{stroke:var(--done)}
+.gasse{position:relative;display:flex;justify-content:space-between;margin-top:3px;
+  font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3)}
+.gasse .oggi{position:absolute;top:0;transform:translateX(-50%);color:var(--tx2)}
+
 /* 4 — quando studi: sette giorni per tre fasce */
 .gmap{display:grid;grid-template-columns:64px repeat(7,1fr);gap:3px}
 .gmap .gmh{font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);
@@ -3473,7 +3489,7 @@ function semSummary(){
   const box=document.getElementById("semBody");
   if(!state.semOpen){box.innerHTML="";return;}
   const m=map(),pre=state.year+"."+state.ctx+".",oggi=TODAY;
-  const wk={},fase={},mappa={},mat={},ritmo4={},qui={};
+  const wk={},fase={},mappa={},mat={},ritmo4={},qui={},sm={};
   const lun4=iso(addDays(monday(new Date()),-28)),lunOra=iso(monday(new Date()));
   let tot=0,done=0,saltate=0;
   Object.keys(state.cells).forEach(k=>{
@@ -3490,6 +3506,11 @@ function semSummary(){
       if(q)mat[v.i].f++;else if(futuro)mat[v.i].fut++;else mat[v.i].persa++;
       /* il ritmo tenuto davvero nelle quattro settimane già chiuse */
       if(q&&dt>=lun4&&dt<lunOra)ritmo4[v.i]=(ritmo4[v.i]||0)+1;
+      /* e la storia settimana per settimana, che serve a disegnare la corsa */
+      const ls=iso(monday(d));
+      sm[v.i]=sm[v.i]||{};
+      const e=sm[v.i][ls]=sm[v.i][ls]||{d:0,p:0};
+      if(q)e.d++;else if(futuro)e.p++;
       if(!dentro)return;
       /* Le materie di cui parlano i grafici sono quelle che hai messo negli
          slot di questo periodo. Le ore invece si contano su tutto il piano,
@@ -3530,14 +3551,15 @@ function semSummary(){
     const f=mat[id].f/PERQ,fut=mat[id].fut/PERQ;
     const gg=o.date?Math.round((parse(o.date)-parse(oggi))/86400000):null;
     return {o:o,tgt:tgt,f:f,fut:fut,vuoto:Math.max(0,tgt-f-fut),gg:gg,
-            persa:mat[id].persa/PERQ,ritmo:(ritmo4[id]||0)/PERQ/4};
+            persa:mat[id].persa/PERQ,ritmo:(ritmo4[id]||0)/PERQ/4,
+            sett:sm[id]||{}};
   }).filter(Boolean).filter(r=>qui[r.o.id]&&segui(r.o.id)).sort((a,b)=>
     (a.gg==null)-(b.gg==null)||(a.gg-b.gg)||(b.vuoto-a.vuoto));
   if(righe.length){
-    h+='<div class="graf"><h4>Ce la fai?<u>fatte · in piano · scoperte, sul monte ore'+
+    h+='<div class="graf"><h4>Ce la fai?<u>tratteggio grigio: dove dovresti essere · '+
+      'linea piena: dove sei · tratteggio colorato: dove arrivi col piano'+
       (seguite().length?" · solo quelle che segui":"")+"</u></h4>";
     righe.forEach(r=>{
-      const scala=Math.max(r.tgt,r.f+r.fut)||1,pc=v=>(v/scala*100).toFixed(1)+"%";
       const verdetto=r.vuoto>0
         ? "mancano "+hrs(r.vuoto*PERQ)+" che non sono in piano"
         : "il piano copre l'obiettivo";
@@ -3545,13 +3567,9 @@ function semSummary(){
         '<div class="gph"><b>'+r.o.name+"</b>"+
           (r.gg!=null?'<em>'+(r.gg>=0?"esame fra "+r.gg+" g":"esame passato")+"</em>":"")+
           "<u>"+hrs(r.f*PERQ)+" / "+r.tgt+" h</u></div>"+
-        '<div class="gpb">'+
-          '<i style="width:'+pc(r.f)+";background:"+r.o.color+'"></i>'+
-          '<i class="pl" style="width:'+pc(r.fut)+";background:"+r.o.color+'"></i>'+
-          '<i class="vu" style="width:'+pc(r.vuoto)+'"></i></div>'+
         '<div class="gpn">'+verdetto+
           (r.persa>0?" · "+hrs(r.persa*PERQ)+" già saltate":"")+"</div>"+
-        ritmoRiga(r)+
+        corsa(r)+ritmoRiga(r)+
       "</div>";
     });
     h+="</div>";
@@ -3630,6 +3648,54 @@ function semSummary(){
    servono da qui all'esame, e quante ne stai facendo davvero. Il confronto è
    col ritmo delle ultime quattro settimane già chiuse — quello vero, non
    quello che avevi in mente. Senza una data d'esame non ha senso e non compare. */
+/* La corsa verso l'esame. Tre cose sullo stesso disegno:
+   - la retta grigia: dove dovresti essere ogni settimana per arrivare al monte
+     ore il giorno dell'esame;
+   - la linea piena: dove sei davvero, settimana per settimana, contando le ore
+     spuntate;
+   - il tratteggio: dove arrivi se fai tutto quello che hai già messo in piano.
+   Se il tratteggio finisce sotto la retta, il piano non basta — e si vede
+   senza leggere un numero. */
+function corsa(r){
+  if(r.gg==null||r.gg<0||!r.tgt)return "";
+  const fine=monday(parse(r.o.date));
+  const sett=Object.keys(r.sett).sort();
+  let inizio=sett.length?parse(sett[0]):monday(new Date());
+  const oggiLun=monday(new Date());
+  if(inizio>oggiLun)inizio=oggiLun;
+  const n=Math.max(1,Math.round((fine-inizio)/604800000));
+  if(n>200)return "";
+  const W=100,H=34,px=i=>i/n*W,py=v=>H-Math.min(1,v/r.tgt)*(H-3)-1.5;
+  let cum=0,pia=0,reali=[],piano=[],meta=[],iOggi=0;
+  for(let i=0;i<=n;i++){
+    const k=iso(addDays(inizio,i*7)),c=r.sett[k]||{d:0,p:0};
+    cum+=c.d/PERQ;pia+=(c.d+c.p)/PERQ;
+    meta.push([px(i),py(r.tgt*i/n)]);
+    if(parse(k)<=oggiLun){reali.push([px(i),py(cum)]);iOggi=i;}
+    piano.push([px(i),py(pia)]);
+  }
+  const via=a=>a.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
+  const ce=pia>=r.tgt-0.01;
+  /* Il divario si riempie invece di essere disegnato con due fili: a centocinquanta
+     ore di obiettivo e quaranta fatte le linee starebbero appiccicate al fondo e
+     sembrerebbe che non ci siano dati, non che sei indietro. */
+  const zona=via(meta)+" "+via(piano.slice().reverse());
+  return '<svg class="gsvg" viewBox="0 0 '+W+" "+H+'" preserveAspectRatio="none" '+
+      'role="img" aria-label="andamento verso l\u2019esame">'+
+    '<polygon class="gzona'+(ce?" ok":"")+'" points="'+zona+'"/>'+
+    '<line class="gbase" x1="0" y1="'+py(0)+'" x2="'+W+'" y2="'+py(0)+'"/>'+
+    '<polyline class="gmeta" points="'+via(meta)+'"/>'+
+    '<line class="goggi" x1="'+px(iOggi)+'" y1="0.5" x2="'+px(iOggi)+'" y2="'+(H-0.5)+'"/>'+
+    (piano.length>1?'<polyline class="gpiano'+(ce?" ok":"")+'" points="'+via(piano)+'"/>':"")+
+    (reali.length>1?'<polyline class="greale" points="'+via(reali)+
+      '" style="stroke:'+r.o.color+'"/>':"")+
+    "</svg>"+
+    /* i riferimenti dell'asse stanno fuori dall'svg: dentro un viewBox stirato
+       il testo si deformerebbe insieme al disegno */
+    '<div class="gasse"><span>'+fmt(inizio)+"</span>"+
+      '<span class="oggi" style="left:'+(iOggi/n*100).toFixed(1)+'%">oggi</span>'+
+      "<span>"+fmt(parse(r.o.date))+"</span></div>";
+}
 function ritmoRiga(r){
   if(r.gg==null||r.gg<0)return "";
   const manca=Math.max(0,r.tgt-r.f);

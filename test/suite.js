@@ -940,5 +940,48 @@
     state.cells[state.year+".2."+G[1]+"."+H0]=[{i:id,a:"LET",done:1}];
     return eq(oreFatte(id),3,"mezz'ore fatte in tutto il piano ");});
 
+
+  /* ---------- la corsa verso l'esame ---------- */
+  t("la corsa si disegna solo con una data d'esame",function(){
+    pulisci();apri();
+    var o=items()[0];
+    placeRun(G[0],H0,{i:o.id,a:"LET",len:4},0);
+    state.semOpen=true;semSummary();
+    var senza=document.querySelectorAll("#semBody .gsvg").length;
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),70))};
+    semSummary();
+    var con=document.querySelectorAll("#semBody .gsvg").length;
+    state.over={};
+    return (senza===0&&con===1)?true:"senza data "+senza+", con data "+con;});
+  t("un piano che basta disegna il verde, uno che non basta il rosso",function(){
+    pulisci();apri();
+    var o=items()[0],tgt=targetH(o.cfu)*PERQ;
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),56))};
+    /* poche ore: non basta */
+    placeRun(G[0],H0,{i:o.id,a:"LET",len:4},0);
+    state.semOpen=true;semSummary();
+    var rosso=!!document.querySelector("#semBody .gpiano:not(.ok)");
+    /* ora ne metto in piano quante ne servono. Parto da zero: il blocco di
+       prima sta nel passato e non spuntato, quindi è tempo perso, non piano. */
+    var messe=0;
+    for(var g=1;g<56&&messe<tgt;g++){
+      var day=iso(addDays(new Date(),g));
+      for(var j=0;j<HOURS.length-1&&messe<tgt;j+=2){
+        placeRun(day,HOURS[j],{i:o.id,a:"LET",len:2},0);messe+=2;}}
+    semSummary();
+    var verde=!!document.querySelector("#semBody .gpiano.ok");
+    state.over={};
+    return (rosso&&verde)?true:"poche ore → rosso "+rosso+", tante ore → verde "+verde;});
+  t("l'asse della corsa dice da quando, oggi e la data d'esame",function(){
+    pulisci();apri();
+    var o=items()[0];
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),70))};
+    placeRun(G[0],H0,{i:o.id,a:"LET",len:4},0);
+    state.semOpen=true;semSummary();
+    var a=document.querySelector("#semBody .gasse");
+    var ok=a&&a.querySelectorAll("span").length===3&&a.textContent.indexOf("oggi")>=0;
+    state.over={};
+    return ok?true:"asse: "+(a?a.textContent:"assente");});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");
