@@ -3187,14 +3187,20 @@ function w_notifOK(){
   return typeof Notification!=="undefined"&&Notification.permission==="granted";
 }
 let audioCtx=null;
+/* Due segnali, non uno. Le tre note stanno a centottanta millisecondi l'una
+   dall'altra: sotto i duecento l'orecchio le lega in un suono solo, ed e'
+   voluto — e' un accordo, non tre bip. Quello che serviva era sentirlo due
+   volte, e per sentirlo due volte serve un silenzio piu' lungo del suono: la
+   figura dura circa settecento millisecondi, la ripresa parte a mille. */
+const BIPVOLTE=2, BIPPAUSA=1000;
 function beep(){
   try{
     audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
-    [0,180,360].forEach((d,i)=>{
+    for(let v=0;v<BIPVOLTE;v++)[0,180,360].forEach((d,i)=>{
       const o=audioCtx.createOscillator(),g=audioCtx.createGain();
       o.connect(g);g.connect(audioCtx.destination);
       o.frequency.value=i===2?660:520;o.type="sine";
-      const t=audioCtx.currentTime+d/1000;
+      const t=audioCtx.currentTime+(v*BIPPAUSA+d)/1000;
       g.gain.setValueAtTime(0,t);
       g.gain.linearRampToValueAtTime(.22,t+.02);
       g.gain.exponentialRampToValueAtTime(.001,t+.32);

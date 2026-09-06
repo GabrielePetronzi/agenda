@@ -368,6 +368,28 @@
     return dmin>=18?true:"troppo vicine ("+dmin.toFixed(1)+"): "+peggio;});
 
 
+  /* Il segnale di fine fase deve arrivare due volte: la prima puo' capitare
+     mentre sei girato dall'altra parte. */
+  t("il pomodoro suona due volte, non una",function(){
+    var partenze=[],veroCtx=window.AudioContext,veroWk=window.webkitAudioContext,vero=audioCtx;
+    function Finto(){
+      this.currentTime=0;
+      this.destination={};
+      this.createGain=function(){return {connect:function(){},gain:{
+        setValueAtTime:function(){},linearRampToValueAtTime:function(){},
+        exponentialRampToValueAtTime:function(){}}};};
+      this.createOscillator=function(){return {frequency:{},connect:function(){},
+        start:function(x){partenze.push(x);},stop:function(){}};};
+    }
+    window.AudioContext=Finto;window.webkitAudioContext=Finto;audioCtx=null;
+    try{ beep(); } finally {
+      window.AudioContext=veroCtx;window.webkitAudioContext=veroWk;audioCtx=vero;
+    }
+    if(partenze.length!==6)return "note suonate: "+partenze.length+" invece di 6";
+    var gruppi=partenze.filter(function(x){return x>=.5;});
+    return gruppi.length===3?true:"il secondo segnale non e' staccato: "+partenze.join(",");});
+
+
   /* ---------- grafici ---------- */
   t("i grafici ci sono tutti e quattro",function(){
     state.semOpen=true;semSummary();
