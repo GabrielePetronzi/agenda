@@ -336,7 +336,7 @@ body.dropping td.c.dropok{background:var(--tint-hover);
    Canvas: barra della griglia
    ============================================================ */
 .gridbar{position:sticky;top:var(--stick-bar, 62px);z-index:30;background:var(--bg);
-  padding:6px 0 8px;margin-bottom:2px;
+  padding:5px 0 6px;margin-bottom:0;
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   border-bottom:1px solid var(--line)}
 .gridbar .grp{display:flex;align-items:center;gap:6px}
@@ -370,7 +370,7 @@ body.dropping td.c.dropok{background:var(--tint-hover);
 
 .printhead{display:none}
 .status{font-family:"DM Mono",monospace;font-size:11px;color:var(--tx2);
-  margin:4px 0;min-height:16px;line-height:1.5}
+  margin:3px 0;min-height:14px;line-height:1.4}
 .status b{color:var(--tx);font-weight:500;letter-spacing:.02em}
 /* Il debito: blocchi che l'ora di adesso ha superato senza che li spuntassi.
    Sta sopra le settimane e non si chiude da solo, perché è quello il punto: o
@@ -428,8 +428,8 @@ html[data-fit="compact"] th s{font-size:12.5px}
    ============================================================ */
 .panel{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
 .panel:first-of-type{border-top:0;margin-top:0;padding-top:0}
-.phead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
-.ptitle{background:none;border:0;color:inherit;cursor:pointer;text-align:left;padding:4px 0;
+.phead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5px}
+.ptitle{background:none;border:0;color:inherit;cursor:pointer;text-align:left;padding:2px 0;
   display:flex;align-items:baseline;gap:8px;flex:1;min-width:0}
 .ptitle .chev{display:flex;align-items:center;color:var(--tx3);transition:transform .16s}
 .ptitle .chev.open{transform:rotate(90deg)}
@@ -466,12 +466,16 @@ html[data-fit="compact"] th s{font-size:12.5px}
 }
 table{border-collapse:collapse;table-layout:fixed;width:100%;min-width:440px;
   touch-action:none;user-select:none;-webkit-user-select:none}
-th{padding:0 0 6px;text-align:center;font-weight:500;border:0;vertical-align:bottom}
+/* Il nome del giorno e il numero stavano incolonnati e si prendevano
+   quarantadue pixel di altezza in cima alla griglia. Sulla stessa riga ne
+   costano ventotto, e si leggono uguale: quattordici pixel sono mezz'ora di
+   giornata in piu' a schermo. */
+th{padding:0 0 4px;text-align:center;font-weight:500;border:0;vertical-align:bottom}
 th.hc{width:34px;border:0}
-th u{display:block;text-decoration:none;font-family:"DM Mono",monospace;font-size:9px;
+th u{display:inline;text-decoration:none;font-family:"DM Mono",monospace;font-size:9px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);line-height:1.2}
-th s{display:block;text-decoration:none;font-family:"Familjen Grotesk",sans-serif;
-  font-size:15px;font-weight:500;color:var(--tx2);margin-top:1px;line-height:1.15}
+th s{display:inline;text-decoration:none;font-family:"Familjen Grotesk",sans-serif;
+  font-size:15px;font-weight:500;color:var(--tx2);margin-left:5px;line-height:1.15}
 th.today u{color:var(--action)}
 th.today s{color:var(--action);font-weight:700}
 th.we u,th.we s{opacity:.72}
@@ -1099,6 +1103,7 @@ td.tot b{color:var(--tx2);font-weight:500}
       </div>
 
       <div class="grp sep">
+        <button class="btn" id="sideBtn">Affianca</button>
         <button class="btn" id="eraseBtn">Cancella</button>
       </div>
     </div>
@@ -1295,7 +1300,7 @@ const ROW_MIN=13;                /* sotto non si legge più niente */
 const ROW_MAX=34;
 const ROW_OK=22;                 /* sotto questa misura conviene stringere l'intestazione */
 const ROW_TINY=16;               /* sotto questa, meglio un filo di scorrimento */
-const FIT_TO=18.5;               /* l'ora fino a cui la giornata deve stare a schermo */
+const FIT_TO=21;                 /* l'ora fino a cui la giornata deve stare a schermo */
 const MINI2=27;                  /* da qui in su in mezz'ora ci stanno due righe */
 const slotHour=s=>Math.floor(s/PERQ);
 const slotQ=s=>s%PERQ;
@@ -1611,7 +1616,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    2. STATO
    ============================================================ */
 const KEY="piano-6272-v5";
-let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
+let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,affianca:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
            pomConf:null,pomRun:null,pomLog:null,log:{},dayFrom:8,dayTo:24,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
@@ -2035,6 +2040,7 @@ window.addEventListener("keydown",e=>{
   /* da 1 a 7: l'attività con cui dipingere */
   if(k>="1"&&k<="9"&&ACTS[+k-1]){e.preventDefault();pickAct(ACTS[+k-1].k);return;}
   if(k==="e"||k==="E"){e.preventDefault();document.getElementById("eraseBtn").click();return;}
+  if(k==="a"||k==="A"){e.preventDefault();document.getElementById("sideBtn").click();return;}
   if(k==="o"||k==="O"){e.preventDefault();document.getElementById("wToday").click();return;}
   /* con il fuoco su una casella le frecce servono a muoversi lì dentro;
      fuori dalla griglia cambiano settimana */
@@ -2798,6 +2804,17 @@ function gridModes(){
   er.className="btn"+(state.erase?" warnon":"");
   er.title=state.erase?"Tocca o trascina per svuotare: si spegne quando rilasci"
                       :"Cancella un tratto di slot, per una volta sola";
+  /* Affiancare due blocchi nella stessa mezz'ora si poteva gia' fare, ma solo
+     tenendo premuto ⌥ mentre dipingi: una scorciatoia che sa solo chi legge
+     l'elenco delle scorciatoie. Qui e' un interruttore come Cancella. */
+  const af=document.getElementById("sideBtn");
+  if(af){
+    af.className="btn"+(state.affianca?" on":"");
+    af.title=state.affianca
+      ?"Dipingendo sopra a un blocco lo affianchi invece di spostarlo — fino a "+MAXLANE+" per mezz'ora"
+      :"Metti due materie nella stessa mezz'ora, una di fianco all'altra";
+  }
+  document.body.classList.toggle("affianca",!!state.affianca);
   /* la griglia cambia carattere secondo quello che sta per succedere */
   document.body.classList.toggle("paint",!state.erase&&!!state.brush);
   document.body.classList.toggle("erasing",!!state.erase);
@@ -2809,6 +2826,8 @@ function modeFlag(){
     el.textContent="Tocca il blocco su cui avviare il pomodoro";}
   else if(state.erase){el.className="modeflag on";el.style.background="var(--warn)";
     el.textContent="Cancella un tratto — si spegne quando rilasci";}
+  else if(state.affianca){el.className="modeflag on";el.style.background="var(--action)";
+    el.textContent="Affianca — dipingi sopra a un blocco e gli si mette di fianco";}
   else{el.className="modeflag";el.style.background="";}
 }
 function status(){
@@ -2816,6 +2835,9 @@ function status(){
   const clip=state.clip?'<span style="color:var(--tx3)"> — appunti: '+state.clip.label+" ("+hrs(state.clip.hours)+")</span>":"";
   if(state.erase){el.innerHTML="<b>CANCELLA</b> · tocca o trascina per svuotare, "+
     "poi torna il pennello di prima"+clip;return;}
+  if(state.affianca&&state.brush&&m[state.brush]){
+    el.innerHTML="<b>AFFIANCA</b> · "+m[state.brush].name+", "+actOf(state.act).n.toLowerCase()+
+      " — dipingendo sopra a un blocco gli si mette di fianco"+clip;return;}
   if(!state.brush||!m[state.brush]){
     el.innerHTML=state.act==="RIP"
       ? "<b>RIPASSO LIBERO</b> · senza materia, in grigio"+clip
@@ -4892,7 +4914,7 @@ function wire(t){
        tocco secco resta un tocco e il doppio tocco di prima ci arriva.
        Con ⌥ premuto la presa si disattiva e il tratto dipinge, che è il
        solo modo di affiancare un blocco a uno che riempie già la cella. */
-    if(!state.erase&&!e.altKey&&e.target.closest(".blk")){
+    if(!state.erase&&!e.altKey&&!state.affianca&&e.target.closest(".blk")){
       const r=runAt(td.dataset.date,+td.dataset.h,lane)||anyRunAt(td.dataset.date,+td.dataset.h);
       if(r){armMove={run:r,off:(+td.dataset.h)-r.start,x:e.clientX,y:e.clientY};return;}
     }
@@ -5444,6 +5466,13 @@ document.getElementById("rpGo").onclick=doRepeat;
 
 document.getElementById("eraseBtn").onclick=()=>{
   state.erase=!state.erase;
+  if(state.erase)state.affianca=false;
+  save();tools();status();modeFlag();pomPanel();panels();
+};
+document.getElementById("sideBtn").onclick=()=>{
+  state.affianca=!state.affianca;
+  /* i due modi si escludono: cancellare affiancando non vuol dire niente */
+  if(state.affianca)state.erase=false;
   save();tools();status();modeFlag();pomPanel();panels();
 };
 document.getElementById("printBtn").onclick=()=>{chiudiMenu();window.print();};
@@ -5542,7 +5571,18 @@ function autoRow(){
   px=Math.max(ROW_MIN,Math.min(ROW_MAX,px));
   stickyOffsets();
   if(px===ROW)return false;
-  setRow(px);return true;
+  setRow(px);
+  /* La prima passata misura la pagina com'era prima: cambiare l'altezza delle
+     righe cambia anche quanto sta sopra la griglia — l'intestazione stretta,
+     il titolo della settimana — e il conto torna sbagliato di una riga o due.
+     Qui si rimisura una volta sola e si stringe se non ci sta davvero. Solo
+     stringere: allargare potrebbe rimbalzare avanti e indietro. */
+  const ancora=fromTop();
+  if(ancora!==null){
+    const q=Math.max(ROW_MIN,Math.min(ROW_MAX,ancora));
+    if(q<px)setRow(q);
+  }
+  return true;
 }
 
 /* mette le icone nei pulsanti scritti a mano nell'HTML: si fa una volta sola,
@@ -5551,6 +5591,7 @@ const KEYS=[
   ["Griglia",[
     [["1","…","8"],"Scegli l'attività con cui dipingere"],
     [["E"],"Cancella un tratto: al rilascio torna il pennello di prima"],
+    [["A"],"Affianca: dipingere sopra a un blocco non lo sposta, gli si mette di fianco"],
     [["Trascina"],"Prendi un blocco per il corpo e portalo dove vuoi"],
     [["⌥/Alt","Trascina"],"Dipinge anche sopra a un blocco: lo affianca"],
     [["Spazio"],"Dipinge la casella che ha il fuoco"],
