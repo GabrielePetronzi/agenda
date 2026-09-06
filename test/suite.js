@@ -286,9 +286,14 @@
     ACTS.forEach(function(a,i){
       placeRun(G[0],H0+i*4,{i:it[i%6].id,a:a.k,len:(i%3)+1,n:i%2?"cap. 4 esercizi 12-30":""},0);});
     render();
+    /* Dove la striscia è così stretta che il motivo diventerebbe una macchia
+       da sei pixel, la fascia sparisce apposta e torna l'icona: quello è il
+       ripiego, non un difetto. Rosso solo se non resta né l'una né l'altra. */
     var mal=[].filter.call(document.querySelectorAll(".blk"),function(b){
       var tr=b.querySelector("span.tr");
-      return tr&&tr.getBoundingClientRect().height<1;});
+      if(!tr||tr.getBoundingClientRect().height>=1)return false;
+      var ic=b.querySelector("em s .ico");
+      return !(ic&&ic.getBoundingClientRect().height>=8);});
     if(!mal.length)return true;
     return mal.map(function(b){
       var l1=b.querySelector(".l1"),nt=b.querySelector("u.nota");
@@ -297,7 +302,40 @@
         " largo "+Math.round(b.getBoundingClientRect().width)+
         " riga1="+(l1?Math.round(l1.getBoundingClientRect().height):"-")+
         " nota="+(nt?Math.round(nt.getBoundingClientRect().height):"-")+
-        " ROW="+ROW+" "+document.documentElement.dataset.row+"]";}).join(" ");});
+        " ROW="+ROW+" "+document.documentElement.dataset.row+
+        " s="+(function(){var x=b.querySelector("em s");return x?
+          (x.className||"-")+"/"+getComputedStyle(x).display+"/ico"+x.querySelectorAll(".ico").length+
+          "/h"+Math.round(x.getBoundingClientRect().height):"niente";})()+
+        "]";}).join(" ");});
+
+  /* Il difetto che rendeva illeggibili i blocchi corti non era la fascia
+     piccola: era la figura tagliata. Una tile alta undici in una fascia alta
+     diciassette si ripete una volta e mezza, e mezzo professore non e' un
+     professore. Qui si controlla che quello che si vede sia sempre intero. */
+  t("nei blocchi corti il motivo non esce mai tagliato",function(){
+    pulisci();
+    ACTS.forEach(function(a,i){
+      placeRun(G[i%G.length],H0+((i*3)%9),
+        {i:it[i%6].id,a:a.k,len:(i%3)+1},Math.floor(i/G.length));});
+    render();
+    var mal=[];
+    [].forEach.call(document.querySelectorAll(".blk[data-att]"),function(b){
+      var f=b.querySelector("em > span.tr");if(!f)return;
+      var r=f.getBoundingClientRect();if(r.height<1)return;   /* ripiego: c'e' l'icona */
+      var cs=getComputedStyle(b),ts=cs.getPropertyValue("--trs").trim(),
+          d=TRDIM[b.dataset.att],
+          rr=(cs.getPropertyValue("--trr").trim()||"repeat").split(/\s+/)[0],
+          n=(!ts||ts==="auto")?[d[0],d[1]]:ts.split(/\s+/).map(parseFloat);
+      /* una figura che si ripete in verticale deve entrarci un numero intero
+         di volte: e' li' che nasceva la fila tagliata a meta' */
+      if(d[2]&&rr==="repeat"&&Math.abs(r.height/n[1]-Math.round(r.height/n[1]))>.06)
+        mal.push(b.dataset.att+" "+(r.height/n[1]).toFixed(2)+" file in verticale");
+      if(n[1]>r.height+.6)
+        mal.push(b.dataset.att+" alta "+n[1].toFixed(1)+" in "+Math.round(r.height));
+      if(d[2]&&n[0]>r.width+.6)
+        mal.push(b.dataset.att+" larga "+n[0].toFixed(1)+" in "+Math.round(r.width));
+    });
+    return mal.length?mal.join(" \u00b7 "):true;});
 
   /* ---------- grafici ---------- */
   t("i grafici ci sono tutti e quattro",function(){

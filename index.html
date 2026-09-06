@@ -490,7 +490,9 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
   flex:0 0 auto;padding-right:24px}
 .blk em .l1 b{flex:0 1 auto;max-width:100%;padding-right:0}
 .blk em .l1 s{flex:0 1 auto;min-width:0;margin-top:0}
-.blk em span.tr{flex:1 1 0;min-height:0;margin:2px -7px 0;background-image:var(--tr)}
+.blk em span.tr{flex:1 1 0;min-height:0;margin:2px -7px 0;background-image:var(--tr);
+  background-size:var(--trs,auto);background-repeat:var(--trr,repeat);
+  background-position:var(--trp,0 50%)}
 .blk em b{display:block;font-family:"Familjen Grotesk",sans-serif;font-size:12px;
   font-weight:600;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;line-height:1.2;padding-right:17px}
@@ -535,6 +537,12 @@ html[data-row="micro"] .blk.mini em{padding:1px 14px 0 5px}
 html[data-row="micro"] .blk em b{font-size:10px;padding-right:13px;line-height:1.15}
 html[data-row="micro"] .blk em s{font-size:9.5px}
 html[data-row="micro"] .blk.mini em s{display:none}
+/* l'icona di ripiego no: è quello che resta dell'attività quando il motivo non
+   ci sta, e sparire è proprio quello che non deve fare */
+html[data-row="micro"] .blk.mini em s.soloico{display:flex}
+/* a riga minima la nota non ci sta lo stesso: dell'appoggio si mostra l'icona
+   e basta, che è il pezzo che sostituisce il motivo */
+html[data-row="micro"] .blk.mini em s.soloico i{display:none}
 html[data-row="micro"] .tick{width:10px;height:10px;top:2px;right:2px}
 html[data-row="micro"] .tick::after{left:3px;top:.8px;width:2.8px;height:5.8px}
 html[data-row="micro"] td.hr{font-size:9px}
@@ -553,6 +561,8 @@ html[data-theme="light"] .blk:hover{filter:brightness(.96)}
    lavora in orizzontale sulla destra. */
 .blk.mini2::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
   background-image:var(--tr);
+  background-size:var(--trs,auto);background-repeat:var(--trr,repeat);
+  background-position:var(--trp,100% 50%);
   -webkit-mask-image:linear-gradient(90deg,transparent 0 60%,#000 68%);
   mask-image:linear-gradient(90deg,transparent 0 60%,#000 68%)}
 .blk.done{opacity:.58}
@@ -1412,6 +1422,13 @@ const ATRAMA={
   RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",.30),
   LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>")
 };
+/* Quanto è grande una tile, e se è una figura o un tessuto. Serve a scalarla:
+   una figura tagliata a metà non è un simbolo, mentre righe e quadretti
+   tagliati restano righe e quadretti. Le figure, nelle fasce basse dei blocchi
+   corti, vanno ingrandite fino a riempirle una volta sola; i tessuti si
+   ripetono e basta. */
+const TRDIM={LEZ:[17,11,1],SCH:[22,16,1],RIP:[15,15,1],PRO:[22,11,0],
+  LAB:[13,13,0],LET:[20,6,0],ESE:[7,7,0],LAV:[8,8,0]};
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
   /* La pastiglia della legenda è 17px e la tile del blocco è alta 11: ce ne
@@ -4186,6 +4203,118 @@ function sfoltisci(root){
        resta il motivo, che l'attività la dice comunque. */
     if(doppia()){const s2=l1.querySelector("s");if(s2)s2.remove();}
   });
+  motivi(root);
+}
+
+/* Un motivo si vede quando se ne vede uno intero. Le fasce dei blocchi corti
+   sono alte una tile e mezza, e una tile e mezza è una figura tagliata: da
+   lontano non è un simbolo, è sporco — ed è per quello che a mezz'ora e a
+   un'ora i motivi non si riconoscevano, non perché la fascia fosse piccola.
+   Qui la tile viene scalata a una divisione intera dell'altezza della fascia,
+   così ne entrano due o una ma sempre intere; e dove la fascia è stretta o
+   bassa la figura viene ingrandita fino a riempirla una volta sola.
+   Solo misurando: l'altezza della fascia è quello che avanza sotto il testo,
+   e dipende da quanto va a capo. */
+/* Quando per il motivo non resta niente — due strisce da mezz'ora nella
+   stessa mezz'ora, su una colonna della settimana: settanta pixel per un nome,
+   una spunta e un simbolo — rimpicciolirlo fino a farcelo stare vuol dire
+   stampare una macchia da sei pixel. Meglio quello che il motivo doveva dire,
+   detto dall'icona: torna dentro la riga, alta undici, e la fascia sparisce.
+   È l'unico posto dove il motivo cede, e cede a un simbolo, non al nulla. */
+function ripiego(o){
+  o.b.style.removeProperty("--trs");
+  if(!o.f)return;
+  const par=o.f.parentNode.querySelector("s");
+  if(par){
+    /* l'icona può esserci già: nelle strisce con una nota il costruttore la
+       mette, ed è la stessa. Quello che serve sempre è renderla visibile. */
+    if(!par.querySelector(".ico"))
+      par.insertAdjacentHTML("afterbegin",icon(o.b.dataset.att,11));
+    par.classList.add("soloico");
+  }
+  o.f.style.display="none";
+}
+function motivi(root){
+  const bl=[...(root||document).querySelectorAll(".blk[data-att]")]
+    .map(b=>{
+      const d=TRDIM[b.dataset.att];if(!d)return null;
+      const f=b.querySelector("em > span.tr");
+      const rb=b.getBoundingClientRect();
+      if(!f)return b.classList.contains("mini2")&&rb.height>4?
+        {b,d,f:null,w:rb.width*.36,h:rb.height}:null;
+      return {b,d,f,rb};
+    }).filter(Boolean);
+  /* Prima si fa spazio: in una striscia la figura vuole una larghezza pari
+     alla sua altezza per starci intera, e gliela deve cedere il nome della
+     materia, che ha i puntini e sopravvive troncato. Si stringe il nome e non
+     si allarga la fascia: un minimo sulla fascia la fa sbordare oltre il
+     rientro destro e finisce sotto il quadratino della spunta — che è
+     esattamente il difetto da cui siamo partiti. Al nome resta comunque un
+     terzo abbondante: prima viene lui. */
+  bl.forEach(o=>{
+    if(!o.f||!o.b.classList.contains("mini"))return;
+    const em=o.f.parentNode,nome=em.querySelector("b");if(!nome)return;
+    const cs=getComputedStyle(em),
+      W=em.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),
+      vuole=o.d[2]?o.rb.height*o.d[0]/o.d[1]:Math.min(o.d[0]*2,26),
+      hoNome=nome.getBoundingClientRect().width,
+      manca=vuole-o.f.getBoundingClientRect().width;
+    /* si toglie al nome quello che manca alla fascia, non un pollice in più, e
+       comunque mai sotto un terzo della striscia */
+    if(manca>1)nome.style.maxWidth=Math.round(Math.max(W*.34,hoNome-manca))+"px";
+  });
+  /* La nota, in una striscia con la nota, viene dopo il nome e prima del
+     motivo: se dopo aver stretto il nome la fascia è ancora niente, un po' lo
+     cede anche lei — i puntini ce li ha. */
+  bl.forEach(o=>{
+    if(!o.f||!o.b.classList.contains("mini"))return;
+    const par=o.f.parentNode.querySelector("s");
+    if(!par||!par.textContent.trim())return;
+    const vuole=o.d[2]?o.rb.height*o.d[0]/o.d[1]:Math.min(o.d[0]*2,26),
+      hoPar=par.getBoundingClientRect().width,
+      manca=vuole-o.f.getBoundingClientRect().width;
+    if(manca>1)par.style.maxWidth=Math.round(Math.max(26,hoPar-manca))+"px";
+  });
+  /* poi si misura, a larghezze assestate */
+  bl.forEach(o=>{
+    let w=o.w,h=o.h;
+    if(o.f){const r=o.f.getBoundingClientRect();w=r.width;h=r.height;}
+    const [tw,th,figura]=o.d;
+    if(!(w>3&&h>3)){ripiego(o);return;}
+    /* Le figure hanno una misura loro, la stessa dappertutto: una lezione deve
+       essere la stessa lezione in un blocco da mezz'ora e in uno da tre ore,
+       se no il motivo non è un segno ma un caso. Mira a una volta e sei la
+       tile, poi arrotonda al numero di file che ci stanno intere: così
+       l'altezza torna esatta e non resta mai mezza figura in fondo. I tessuti
+       — righe, quadretti, punti — restano a misura naturale, che tagliati
+       restano quello che sono. */
+    const mira=figura?1.5:1;
+    let righe=1,dist=1e9;
+    for(let k=1;k<=9;k++){
+      const d=Math.abs(h/(k*th)-mira);
+      if(d<dist){dist=d;righe=k;}
+    }
+    let s=Math.max(.7,h/(righe*th));
+    /* stretta: una sola, centrata, e non più larga della fascia */
+    const una=w<tw*s*1.9;
+    if(una)s=Math.min(s,w/tw);
+    /* Due strisce da mezz'ora nella stessa mezz'ora, su una colonna della
+       settimana: settanta pixel per un nome, una spunta e un simbolo. Lì il
+       motivo non ci sta e rimpicciolirlo fino a farcelo stare vuol dire
+       stampare una macchia da sei pixel. Meglio quello che il motivo doveva
+       dire, detto dall'icona: torna dentro la riga, alta undici, e la fascia
+       sparisce. È l'unico posto dove il motivo cede, e cede a un simbolo, non
+       al nulla. */
+    if(una&&s*th<9){ripiego(o);return;}
+    o.b.style.setProperty("--trs",(tw*s).toFixed(1)+"px "+(th*s).toFixed(1)+"px");
+    /* space: ne mette quante ce ne stanno intere e distribuisce l'avanzo negli
+       spazi fra una e l'altra. Ripetere e basta lasciava l'ultima figura
+       tagliata dal bordo destro — meno grave di una fila tagliata a metà, ma
+       sempre una figura a metà. Ai tessuti serve il contrario: righe e
+       quadretti devono attaccarsi, gli spazi vuoti si vedrebbero. */
+    o.b.style.setProperty("--trr",figura?"space":(righe>1?"repeat":"repeat-x"));
+    o.b.style.setProperty("--trp",(una||figura)?"50% 50%":"0 50%");
+  });
 }
 
 /* ---------- disegno di un giorno ---------- */
@@ -4247,6 +4376,7 @@ function drawDay(dateIso,scope){
         (r.v.done?" done":"")+(tardi?" tardi":"")+
         (selRuns[selKey(dateIso,r.start,r.lane)]?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
+      bl.dataset.att=r.v.a;
       /* Il riempimento dice l'attività, la barra dice la materia. Non è un
          capriccio: il colore categorico regge fino a otto-dieci valori, e le
          attività sono otto e resteranno otto, mentre le materie sono venti e
