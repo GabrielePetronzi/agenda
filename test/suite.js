@@ -751,12 +751,12 @@
     /* 150 h da fare in 10 settimane = 15 h a settimana */
     return riga.textContent.indexOf("15 h a settimana")>=0?true:
       "dice: "+riga.textContent;});
-  t("senza data d'esame dice comunque dove arrivi col piano",function(){
+  t("senza data d'esame dice comunque il ritmo che tieni",function(){
     pulisci();apri();
     placeRun(G[0],H0,{i:items()[0].id,a:"LET",len:4},0);
     state.semOpen=true;semSummary();
     var r=document.querySelector("#semBody .gritmo");
-    return (r&&r.textContent.indexOf("dove arrivi col piano")>=0)?true:
+    return (r&&r.textContent.indexOf("il tuo ritmo")>=0)?true:
       "dice: "+(r?r.textContent:"niente");});
   t("avvisa una volta sola, e solo se il blocco è vicino",function(){
     /* La prossima mezz'ora può essere fra un minuto o fra ventinove, secondo
@@ -964,21 +964,22 @@
     if(!senza||!con)return "manca il disegno: senza="+senza+" con="+con;
     return (Math.abs(senza[0]-senza[1])<0.5&&con[0]-con[1]>5)?true:
       "senza data "+senza.join("→")+" (attesa piatta), con data "+con.join("→")+" (attesa in salita)";});
-  t("un piano che basta disegna il verde, uno che non basta il rosso",function(){
+  t("il tratteggio è verde se il ritmo che tieni basta, rosso se no",function(){
     pulisci();apri();
-    var o=items()[0],tgt=targetH(o.cfu)*PERQ;
-    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),56))};
-    /* poche ore: non basta */
-    placeRun(G[0],H0,{i:o.id,a:"LET",len:4},0);
+    var o=items()[0],sett=8;
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),7*sett))};
+    /* otto settimane passate con poche ore fatte: la mediana non basta */
+    for(var w=1;w<=8;w++)
+      placeRun(iso(addDays(monday(new Date()),-7*w)),HOURS[2],
+        {i:o.id,a:"LET",len:2,done:1},0);
     state.semOpen=true;semSummary();
     var rosso=!!document.querySelector("#semBody .gpiano:not(.ok)");
-    /* ora ne metto in piano quante ne servono. Parto da zero: il blocco di
-       prima sta nel passato e non spuntato, quindi è tempo perso, non piano. */
-    var messe=0;
-    for(var g=1;g<56&&messe<tgt;g++){
-      var day=iso(addDays(new Date(),g));
-      for(var j=0;j<HOURS.length-1&&messe<tgt;j+=2){
-        placeRun(day,HOURS[j],{i:o.id,a:"LET",len:2},0);messe+=2;}}
+    /* ora riempio quelle stesse settimane: la mediana sale sopra il richiesto */
+    for(var w2=1;w2<=8;w2++){
+      var lun=monday(addDays(new Date(),-7*w2));
+      for(var d=0;d<7;d++)for(var j=2;j<26;j+=2)
+        placeRun(iso(addDays(lun,d)),HOURS[j],{i:o.id,a:"LET",len:2,done:1},0);
+    }
     semSummary();
     var verde=!!document.querySelector("#semBody .gpiano.ok");
     state.over={};
@@ -1166,9 +1167,9 @@
   t("a mezz'ora la fascia del motivo è larga almeno trenta pixel",function(){
     pulisci();apri();
     var lungo=items().filter(function(x){return /dichiar/i.test(x.name||"");})[0]||it[2];
+    state.span=7;state.from=0;state.to=6;applySpan();
     var G7=[];document.querySelectorAll("td.c").forEach(function(x){
       if(G7.indexOf(x.dataset.date)<0)G7.push(x.dataset.date);});
-    state.span=7;state.from=0;state.to=6;applySpan();
     G7.slice(0,5).forEach(function(d){
       placeRun(d,HOURS[6],{i:lungo.id,a:"SCH",len:1},0);});
     render();
@@ -1183,9 +1184,9 @@
   t("a un'ora la fascia del motivo è alta almeno ventidue pixel",function(){
     pulisci();apri();
     var lungo=items().filter(function(x){return /dichiar/i.test(x.name||"");})[0]||it[2];
+    state.span=7;state.from=0;state.to=6;applySpan();
     var G7=[];document.querySelectorAll("td.c").forEach(function(x){
       if(G7.indexOf(x.dataset.date)<0)G7.push(x.dataset.date);});
-    state.span=7;state.from=0;state.to=6;applySpan();
     G7.slice(0,5).forEach(function(d){
       placeRun(d,HOURS[6],{i:lungo.id,a:"SCH",len:2},0);});
     render();
@@ -1194,8 +1195,32 @@
       return Math.round(tr.getBoundingClientRect().height/b.getBoundingClientRect().height*100);});
     if(!q.length)return "nessun blocco da un'ora";
     var min=Math.min.apply(null,q);
+    /* a riga bassa il blocco è una striscia e il motivo sta di fianco: lì la
+       proporzione in altezza non vuol dire niente */
+    if(ROW*2-2<30)return true;
     return min>=35?true:"il motivo occupa solo il "+min+"% dell'altezza (prima era il 30%)";});
-  t("quando la prima riga va a capo, la parola dell'attività sparisce",function(){
+  t("sfoltire toglie la parola solo quando la riga è andata a capo",function(){
+    /* provata da sola: costruisco due prime righe, una che sta su una riga e
+       una che va a capo, e guardo cosa succede */
+    var box=document.createElement("div");
+    box.style.cssText="position:absolute;left:-9999px;top:0;width:120px";
+    box.innerHTML='<div class="blk" style="position:static;width:120px">'+
+      '<em><span class="l1"><b>PROG. DICHIAR.</b><s><i>Laboratorio</i></s></span>'+
+      '<span class="tr"></span></em></div>'+
+      '<div class="blk" style="position:static;width:400px">'+
+      '<em><span class="l1"><b>BIG DATA</b><s><i>Lezione</i></s></span>'+
+      '<span class="tr"></span></em></div>';
+    document.body.appendChild(box);
+    var a=box.children[0].querySelector(".l1"),b=box.children[1].querySelector(".l1");
+    var eraDoppia=a.getBoundingClientRect().height>
+      a.querySelector("b").getBoundingClientRect().height*1.5;
+    sfoltisci(box);
+    var tolta=!a.querySelector("s > i"), tenuta=!!b.querySelector("s > i");
+    box.remove();
+    if(!eraDoppia)return true;      /* qui non va a capo: niente da sfoltire */
+    return (tolta&&tenuta)?true:
+      "stretta: parola tolta "+tolta+" · larga: parola tenuta "+tenuta;});
+  t("quando la prima riga va a capo nella griglia, la parola sparisce",function(){
     pulisci();apri();
     var lungo=items().filter(function(x){return /dichiar/i.test(x.name||"");})[0]||it[2];
     var G7=[];document.querySelectorAll("td.c").forEach(function(x){
@@ -1204,9 +1229,7 @@
     placeRun(G7[0],HOURS[6],{i:lungo.id,a:"LEZ",len:2},0);
     render();
     var l1=document.querySelector(".blk em .l1");
-    /* a riga bassa un blocco da un'ora è una striscia e non ha la prima riga:
-       lì questa regola non si applica */
-    if(!l1)return ROW*2-2<30?true:"nessun blocco con la prima riga";
+    if(!l1)return true;   /* niente prima riga: o è una striscia o il blocco non c'è */
     var b=l1.querySelector("b");
     var doppia=l1.getBoundingClientRect().height>b.getBoundingClientRect().height*1.5;
     return !doppia?true:"la prima riga è ancora doppia";});
