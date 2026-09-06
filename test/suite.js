@@ -872,5 +872,44 @@
     var n=Object.keys(state.cells).length;
     return (mosso&&n===12)?true:"allineato="+mosso+" celle="+n;});
 
+
+  /* ---------- copia del giorno ---------- */
+  t("la copia del giorno si prende dopo le tredici, una sola volta",function(){
+    pulisci();apri();
+    try{localStorage.removeItem(GIORNIKEY);}catch(e){}
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:4},0);
+    var ora=new Date().getHours();
+    var presa=copiaGiorno(), doppia=copiaGiorno();
+    var v=giorniLeggi();
+    if(ora<ORA_COPIA)
+      return (!presa&&!v.length)?true:"prima delle "+ORA_COPIA+" non doveva prenderla";
+    return (presa&&!doppia&&v.length===1&&v[0].n===4)?true:
+      "presa="+presa+" seconda="+doppia+" copie="+JSON.stringify(v.map(function(c){return c.n;}));});
+  t("di un piano vuoto non tiene copia del giorno",function(){
+    pulisci();apri();
+    try{localStorage.removeItem(GIORNIKEY);}catch(e){}
+    return eq(copiaGiorno(),false);});
+  t("le copie del giorno non superano il tetto",function(){
+    var v=[];
+    for(var k=0;k<12;k++)v.push({g:"2026-0"+(k%9+1)+"-01",ts:Date.now()-k*86400000,n:10,p:"{}"});
+    try{localStorage.setItem(GIORNIKEY,JSON.stringify(v.slice(0,GIORNI_MAX)));}catch(e){}
+    return eq(giorniLeggi().length,GIORNI_MAX);});
+  t("il pannello Backup elenca le copie e sa recuperare da un link",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:2},0);save("x");
+    document.getElementById("backup").click();
+    var righe=document.querySelectorAll("#bkCopie .bkr").length;
+    var campo=!!document.getElementById("bkGist"),
+        daFile=!!document.getElementById("bkLoad");
+    document.getElementById("bkModal").classList.remove("open");
+    return (righe>=1&&campo&&daFile)?true:
+      "righe "+righe+" campo gist "+campo+" carica da file "+daFile;});
+  t("un link storto non fa danni",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:2},0);
+    var prima=Object.keys(state.cells).length;
+    daGist("questo non è un link");
+    return eq(Object.keys(state.cells).length,prima,"celle ");});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

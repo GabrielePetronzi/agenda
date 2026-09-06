@@ -750,6 +750,13 @@ td.tot b{color:var(--tx2);font-weight:500}
   border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer}
 .bkcopie .bkr button:hover{color:var(--tx)}
 .bkcopie .vuoto{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
+.bkgist{display:flex;gap:6px;margin-top:10px}
+.bkgist input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);
+  color:var(--tx);border-radius:var(--r-sm);padding:6px 10px;font-size:12px;outline:none}
+.bkgist input:focus{border-color:var(--action)}
+.bkgist button{border:1px solid var(--line);background:var(--raised);color:var(--tx2);
+  border-radius:var(--r-sm);padding:6px 12px;font-size:12px;cursor:pointer}
+.bkgist button:hover{color:var(--tx)}
 .exrow{display:flex;align-items:center;gap:10px;padding:10px 2px;
   border-bottom:1px solid var(--line-soft)}
 .exrow .d{font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx2);flex:0 0 auto}
@@ -1160,6 +1167,11 @@ td.tot b{color:var(--tx2);font-weight:500}
     <div class="bkcopie" id="bkCopie"></div>
     <textarea id="bkText" spellcheck="false" style="font-family:'DM Mono',monospace;font-size:10.5px"></textarea>
     <input type="file" id="bkFile" accept="application/json,.json,text/plain" hidden>
+    <div class="bkgist">
+      <input id="bkGist" type="text" placeholder="Link del gist, per riprendere il piano da lì"
+        spellcheck="false" aria-label="Link del gist">
+      <button id="bkGistGo">Recupera</button>
+    </div>
     <div class="mfoot">
       <button id="bkCopy">Copia</button>
       <button id="bkDl">Scarica</button>
@@ -1555,6 +1567,24 @@ const LSKEY="piano-6272-local";
    qualcosa scriva sopra al piano: senza, l'unico modo di tornare indietro
    sarebbe lo storico del gist, che non è raggiungibile da dentro l'app. */
 const COPIEKEY="piano-6272-copie";
+/* Una copia al giorno, presa la prima volta che apri l'app dopo pranzo: a
+   quell'ora la mattina è già dentro e la sera non è ancora cominciata, quindi
+   è la fotografia più utile da tenere. Le ultime sette. */
+const GIORNIKEY="piano-6272-giorni", ORA_COPIA=13, GIORNI_MAX=7;
+function giorniLeggi(){
+  try{return JSON.parse(window.localStorage.getItem(GIORNIKEY)||"[]");}catch(e){return [];}
+}
+function copiaGiorno(){
+  const n=new Date();
+  if(n.getHours()<ORA_COPIA)return false;
+  const celle=Object.keys(state.cells||{}).length;
+  if(!celle)return false;
+  const oggi=iso(n),v=giorniLeggi();
+  if(v.length&&v[0].g===oggi)return false;
+  v.unshift({g:oggi,ts:Date.now(),n:celle,p:payload()});
+  try{window.localStorage.setItem(GIORNIKEY,JSON.stringify(v.slice(0,GIORNI_MAX)));}catch(e){}
+  return true;
+}
 const COPIE_MAX=8, COPIE_OGNI=10*60000;
 function copieLeggi(){
   try{return JSON.parse(window.localStorage.getItem(COPIEKEY)||"[]");}catch(e){return [];}
@@ -2756,7 +2786,7 @@ function promemoria(){
     if(!w_notifOK()&&!document.hidden)toast(titolo+" · "+corpo);
   });
 }
-setInterval(()=>{nowLine();autoLessons();promemoria();},60000);
+setInterval(()=>{nowLine();autoLessons();promemoria();copiaGiorno();},60000);
 
 /* ============================================================
    POMODORO
@@ -4671,15 +4701,37 @@ function ripristina(testo,da){
   save("Rimesse "+hrs(n)+(da?" da "+da:""));histInit();render();
   return true;
 }
+/* Recupero da un gist, con il solo link: un gist segreto si legge senza token
+   e senza essere collegati. È la strada che resta quando il browser non ha né
+   la copia locale né il token — cioè proprio quando serve. */
+async function daGist(link){
+  const m=String(link||"").match(/[0-9a-f]{20,}/i);
+  if(!m){toast("Link del gist non riconosciuto");return;}
+  try{
+    const r=await fetch("https://api.github.com/gists/"+m[0]);
+    if(!r.ok)throw new Error("http "+r.status);
+    const j=await r.json();
+    const f=(j.files&&(j.files["piano.json"]||j.files[Object.keys(j.files)[0]]))||null;
+    if(!f)throw new Error("nessun file");
+    let t=f.content;
+    if(f.truncated&&f.raw_url)t=await (await fetch(f.raw_url)).text();
+    ripristina(t,"il gist");
+  }catch(e){toast("Non riesco a leggere quel gist");}
+}
 function bkCopieList(){
   const box=document.getElementById("bkCopie");if(!box)return;
-  const v=copieLeggi();
-  if(!v.length){box.innerHTML='<span class="vuoto">Nessuna copia automatica ancora.</span>';return;}
-  box.innerHTML=v.map((c,i)=>'<span class="bkr"><b>'+hrs(c.n)+"</b><u>"+
+  const g=giorniLeggi(),v=copieLeggi();
+  const riga=(c,tipo,i)=>'<span class="bkr"><b>'+hrs(c.n)+"</b><u>"+
     new Date(c.ts).toLocaleString("it-IT",{day:"numeric",month:"short",
-      hour:"2-digit",minute:"2-digit"})+'</u><button data-i="'+i+'">Rimetti</button></span>').join("");
+      hour:"2-digit",minute:"2-digit"})+(tipo==="g"?" · del giorno":"")+
+    '</u><button data-t="'+tipo+'" data-i="'+i+'">Rimetti</button></span>';
+  const h=g.map((c,i)=>riga(c,"g",i)).join("")+v.map((c,i)=>riga(c,"r",i)).join("");
+  box.innerHTML=h||'<span class="vuoto">Nessuna copia ancora: la prima arriva al primo cambiamento.</span>';
   box.querySelectorAll("button").forEach(b=>{
-    b.onclick=()=>{const c=copieLeggi()[+b.dataset.i];if(c)ripristina(c.p,"una copia automatica");};
+    b.onclick=()=>{
+      const c=(b.dataset.t==="g"?giorniLeggi():copieLeggi())[+b.dataset.i];
+      if(c)ripristina(c.p,b.dataset.t==="g"?"la copia del giorno":"una copia automatica");
+    };
   });
 }
 document.getElementById("backup").onclick=()=>{
@@ -4688,6 +4740,8 @@ document.getElementById("backup").onclick=()=>{
   bkCopieList();
   document.getElementById("bkModal").classList.add("open");
 };
+document.getElementById("bkGistGo").onclick=()=>daGist(document.getElementById("bkGist").value);
+document.getElementById("bkGist").onkeydown=e=>{if(e.key==="Enter")daGist(e.target.value);};
 document.getElementById("bkLoad").onclick=()=>document.getElementById("bkFile").click();
 document.getElementById("bkFile").onchange=e=>{
   const f=e.target.files&&e.target.files[0];if(!f)return;
@@ -5051,7 +5105,7 @@ window.addEventListener("afterprint",()=>{
   ROW=0;autoRow();panels();
 });
 (async()=>{
-  await load();iconify();autoLessons();foldToToday();render();histInit();
+  await load();iconify();autoLessons();foldToToday();render();histInit();copiaGiorno();
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
   if(fuori)setTimeout(()=>toast(hrs(fuori)+" fuori dalla fascia "+dayFrom()+"–"+dayTo()),900);
