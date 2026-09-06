@@ -17,7 +17,7 @@
   --bg:#101114; --surface:#17181D; --raised:#1E2026; --sunken:#0C0D10;
   --line:#2A2C34; --line-soft:#212329;
   --tx:#E8E9ED; --tx2:#9A9CA6; --tx3:#7E808C;   /* 15.6 · 6.9 · 4.8 sul fondo */
-  --action:#8B93FF; --done:#57BE8E; --warn:#E0736A;
+  --action:#8B93FF; --done:#57BE8E; --warn:#E0736A; --late:#F2564D;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
   --r:10px; --r-sm:7px;
   --pad:clamp(12px,2.4vw,20px);
@@ -28,7 +28,7 @@ html[data-theme="light"]{
   --bg:#F2F0EA; --surface:#FBFAF6; --raised:#FFFFFF; --sunken:#E8E5DC;
   --line:#DEDACF; --line-soft:#EAE6DC;
   --tx:#23231F; --tx2:#52504C; --tx3:#69675D;   /* 13.8 · 7.1 · 5.0 sul fondo */
-  --action:#4A54D6; --done:#2F8A5F; --warn:#B4483E;
+  --action:#4A54D6; --done:#2F8A5F; --warn:#B4483E; --late:#C5221F;
   --shadow:0 1px 2px rgba(60,54,40,.07), 0 10px 26px -14px rgba(60,54,40,.28);
   --tint-today:rgba(74,84,214,.07); --tint-hover:rgba(74,84,214,.11);
 }
@@ -344,18 +344,27 @@ body.dropping td.c.dropok{background:var(--tint-hover);
    li recuperi, o li spunti, o li sposti — ma non devono sparire in silenzio. */
 .latebar{display:none}
 .latebar.on{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;
-  padding:8px 12px;border:1px solid var(--warn);border-radius:var(--r);
+  padding:8px 12px;border:1px solid var(--late);border-radius:var(--r);
   background:var(--surface)}
 .latebar b{font-size:12.5px;font-weight:500}
-.latebar b i{font-style:normal;color:var(--warn)}
+.latebar b i{font-style:normal;color:var(--late)}
 .latebar u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;
   color:var(--tx3);flex:1;min-width:0}
 .latebar button{border:1px solid var(--line);background:var(--raised);color:var(--tx2);
   border-radius:var(--r-sm);padding:4px 10px;font-size:11.5px;cursor:pointer}
 .latebar button:hover{color:var(--tx);border-color:var(--tx3)}
-/* e nella griglia si vedono uno per uno */
-.blk.tardi{box-shadow:inset 4px 0 0 var(--warn),0 0 0 1px rgba(0,0,0,.28),
-  0 1px 3px rgba(0,0,0,.22)}
+/* E nella griglia si vedono uno per uno: il quadratino della spunta diventa
+   un punto esclamativo rosso. Sta dove sta sempre, non sposta il testo di un
+   pixel, e appena spunti il blocco sparisce insieme allo stato che segnalava.
+   Il rosso è fisso perché i blocchi hanno il fondo chiaro in tutt'e due i
+   temi: #C5221F ci fa sopra 4,5:1, il rosso del tema scuro no. */
+.blk.tardi .tick{box-shadow:inset 0 0 0 1.4px #C5221F}
+.blk.tardi .tick::after{content:"!";position:absolute;inset:0;display:flex;
+  align-items:center;justify-content:center;color:#C5221F;
+  font-family:"Familjen Grotesk",sans-serif;font-weight:700;font-size:11px;
+  line-height:1}
+.blk.tardi:hover .tick{box-shadow:inset 0 0 0 2px #C5221F}
+html[data-row="micro"] .blk.tardi .tick::after{font-size:9px}
 .selbar{display:none}
 .selbar.on{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;
   padding:8px 12px;border:1px solid var(--action);border-radius:var(--r);

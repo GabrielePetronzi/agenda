@@ -626,8 +626,11 @@
     placeRun(ieri,HOURS[2],{i:it[0].id,a:"ESE",len:2},0);
     render();
     var seg=document.querySelectorAll(".blk.tardi").length;
+    var b=document.querySelector(".blk.tardi .tick");
+    var segno=b?getComputedStyle(b,"::after").content:"";
     apri();
-    return seg>=1?true:"nessun blocco segnato";});
+    return (seg>=1&&segno.indexOf("!")>=0)?true:
+      "blocchi segnati "+seg+", segno nel quadratino "+segno;});
 
 
   /* ---------- lezione e lavoro si spuntano da soli ---------- */
