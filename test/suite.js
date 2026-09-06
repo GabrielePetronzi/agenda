@@ -629,5 +629,44 @@
     apri();
     return seg>=1?true:"nessun blocco segnato";});
 
+
+  /* ---------- lezione e lavoro si spuntano da soli ---------- */
+  t("il lavoro passato si spunta da solo, come la lezione",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"LAV",len:2},0);
+    placeRun(ieri,HOURS[6],{i:it[0].id,a:AUTOACT,len:2},0);
+    autoLessons();
+    var lav=runAt(ieri,HOURS[2],0),lez=runAt(ieri,HOURS[6],0);
+    return (lav&&lav.done&&lez&&lez.done)?true:
+      "lavoro spuntato="+!!(lav&&lav.done)+" lezione="+!!(lez&&lez.done);});
+  t("il lavoro di domani non si spunta",function(){
+    pulisci();apri();
+    var dom=iso(addDays(new Date(),1));
+    placeRun(dom,HOURS[2],{i:it[0].id,a:"LAV",len:2},0);
+    autoLessons();
+    var q=runAt(dom,HOURS[2],0);
+    return eq(!!(q&&q.done),false,"spuntato: ");});
+  t("il lavoro non finisce fra gli arretrati",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"LAV",len:2},0);
+    return eq(arretrati().length,0);});
+  t("se togli la spunta al lavoro passato non te la rimette",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"LAV",len:2},0);
+    autoLessons();
+    setDone(ieri,HOURS[2],0,0);
+    autoLessons();
+    var q=runAt(ieri,HOURS[2],0);
+    return eq(!!(q&&q.done),false,"rimessa la spunta: ");});
+  t("il lavoro non prende il pomodoro",function(){
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:"LAV",len:2},0);
+    pomFromCell(oggi,ORA,0);
+    var partito=!!state.pomRun;state.pomRun=null;pomAskBlock(false);
+    return eq(partito,false,"è partito: ");});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

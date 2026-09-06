@@ -2578,6 +2578,13 @@ function pasteWeek(p){
    è passata. Se le togli a mano restano tali (flag nd).
    ============================================================ */
 const AUTOACT="LEZ";
+/* Si spuntano da sole quando l'ora è passata: la lezione perché o ci sei
+   andato o no, ma non è una cosa che pianifichi di fare in un altro momento; e
+   il lavoro perché è lavoro — l'orario lo decide qualcun altro e non lo
+   recuperi la sera. Per queste due il pomodoro non ha senso e non finiscono
+   fra gli arretrati. */
+const AUTOSPUNTA=["LEZ","LAV"];
+function daSola(a){return AUTOSPUNTA.indexOf(a)>=0;}
 function autoLessons(){
   const now=new Date(),oggi=iso(now);
   const slotOra=now.getHours()*PERQ+(now.getMinutes()>=30?1:0);
@@ -2588,7 +2595,7 @@ function autoLessons(){
     if(dt===oggi&&sl>=slotOra)return;         /* oggi, non ancora passata */
     const arr=at(k);let cambiato=false;
     arr.forEach(v=>{
-      if(v&&v.a===AUTOACT&&!v.done&&!v.nd){v.done=1;cambiato=true;}
+      if(v&&daSola(v.a)&&!v.done&&!v.nd){v.done=1;cambiato=true;}
     });
     if(cambiato)touched.add(dt);
   });
@@ -2711,8 +2718,8 @@ function pomAskBlock(on){
 function pomFromCell(dateIso,slot,lane){
   const r=runAt(dateIso,slot,lane)||anyRunAt(dateIso,slot);
   if(!r){toast("Tocca un blocco già piazzato");return true;}
-  if(r.a===AUTOACT){
-    toast("Le lezioni si spuntano da sole al passare dell'ora");
+  if(daSola(r.a)){
+    toast(actOf(r.a).n+": si spunta da sola al passare dell'ora");
     return true;
   }
   askNotify();
@@ -3021,10 +3028,11 @@ function pomPanel(){
     "e a fine lo spunta come fatto";
   pick.onclick=()=>pomAskBlock(!pomPick);
 
-  if(act===AUTOACT){
+  if(daSola(act)){
     const h=document.createElement("span");
     h.className="pomhint";
-    h.innerHTML="Le lezioni non hanno pomodoro: si spuntano da sole quando l'ora è passata.";
+    h.innerHTML=(act===AUTOACT?"Le lezioni":"Il lavoro")+
+      " non ha pomodoro: si spunta da solo quando l'ora è passata.";
     box.appendChild(h);
     const t0=pomToday();
     const s0=document.createElement("span");
@@ -3140,7 +3148,7 @@ function pomSettings(){
   const hd=document.createElement("div");hd.className="pmhead";
   hd.innerHTML=PMF.map(f=>"<span>"+f[1]+"</span>").join("");
   box.appendChild(hd);
-  ACTS.filter(a=>a.k!==AUTOACT).forEach(a=>{
+  ACTS.filter(a=>!daSola(a.k)).forEach(a=>{
     const c=pomConf(a.k);
     const row=document.createElement("div");row.className="pmrow";
     row.innerHTML='<span class="nm">'+icon(a.k,13)+a.n+"</span>"+
@@ -3166,7 +3174,7 @@ function oraAdesso(){
   const n=new Date();return n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
 }
 function inRitardo(dateIso,r){
-  if(r.v.done||r.v.a===AUTOACT)return false;
+  if(r.v.done||daSola(r.v.a))return false;
   const oggi=iso(new Date());
   if(dateIso>oggi)return false;
   return dateIso<oggi||r.start+r.len<=oraAdesso();
@@ -4012,8 +4020,9 @@ function setDone(dateIso,start,lane,val2){
       if(val2){arr[lane].done=1;delete arr[lane].nd;}
       else{
         delete arr[lane].done;
-        /* togliendo la spunta a una lezione passata, non la rimetto io */
-        if(arr[lane].a===AUTOACT)arr[lane].nd=1;
+        /* togliendo la spunta a qualcosa che si spunta da sola, non la
+           rimetto io: l'hai tolta apposta */
+        if(daSola(arr[lane].a))arr[lane].nd=1;
       }
     }
     setAt(key,arr);
