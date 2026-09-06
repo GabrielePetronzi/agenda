@@ -882,42 +882,6 @@
     return eq(visti.length,0,"avvisi mandati ");});
 
 
-  /* ---------- materie in sessione ---------- */
-  t("finché non scegli niente, valgono tutte",function(){
-    pulisci();apri();state.seguite={};
-    return eq(items().filter(function(o){return o.kind==="c";})
-      .every(function(o){return segui(o.id);}),true,"le seguo tutte: ");});
-  t("scelta una, la proiezione mostra solo quella",function(){
-    pulisci();apri();
-    var a=items()[0],b=items()[1];
-    state.over[a.id]={n:a.name,c:6,d:iso(addDays(new Date(),60))};
-    state.over[b.id]={n:b.name,c:6,d:iso(addDays(new Date(),60))};
-    placeRun(G[0],H0,{i:a.id,a:"LET",len:2},0);
-    placeRun(G[0],H0+4,{i:b.id,a:"LET",len:2},0);
-    state.seguite={};state.semOpen=true;semSummary();
-    var tutte=document.querySelectorAll("#semBody .gp").length;
-    state.seguite[a.id]=1;semSummary();
-    var una=document.querySelectorAll("#semBody .gp").length;
-    var nome=document.querySelector("#semBody .gp .gph b").textContent;
-    state.seguite={};state.over={};
-    return (tutte===2&&una===1&&nome===items()[0].name)?true:
-      "senza scelta "+tutte+", con la scelta "+una+" ("+nome+")";});
-  t("quelle fuori sessione restano nell'elenco, in secondo piano",function(){
-    pulisci();apri();
-    state.seguite={};state.seguite[items()[0].id]=1;
-    picklist();
-    var righe=document.querySelectorAll(".picklist .prow").length;
-    var fuori=document.querySelectorAll(".picklist .prow.fuori").length;
-    state.seguite={};
-    return (righe>1&&fuori===righe-1)?true:"righe "+righe+", in secondo piano "+fuori;});
-  t("la scelta sopravvive al salvataggio",function(){
-    pulisci();apri();
-    state.seguite={};state.seguite["c:1009070"]=1;
-    var q=JSON.parse(payload());
-    state.seguite={};adopt(q);apri();
-    return eq(JSON.stringify(state.seguite),'{"c:1009070":1}');});
-
-
   /* ---------- non perdere il piano ---------- */
   t("ripristinare da un testo rimette i blocchi",function(){
     pulisci();apri();
@@ -1374,6 +1338,28 @@
     setDataEsame(_mat.id,"","");
     return (!(state.exams||[]).some(function(x){return x.mid===_mat.id;})&&
             !map()[_mat.id].date)?true:"resta "+JSON.stringify(map()[_mat.id].date);});
+  t("aggiungendo una materia si puo' gia' mettere la data d'esame",function(){
+    state.custom=[];state.exams=[];
+    document.getElementById("newName").value="Tesi di laurea";
+    document.getElementById("newCfu").value="12";
+    document.getElementById("newDate").value="2027-07-15";
+    document.getElementById("addBtn").click();
+    var o=items().filter(function(x){return x.name==="Tesi di laurea";})[0];
+    if(!o)return "la materia non e' stata aggiunta";
+    if(o.date!=="2027-07-15")return "la materia dice "+JSON.stringify(o.date);
+    var ex=(state.exams||[]).filter(function(x){return x.mid===o.id;});
+    var pulito=document.getElementById("newDate").value==="";
+    state.custom=[];state.exams=[];render();
+    if(ex.length!==1)return "scadenze collegate: "+ex.length;
+    return pulito?true:"il campo della data e' rimasto pieno";});
+  t("nel modulo non ci sono piu' ripristina, chiudi e in sessione",function(){
+    rigaMateria();
+    document.querySelector("#picklist .prow em.dat").onclick({stopPropagation:function(){}});
+    var b=[].map.call(document.querySelectorAll(".vedit.open button"),
+      function(x){return x.textContent.replace(" ✓","");});
+    var restano=b.filter(function(x){
+      return x==="Ripristina"||x==="Chiudi"||x==="In sessione";});
+    return restano.length?"c'e' ancora "+restano.join(", "):eq(b.join(","),"Superato");});
   t("nel modulo ogni campo ha la sua scritta, data compresa",function(){
     rigaMateria();
     document.querySelector("#picklist .prow em.dat").onclick({stopPropagation:function(){}});

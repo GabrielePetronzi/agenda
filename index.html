@@ -154,9 +154,6 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .pnm em.opz{color:var(--tx3);border:1px solid var(--line);border-radius:3px;
   padding:0 4px;letter-spacing:.04em}
 .prow.fatta .pnm{color:var(--tx2)}
-/* fuori dalla sessione: resta lì e si può ancora usare, ma non tira l'occhio */
-.prow.fuori{opacity:.45}
-.prow.fuori:hover{opacity:.85}
 .prow.fatta .swatch{box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
 
 /* apri/chiudi le sezioni secondarie */
@@ -171,20 +168,14 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .fold .inner{padding:4px 0 16px}
 
 /* campi */
-.adder{display:flex;gap:6px;flex-wrap:wrap}
-.adder input,.searchbox input{flex:1;min-width:0;border:1px solid var(--line);
+/* aggiungere una materia e modificarla devono avere la stessa faccia, se no
+   sembrano due cose diverse: stesse righe, stesse scritte sopra ai campi */
+.vform{display:flex;flex-direction:column;gap:9px}
+.searchbox input{flex:1;min-width:0;border:1px solid var(--line);
   background:var(--surface);color:var(--tx);padding:10px 12px;border-radius:var(--r-sm);
   font-size:14px;transition:border-color .13s}
-.adder input:focus,.searchbox input:focus{border-color:var(--tx3);outline:none}
-.adder input::placeholder,.searchbox input::placeholder{color:var(--tx3)}
-.adder input.cfu{flex:0 0 68px;width:68px;text-align:center;
-  font-family:"DM Mono",monospace;font-size:12.5px}
-.adder input.tm,.adder input[type=date]{flex:0 0 auto;
-  font-family:"DM Mono",monospace;font-size:12px}
-.adder select{flex:1 1 160px;min-width:0;border:1px solid var(--line);
-  background:var(--surface);color:var(--tx);padding:10px 12px;
-  border-radius:var(--r-sm);font-size:13px}
-.adder select:focus{border-color:var(--tx3);outline:none}
+.searchbox input:focus{border-color:var(--tx3);outline:none}
+.searchbox input::placeholder,.vf input::placeholder{color:var(--tx3)}
 /* la scadenza si cambia dove si legge: la data dell'elenco e' il campo stesso */
 .exrow input{border:1px solid transparent;background:none;color:var(--tx2);
   font-family:"DM Mono",monospace;font-size:10.5px;padding:3px 4px;
@@ -195,11 +186,11 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .exrow .t b{font-weight:400;color:var(--tx3);margin-right:6px}
 input[type=date],input[type=time]{color-scheme:dark}
 html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=time]{color-scheme:light}
-.adder button{display:inline-flex;align-items:center;gap:6px;
+.vform button{display:inline-flex;align-items:center;gap:6px;
   border:1px solid var(--line);background:var(--raised);color:var(--tx);
-  padding:10px 16px;border-radius:var(--r-sm);font-family:"DM Mono",monospace;
+  padding:8px 14px;border-radius:var(--r-sm);font-family:"DM Mono",monospace;
   font-size:12px;cursor:pointer;flex:0 0 auto}
-.adder button:hover{border-color:var(--tx3)}
+.vform button:hover{border-color:var(--tx3)}
 .searchbox{display:flex;gap:6px;margin-bottom:9px;position:relative}
 .searchbox .sico{position:absolute;left:10px;top:50%;transform:translateY(-50%);
   display:flex;color:var(--tx3);pointer-events:none;z-index:1}
@@ -1052,10 +1043,18 @@ td.tot b{color:var(--tx2);font-weight:500}
     <details class="fold">
       <summary><span class="cv">›</span><span class="lbl" data-ico="PLS">Aggiungi una materia</span></summary>
       <div class="inner">
-        <div class="adder">
-          <input id="newName" type="text" maxlength="46" placeholder="Materia, tirocinio, lavoro…">
-          <input id="newCfu" type="number" min="0" max="40" placeholder="CFU" class="cfu" aria-label="CFU">
-          <button id="addBtn">Aggiungi</button>
+        <div class="vform">
+          <div class="vrow">
+            <label class="vf"><span>nome</span>
+              <input id="newName" type="text" maxlength="46" placeholder="Materia, tirocinio, lavoro…"></label>
+            <label class="vf stretta"><span>CFU</span>
+              <input id="newCfu" type="number" min="0" max="40" placeholder="—" class="cfu" aria-label="CFU"></label>
+          </div>
+          <div class="vrow">
+            <label class="vf"><span>data d'esame</span>
+              <input id="newDate" type="date" class="dt" aria-label="Data dell'esame"></label>
+            <button id="addBtn">Aggiungi</button>
+          </div>
         </div>
         <div class="tools" id="voci" style="margin-top:9px"></div>
       </div>
@@ -1524,18 +1523,11 @@ function cfuOk(o){
   const tgt=targetH(o.cfu);
   return !tgt||oreFatte(o.id)/PERQ>=tgt;
 }
-/* Le materie che stai seguendo davvero. Finché non ne scegli nessuna valgono
-   tutte: la scelta non deve essere un adempimento prima di poter usare l'app.
-   Appena ne scegli una, i grafici guardano solo quelle — perché vedere la
-   proiezione di sei esami che non darai non è informazione, è ansia. */
-function seguite(){
-  const m=state.seguite||{};
-  return Object.keys(m).filter(k=>m[k]);
-}
-function segui(id){
-  const s=seguite();
-  return !s.length||(state.seguite||{})[id]?true:false;
-}
+/* Le materie "in sessione" non ci sono piu': erano un secondo filtro sopra ai
+   grafici, e i grafici gia' guardano solo le materie che hai messo negli slot
+   — che e' la stessa domanda, fatta ai fatti invece che a una dichiarazione.
+   La chiave resta salvata, cosi' un piano vecchio non perde niente, ma non
+   filtra piu' niente e non si puo' piu' impostare. */
 function cfuFatti(){
   const P=pianoCfu(),m=map(),p=state.pass||{},visti={};
   let ob=0,sc=0,n=0,attesa=0;
@@ -2491,10 +2483,8 @@ function picklist(){
 
   cfuBar();
   const distingue=pianoCfu().due;
-  const quante=seguite().length;
   const info=document.getElementById("pickinfo");
-  info.textContent=q?(list.length+scad.length)+" risultati in tutto il piano"
-    :(quante?quante+" in sessione":"");
+  info.textContent=q?(list.length+scad.length)+" risultati in tutto il piano":"";
 
   if(!list.length&&!scad.length){
     box.innerHTML='<p class="empty" style="padding:12px">Niente che corrisponda.</p>';return;}
@@ -2504,10 +2494,9 @@ function picklist(){
     const h=totalCtx(o.id),fh=totalCtx.done,tgt=targetH(o.cfu);
     const pct=tgt?Math.min(100,(h/PERQ)/tgt*100):0;
     const fatta=!!(state.pass||{})[o.id];
-    const fuori=o.kind==="c"&&!segui(o.id);
+
     const b=document.createElement("button");
-    b.className="prow"+(state.brush===o.id?" sel":"")+(fatta?" fatta":"")+
-      (fuori?" fuori":"");
+    b.className="prow"+(state.brush===o.id?" sel":"")+(fatta?" fatta":"");
     b.setAttribute("aria-pressed",state.brush===o.id);
     const tag=((q&&o.kind==="c")?'<em>'+(ANNI_ROMANI[o.year-1]||o.year)+" · sem "+o.sem+"</em>":"")+
       /* dal manifesto: quelle senza ob sono a scelta, e vale la pena saperlo
@@ -2742,44 +2731,28 @@ function editForm(o){
     commit();etichetta();picklist();
   };
 
-  /* la seguo in questa sessione, oppure no */
-  const seg=document.createElement("button");
-  const inSes=()=>!!(state.seguite||{})[o.id];
-  const etSeg=()=>{seg.textContent=inSes()?"In sessione ✓":"In sessione";
-    seg.className=inSes()?"armed":"";
-    seg.title=inSes()?"Togli dalla sessione: sparisce dalle proiezioni"
-      :"Tienila fra quelle che segui: i grafici guarderanno solo queste";};
-  etSeg();
-  seg.onclick=()=>{
-    state.seguite=state.seguite||{};
-    if(inSes())delete state.seguite[o.id];else state.seguite[o.id]=1;
-    save(inSes()?"Aggiunta alla sessione":"Tolta dalla sessione");
-    commit();etSeg();render();
-  };
-
-  const del=document.createElement("button");
-  del.className="via";
-  del.textContent=custom?"Elimina":"Ripristina";
-  del.title=custom?"Elimina la materia aggiunta a mano"
-                  :"Torna al nome e ai CFU del piano didattico";
-  del.onclick=()=>{
-    if(del.classList.contains("armed")){
-      if(custom)delVoce(o.id);else delete state.over[o.id];
-      syncExam(o.id,"","");
-      editId=null;save(custom?"Materia eliminata":"Ripristinata");commit();render();
-    }else{
-      del.classList.add("armed");del.textContent="Confermi?";
-      setTimeout(()=>{if(del.classList.contains("armed")){
-        del.classList.remove("armed");
-        del.textContent=custom?"Elimina":"Ripristina";}},4000);
-    }
-  };
-  const cl=document.createElement("button");cl.textContent="Chiudi";
-  cl.onclick=()=>{editId=null;picklist();};
-
+  /* Eliminare c'e' solo per le materie aggiunte a mano: quelle del piano non
+     si eliminano, e il "ripristina" che rimetteva nome e CFU del manifesto era
+     un pulsante che serviva una volta ogni mai. Il modulo si chiude con la
+     stessa matita che l'ha aperto. */
   const r3=riga("bts");
-  const sp=document.createElement("span");sp.className="sp";
-  [seg,sup,sp,del,cl].forEach(el=>r3.appendChild(el));
+  r3.appendChild(sup);
+  if(custom){
+    const del=document.createElement("button");
+    del.className="via";del.textContent="Elimina";
+    del.title="Elimina la materia aggiunta a mano";
+    del.onclick=()=>{
+      if(del.classList.contains("armed")){
+        delVoce(o.id);syncExam(o.id,"","");
+        editId=null;save("Materia eliminata");commit();render();
+      }else{
+        del.classList.add("armed");del.textContent="Confermi?";
+        setTimeout(()=>{if(del.classList.contains("armed")){
+          del.classList.remove("armed");del.textContent="Elimina";}},4000);
+      }
+    };
+    r3.appendChild(del);
+  }
   [r1,r2,r3].forEach(el=>wrap.appendChild(el));
   return wrap;
 }
@@ -3789,12 +3762,12 @@ function semSummary(){
     return {o:o,tgt:tgt,f:f,fut:fut,vuoto:Math.max(0,tgt-f-fut),gg:gg,
             persa:mat[id].persa/PERQ,ritmo:(ritmo4[id]||0)/PERQ/4,
             sett:sm[id]||{}};
-  }).filter(Boolean).filter(r=>qui[r.o.id]&&segui(r.o.id)).sort((a,b)=>
+  }).filter(Boolean).filter(r=>qui[r.o.id]).sort((a,b)=>
     (a.gg==null)-(b.gg==null)||(a.gg-b.gg)||(b.vuoto-a.vuoto));
   if(righe.length){
     h+='<div class="graf"><h4>Ce la fai?<u>tratteggio grigio: dove dovresti essere · '+
       'linea piena: dove sei · tratteggio colorato: dove arrivi col ritmo che tieni'+
-      (seguite().length?" · solo quelle che segui":"")+"</u></h4>";
+      "</u></h4>";
     righe.forEach(r=>{
       const verdetto=r.vuoto>0
         ? "mancano "+hrs(r.vuoto*PERQ)+" che non sono in piano"
@@ -5399,11 +5372,14 @@ document.getElementById("addBtn").onclick=()=>{
   const i=document.getElementById("newName"),v=i.value.trim();
   if(!v){i.focus();return;}
   normCustom();
-  const cf=document.getElementById("newCfu");
+  const cf=document.getElementById("newCfu"),dt=document.getElementById("newDate");
   const id="x:"+Date.now().toString(36);
   state.custom.push({id:id,name:v,cfu:+cf.value||0});
+  /* la data d'esame si mette mentre aggiungi, che e' il momento in cui la sai:
+     mandarla a cercare dopo, nella riga appena creata, era un secondo giro */
+  if(dt.value)setDataEsame(id,dt.value,"");
   state.brush=id;state.erase=false;
-  i.value="";cf.value="";save();commit();render();
+  i.value="";cf.value="";dt.value="";save("Materia aggiunta");commit();render();
 };
 document.getElementById("newName").addEventListener("keydown",e=>{
   if(e.key==="Enter")document.getElementById("addBtn").click();
