@@ -154,6 +154,9 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .pnm em.opz{color:var(--tx3);border:1px solid var(--line);border-radius:3px;
   padding:0 4px;letter-spacing:.04em}
 .prow.fatta .pnm{color:var(--tx2)}
+/* fuori dalla sessione: resta lì e si può ancora usare, ma non tira l'occhio */
+.prow.fuori{opacity:.45}
+.prow.fuori:hover{opacity:.85}
 .prow.fatta .swatch{box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
 
 /* apri/chiudi le sezioni secondarie */
@@ -695,6 +698,10 @@ td.tot b{color:var(--tx2);font-weight:500}
 .gpb i.pl{opacity:.34}
 .gpb i.vu{background:var(--sunken);box-shadow:inset 0 0 0 1px var(--line)}
 .gpn{margin-top:5px;font-family:"DM Mono",monospace;font-size:9.5px;color:var(--tx3)}
+.gritmo{margin-top:5px;font-family:"DM Mono",monospace;font-size:10px;
+  color:var(--late);display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.gritmo.ok{color:var(--done)}
+.gritmo b{font-family:"Familjen Grotesk",sans-serif;font-size:12px;font-weight:600}
 .gp.corto .gpn{color:var(--warn)}
 /* 4 — quando studi: sette giorni per tre fasce */
 .gmap{display:grid;grid-template-columns:64px repeat(7,1fr);gap:3px}
@@ -1399,6 +1406,18 @@ function cfuOk(o){
   const tgt=targetH(o.cfu);
   return !tgt||oreFatte(o.id)/PERQ>=tgt;
 }
+/* Le materie che stai seguendo davvero. Finché non ne scegli nessuna valgono
+   tutte: la scelta non deve essere un adempimento prima di poter usare l'app.
+   Appena ne scegli una, i grafici guardano solo quelle — perché vedere la
+   proiezione di sei esami che non darai non è informazione, è ansia. */
+function seguite(){
+  const m=state.seguite||{};
+  return Object.keys(m).filter(k=>m[k]);
+}
+function segui(id){
+  const s=seguite();
+  return !s.length||(state.seguite||{})[id]?true:false;
+}
 function cfuFatti(){
   const P=pianoCfu(),m=map(),p=state.pass||{},visti={};
   let ob=0,sc=0,n=0,attesa=0;
@@ -1514,7 +1533,7 @@ function panelDates(p){
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
 const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
-  "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass"];
+  "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite"];
 const LSKEY="piano-6272-local";
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
         localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
@@ -1857,6 +1876,7 @@ function adopt(d){
   setDayRange(state.dayFrom==null?DAY_FROM:state.dayFrom,
               state.dayTo==null?DAY_TO:state.dayTo);
   state.exams=state.exams||[];state.collapsed=state.collapsed||{};state.pass=state.pass||{};
+  state.seguite=state.seguite||{};
   normCustom();
   migrate(d);
 }
@@ -2245,8 +2265,10 @@ function picklist(){
 
   cfuBar();
   const distingue=pianoCfu().due;
+  const quante=seguite().length;
   const info=document.getElementById("pickinfo");
-  info.textContent=q?(list.length+scad.length)+" risultati in tutto il piano":"";
+  info.textContent=q?(list.length+scad.length)+" risultati in tutto il piano"
+    :(quante?quante+" in sessione":"");
 
   if(!list.length&&!scad.length){
     box.innerHTML='<p class="empty" style="padding:12px">Niente che corrisponda.</p>';return;}
@@ -2256,8 +2278,10 @@ function picklist(){
     const h=totalCtx(o.id),fh=totalCtx.done,tgt=targetH(o.cfu);
     const pct=tgt?Math.min(100,(h/PERQ)/tgt*100):0;
     const fatta=!!(state.pass||{})[o.id];
+    const fuori=o.kind==="c"&&!segui(o.id);
     const b=document.createElement("button");
-    b.className="prow"+(state.brush===o.id?" sel":"")+(fatta?" fatta":"");
+    b.className="prow"+(state.brush===o.id?" sel":"")+(fatta?" fatta":"")+
+      (fuori?" fuori":"");
     b.setAttribute("aria-pressed",state.brush===o.id);
     const tag=((q&&o.kind==="c")?'<em>'+(ANNI_ROMANI[o.year-1]||o.year)+" · sem "+o.sem+"</em>":"")+
       /* dal manifesto: quelle senza ob sono a scelta, e vale la pena saperlo
@@ -2428,10 +2452,25 @@ function editForm(o){
     commit();etichetta();picklist();
   };
 
+  /* la seguo in questa sessione, oppure no */
+  const seg=document.createElement("button");
+  const inSes=()=>!!(state.seguite||{})[o.id];
+  const etSeg=()=>{seg.textContent=inSes()?"In sessione ✓":"In sessione";
+    seg.className=inSes()?"armed":"";
+    seg.title=inSes()?"Togli dalla sessione: sparisce dalle proiezioni"
+      :"Tienila fra quelle che segui: i grafici guarderanno solo queste";};
+  etSeg();
+  seg.onclick=()=>{
+    state.seguite=state.seguite||{};
+    if(inSes())delete state.seguite[o.id];else state.seguite[o.id]=1;
+    save(inSes()?"Aggiunta alla sessione":"Tolta dalla sessione");
+    commit();etSeg();render();
+  };
+
   const cl=document.createElement("button");cl.textContent="Chiudi";
   cl.onclick=()=>{editId=null;picklist();};
 
-  [nm,cf,dt,tmEl,sup,ok,del,cl].forEach(el=>wrap.appendChild(el));
+  [nm,cf,dt,tmEl,seg,sup,ok,del,cl].forEach(el=>wrap.appendChild(el));
   return wrap;
 }
 
@@ -2631,7 +2670,28 @@ function nowLine(){
     td.appendChild(ln);
   });
 }
-setInterval(()=>{nowLine();autoLessons();},60000);
+/* Dieci minuti prima di un blocco te lo ricorda. Il lavoro no: quello lo sai
+   già, e un promemoria che ripete cose ovvie insegna a ignorare i promemoria.
+   Ogni blocco una volta sola, per sessione. */
+const PREAVVISO=10;
+const avvisati=new Set();
+function promemoria(){
+  const oggi=iso(new Date()),n=new Date(),m=map();
+  const adesso=n.getHours()*60+n.getMinutes();
+  runsOf(oggi).forEach(r=>{
+    if(r.v.done||r.v.a==="LAV")return;
+    const manca=r.start*(60/PERQ)-adesso;
+    if(manca<0||manca>PREAVVISO)return;
+    const k=oggi+"."+r.start+"."+r.lane;
+    if(avvisati.has(k))return;
+    avvisati.add(k);
+    const o=m[r.v.i],titolo="Fra "+Math.max(1,Math.round(manca))+" minuti: "+actOf(r.v.a).n;
+    const corpo=(o?o.name+" · ":"")+slotTime(r.start)+"–"+slotTime(r.start+r.len);
+    notify(titolo,corpo);
+    if(!w_notifOK()&&!document.hidden)toast(titolo+" · "+corpo);
+  });
+}
+setInterval(()=>{nowLine();autoLessons();promemoria();},60000);
 
 /* ============================================================
    POMODORO
@@ -3200,6 +3260,80 @@ function arretrati(){
   });
   return out;
 }
+/* Le mezz'ore di studio in piano in un giorno. Lezioni e lavoro non contano:
+   occupano tempo, ma non sono fatica di studio — e il tempo lo gestisce già
+   l'incastro degli orari. */
+function oreStudio(dateIso){
+  let n=0;runsOf(dateIso).forEach(r=>{if(!daSola(r.v.a))n+=r.len;});return n;
+}
+/* Il tetto di una giornata non me lo invento: è il massimo che hai davvero
+   fatto in un giorno nelle ultime otto settimane. Se non c'è ancora storia,
+   tre ore — che dopo una giornata di lavoro sono già tante. */
+function tettoGiorno(){
+  let max=0;
+  for(let g=1;g<=56;g++){
+    const d=iso(addDays(new Date(),-g));let n=0;
+    runsOf(d).forEach(r=>{if(!daSola(r.v.a)&&r.v.done)n+=r.len;});
+    if(n>max)max=n;
+  }
+  return max||3*PERQ;
+}
+function liberoPer(d,s,len){
+  for(let k=0;k<len;k++){
+    if(HOURS.indexOf(s+k)<0)return false;
+    if(at(ck(d,s+k)).some(v=>v))return false;
+  }
+  return true;
+}
+/* Dove rimettere un blocco saltato, in ordine di preferenza:
+   1. alla stessa ora, in un giorno successivo — se avevi messo schemi alle 21
+      è perché alle 21 puoi, non a caso;
+   2. se lì non c'è posto, nella stessa fascia della giornata;
+   3. solo alla fine, in un buco qualunque della fascia oraria che ti sei dato.
+   In tutti i casi: il giorno deve restare sotto il tetto, il posto deve essere
+   libero su tutte le corsie, e non si torna nel passato. Il blocco si sposta
+   com'è — stessa materia, stessa attività, stessa durata, stessa nota. */
+function cercaPosto(b,tetto){
+  const oggi=iso(new Date()),ora=oraAdesso(),ultimo=HOURS[HOURS.length-1];
+  /* Le tre preferenze sono passate separate, non tentativi dentro lo stesso
+     giorno: prima cerco la stessa ora in tutti i quattordici giorni, e solo se
+     non la trovo scendo alla stessa fascia. Scorrendo i giorni all'esterno
+     succedeva il contrario — un'ora qualunque di oggi vinceva sull'ora giusta
+     di domani, che è il contrario di quello che serve. */
+  const va=(d,x)=>!(d===oggi&&x<ora)&&x+b.len-1<=ultimo&&
+    oreStudio(d)+b.len<=tetto&&liberoPer(d,x,b.len);
+  const giorni=[];
+  for(let g=0;g<14;g++)giorni.push(iso(addDays(new Date(),g)));
+  for(const d of giorni)if(va(d,b.start))return {date:d,start:b.start};
+  for(const d of giorni)for(const x of HOURS)
+    if(fascia(x)===fascia(b.start)&&va(d,x))return {date:d,start:x};
+  for(const d of giorni)for(const x of HOURS)
+    if(va(d,x))return {date:d,start:x};
+  return null;
+}
+function spostaArretrati(){
+  const a=arretrati();if(!a.length)return;
+  const tetto=tettoGiorno();
+  let mossi=0,fermi=0,primo=null;
+  a.forEach(b=>{
+    const v=at(ck(b.date,b.start))[b.lane];if(!v)return;
+    const posto=cercaPosto(b,tetto);
+    if(!posto){fermi++;return;}
+    const copia={i:v.i,a:v.a,len:b.len};if(v.n)copia.n=v.n;
+    clearRun(b.date,b.start,b.len,b.lane);
+    placeRun(posto.date,posto.start,copia,0);
+    if(!primo)primo=posto;
+    mossi++;
+  });
+  if(!mossi&&fermi){
+    toast("Non c'è posto in due settimane senza superare le "+hrs(tetto)+" di studio in un giorno");
+    return;
+  }
+  save(mossi+(mossi===1?" blocco spostato":" blocchi spostati")+
+    (fermi?", "+fermi+" senza posto":"")+
+    (primo?" · il primo "+fmt(parse(primo.date))+" alle "+slotTime(primo.start):""));
+  commit();render();
+}
 function lateBar(){
   const box=document.getElementById("latebar");if(!box)return;
   const a=arretrati();
@@ -3211,9 +3345,12 @@ function lateBar(){
     "<u>"+hrs(mez)+" · dal "+fmt(parse(primo.date))+
       (primo.date===ultimo.date?"":" al "+fmt(parse(ultimo.date)))+"</u>"+
     '<button data-l="vai">Vai al primo</button>'+
+    '<button data-l="sposta" title="Li rimette avanti alla stessa ora, senza far '+
+      'superare a un giorno le ore che hai già fatto in un giorno">Sposta avanti</button>'+
     '<button data-l="fatti">Erano fatti</button>';
   box.querySelectorAll("button").forEach(b=>{
     b.onclick=()=>{
+      if(b.dataset.l==="sposta"){spostaArretrati();return;}
       if(b.dataset.l==="vai"){
         state.anchor[state.ctx]=iso(monday(parse(primo.date)));
         save();weeknav();panels();lateBar();
@@ -3241,7 +3378,8 @@ function semSummary(){
   const box=document.getElementById("semBody");
   if(!state.semOpen){box.innerHTML="";return;}
   const m=map(),pre=state.year+"."+state.ctx+".",oggi=TODAY;
-  const wk={},fase={},mappa={},mat={};
+  const wk={},fase={},mappa={},mat={},ritmo4={};
+  const lun4=iso(addDays(monday(new Date()),-28)),lunOra=iso(monday(new Date()));
   let tot=0,done=0,saltate=0;
   Object.keys(state.cells).forEach(k=>{
     const p=k.split("."),dt=p[2],sl=+p[3];
@@ -3255,6 +3393,8 @@ function semSummary(){
          l'esame di gennaio sta nella sessione, le ore per prepararlo no. */
       mat[v.i]=mat[v.i]||{f:0,fut:0,persa:0};
       if(q)mat[v.i].f++;else if(futuro)mat[v.i].fut++;else mat[v.i].persa++;
+      /* il ritmo tenuto davvero nelle quattro settimane già chiuse */
+      if(q&&dt>=lun4&&dt<lunOra)ritmo4[v.i]=(ritmo4[v.i]||0)+1;
       if(!dentro)return;
       const lun=iso(monday(d));
       wk[lun]=wk[lun]||{t:0,d:0};wk[lun].t++;wk[lun].d+=q;
@@ -3290,11 +3430,12 @@ function semSummary(){
     const f=mat[id].f/PERQ,fut=mat[id].fut/PERQ;
     const gg=o.date?Math.round((parse(o.date)-parse(oggi))/86400000):null;
     return {o:o,tgt:tgt,f:f,fut:fut,vuoto:Math.max(0,tgt-f-fut),gg:gg,
-            persa:mat[id].persa/PERQ};
-  }).filter(Boolean).sort((a,b)=>
+            persa:mat[id].persa/PERQ,ritmo:(ritmo4[id]||0)/PERQ/4};
+  }).filter(Boolean).filter(r=>segui(r.o.id)).sort((a,b)=>
     (a.gg==null)-(b.gg==null)||(a.gg-b.gg)||(b.vuoto-a.vuoto));
   if(righe.length){
-    h+='<div class="graf"><h4>Ce la fai?<u>fatte · in piano · scoperte, sul monte ore</u></h4>';
+    h+='<div class="graf"><h4>Ce la fai?<u>fatte · in piano · scoperte, sul monte ore'+
+      (seguite().length?" · solo quelle che segui":"")+"</u></h4>";
     righe.forEach(r=>{
       const scala=Math.max(r.tgt,r.f+r.fut)||1,pc=v=>(v/scala*100).toFixed(1)+"%";
       const verdetto=r.vuoto>0
@@ -3310,6 +3451,7 @@ function semSummary(){
           '<i class="vu" style="width:'+pc(r.vuoto)+'"></i></div>'+
         '<div class="gpn">'+verdetto+
           (r.persa>0?" · "+hrs(r.persa*PERQ)+" già saltate":"")+"</div>"+
+        ritmoRiga(r)+
       "</div>";
     });
     h+="</div>";
@@ -3382,6 +3524,23 @@ function semSummary(){
   }
 
   box.innerHTML=h;
+}
+
+/* La riga che trasforma la fotografia in una decisione: quante ore a settimana
+   servono da qui all'esame, e quante ne stai facendo davvero. Il confronto è
+   col ritmo delle ultime quattro settimane già chiuse — quello vero, non
+   quello che avevi in mente. Senza una data d'esame non ha senso e non compare. */
+function ritmoRiga(r){
+  if(r.gg==null||r.gg<0)return "";
+  const manca=Math.max(0,r.tgt-r.f);
+  if(!manca)return '<div class="gritmo ok">obiettivo raggiunto</div>';
+  const sett=Math.max(1,Math.ceil(r.gg/7)),serve=manca/sett;
+  const ce=r.ritmo>=serve;
+  const num=v=>(v%1?v.toFixed(1).replace(".",","):String(v));
+  return '<div class="gritmo'+(ce?" ok":"")+'"><b>'+num(Math.round(serve*10)/10)+
+    " h a settimana</b> per arrivarci · "+sett+
+    (sett===1?" settimana":" settimane")+" all'esame · nelle ultime quattro ne hai fatte "+
+    num(Math.round(r.ritmo*10)/10)+(ce?" — ci sei":" — non basta")+"</div>";
 }
 
 /* ---------- giorno intero: copia, incolla, svuota ---------- */

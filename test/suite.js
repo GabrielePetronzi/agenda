@@ -606,16 +606,15 @@
     var bottoni=box.querySelectorAll("button").length;
     pulisci();render();
     var spento=document.getElementById("latebar").className.indexOf("on")<0;
-    return (acceso&&spento&&bottoni===2&&testo.indexOf("1,5 h")>=0)?true:
-      "acceso="+acceso+" spento dopo="+spento+" bottoni="+bottoni+" testo="+testo;});
+    return (acceso&&spento&&bottoni===3&&testo.indexOf("1,5 h")>=0)?true:
+      "acceso="+acceso+" spento dopo="+spento+" bottoni="+bottoni+" (attesi 3) testo="+testo;});
   t("«erano fatti» li spunta tutti e l'avviso sparisce",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
     placeRun(ieri,HOURS[2],{i:it[0].id,a:"ESE",len:2},0);
     placeRun(ieri,HOURS[6],{i:it[1].id,a:"RIP",len:2},0);
     render();
-    var b=document.querySelectorAll("#latebar button")[1];
-    b.click();
+    document.querySelector('#latebar button[data-l="fatti"]').click();
     return (arretrati().length===0&&
             document.getElementById("latebar").className.indexOf("on")<0)?true:
       "restano "+arretrati().length+" arretrati";});
@@ -670,6 +669,161 @@
     pomFromCell(oggi,ORA,0);
     var partito=!!state.pomRun;state.pomRun=null;pomAskBlock(false);
     return eq(partito,false,"è partito: ");});
+
+
+  /* ---------- spostare gli arretrati ---------- */
+  t("il blocco saltato torna alla stessa ora, in un giorno successivo",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1)),h=HOURS[10];
+    placeRun(ieri,h,{i:it[0].id,a:"SCH",len:2,n:"cap. 4"},0);
+    /* un po' di storia, per avere un tetto largo */
+    for(var g=2;g<9;g++)placeRun(iso(addDays(new Date(),-g)),HOURS[2],
+      {i:it[0].id,a:"LET",len:8,done:1},0);
+    spostaArretrati();
+    var dove=null;
+    for(var d=0;d<14&&!dove;d++){
+      var day=iso(addDays(new Date(),d)),q=runAt(day,h,0);
+      if(q&&q.a==="SCH")dove={day:day,q:q};
+    }
+    if(dove)return (dove.day>ieri&&dove.q.len===2&&dove.q.n==="cap. 4")?true:
+      "spostato male: "+JSON.stringify(dove.q);
+    /* dove è finito? */
+    var trovato=[];
+    for(var d3=-1;d3<14;d3++){
+      var day3=iso(addDays(new Date(),d3));
+      runsOf(day3).forEach(function(r){if(r.v.a==="SCH")
+        trovato.push(fmt(parse(day3))+" "+slotTime(r.start)+" len"+r.len);});
+    }
+    return "cercavo alle "+slotTime(h)+", trovato: "+(trovato.join(", ")||"da nessuna parte")+
+      " · tetto "+hrs(tettoGiorno())+" · arretrati rimasti "+arretrati().length;});
+  t("spostando non sovrappone niente",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1)),h=HOURS[10];
+    for(var g=2;g<9;g++)placeRun(iso(addDays(new Date(),-g)),HOURS[2],
+      {i:it[0].id,a:"LET",len:8,done:1},0);
+    placeRun(ieri,h,{i:it[0].id,a:"SCH",len:2},0);
+    /* la stessa ora è occupata per i prossimi tre giorni */
+    for(var d=0;d<4;d++)placeRun(iso(addDays(new Date(),d)),h,{i:it[1].id,a:"LEZ",len:2},0);
+    spostaArretrati();
+    var doppi=0;
+    for(var d2=0;d2<14;d2++){
+      var day=iso(addDays(new Date(),d2));
+      HOURS.forEach(function(x){if(at(ck(day,x)).filter(function(v){return v;}).length>1)doppi++;});
+    }
+    return eq(doppi,0,"mezz'ore con due blocchi sopra ");});
+  t("non sfonda il tetto della giornata",function(){
+    pulisci();apri();
+    /* storia magra: due ore al giorno, quindi tetto due ore */
+    for(var g=2;g<9;g++)placeRun(iso(addDays(new Date(),-g)),HOURS[2],
+      {i:it[0].id,a:"LET",len:4,done:1},0);
+    var ieri=iso(addDays(new Date(),-1));
+    for(var k=0;k<6;k++)placeRun(ieri,HOURS[2+k*3],{i:it[0].id,a:"SCH",len:2},0);
+    spostaArretrati();
+    var tetto=tettoGiorno(),sfondati=[];
+    for(var d=0;d<14;d++){
+      var day=iso(addDays(new Date(),d));
+      if(oreStudio(day)>tetto)sfondati.push(fmt(parse(day))+" "+hrs(oreStudio(day)));
+    }
+    return sfondati.length?"giorni oltre il tetto di "+hrs(tetto)+": "+sfondati.join(", "):true;});
+  t("quello che non ci sta resta dov'è e te lo dice",function(){
+    pulisci();apri();
+    for(var g=2;g<9;g++)placeRun(iso(addDays(new Date(),-g)),HOURS[2],
+      {i:it[0].id,a:"LET",len:1,done:1},0);          /* tetto: mezz'ora al giorno */
+    var ieri=iso(addDays(new Date(),-1));
+    /* staccati, se no si saldano in un blocco solo */
+    for(var k=0;k<16;k++)placeRun(ieri,HOURS[2+k*2],{i:it[0].id,a:"SCH",len:1},0);
+    var prima=arretrati().length;
+    spostaArretrati();
+    var dopo=arretrati().length;
+    return (dopo>0&&dopo<prima)?true:"prima "+prima+", dopo "+dopo+
+      " (ne doveva spostare alcuni e lasciare gli altri)";});
+
+  /* ---------- la riga del ritmo ---------- */
+  t("il ritmo dice quante ore a settimana servono",function(){
+    pulisci();apri();
+    var o=items()[0];
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),70))};   /* 10 settimane */
+    placeRun(G[0],H0,{i:o.id,a:"LET",len:2},0);
+    state.semOpen=true;semSummary();
+    var riga=document.querySelector("#semBody .gritmo");
+    if(!riga)return "la riga non c'è";
+    /* 150 h da fare in 10 settimane = 15 h a settimana */
+    return riga.textContent.indexOf("15 h a settimana")>=0?true:
+      "dice: "+riga.textContent;});
+  t("senza data d'esame la riga del ritmo non compare",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:items()[0].id,a:"LET",len:2},0);
+    state.semOpen=true;semSummary();
+    return eq(document.querySelectorAll("#semBody .gritmo").length,0);});
+
+  /* ---------- il promemoria ---------- */
+  t("avvisa una volta sola, e solo se il blocco è vicino",function(){
+    /* La prossima mezz'ora può essere fra un minuto o fra ventinove, secondo
+       l'orario in cui gira il banco: controllo la regola, non l'orologio. */
+    pulisci();apri();
+    var vero=notify,visti=[];
+    notify=function(t2,b2){visti.push(t2+" | "+b2);};
+    var n=new Date(),adesso=n.getHours()*60+n.getMinutes();
+    var prossima=Math.ceil((adesso+1)/30)*30, manca=prossima-adesso, slot=prossima/30;
+    if(HOURS.indexOf(slot)<0){notify=vero;return true;}
+    placeRun(oggi,slot,{i:it[0].id,a:"SCH",len:2},0);
+    avvisati.clear();
+    promemoria();promemoria();
+    notify=vero;
+    if(manca<=PREAVVISO)
+      return (visti.length===1&&visti[0].indexOf("Schema")>=0)?true:
+        "manca "+manca+" min: avvisi "+visti.length+" ("+visti.join(" / ")+"), atteso 1";
+    return visti.length===0?true:
+      "manca "+manca+" min, oltre il preavviso: non doveva avvisare, invece "+visti.length;});
+
+  t("non avvisa per un blocco lontano né per il lavoro",function(){
+    pulisci();apri();
+    var vero=notify,visti=[];
+    notify=function(t2,b2){visti.push(t2);};
+    var n=new Date(),fra40=Math.ceil((n.getHours()*60+n.getMinutes()+40)/30);
+    var fra5=Math.ceil((n.getHours()*60+n.getMinutes()+5)/30);
+    if(fra40>=HOURS[HOURS.length-1]){notify=vero;return true;}
+    placeRun(oggi,fra40,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(oggi,fra5,{i:it[0].id,a:"LAV",len:2},0);
+    avvisati.clear();promemoria();
+    notify=vero;
+    return eq(visti.length,0,"avvisi mandati ");});
+
+
+  /* ---------- materie in sessione ---------- */
+  t("finché non scegli niente, valgono tutte",function(){
+    pulisci();apri();state.seguite={};
+    return eq(items().filter(function(o){return o.kind==="c";})
+      .every(function(o){return segui(o.id);}),true,"le seguo tutte: ");});
+  t("scelta una, la proiezione mostra solo quella",function(){
+    pulisci();apri();
+    var a=items()[0],b=items()[1];
+    state.over[a.id]={n:a.name,c:6,d:iso(addDays(new Date(),60))};
+    state.over[b.id]={n:b.name,c:6,d:iso(addDays(new Date(),60))};
+    placeRun(G[0],H0,{i:a.id,a:"LET",len:2},0);
+    placeRun(G[0],H0+4,{i:b.id,a:"LET",len:2},0);
+    state.seguite={};state.semOpen=true;semSummary();
+    var tutte=document.querySelectorAll("#semBody .gp").length;
+    state.seguite[a.id]=1;semSummary();
+    var una=document.querySelectorAll("#semBody .gp").length;
+    var nome=document.querySelector("#semBody .gp .gph b").textContent;
+    state.seguite={};state.over={};
+    return (tutte===2&&una===1&&nome===items()[0].name)?true:
+      "senza scelta "+tutte+", con la scelta "+una+" ("+nome+")";});
+  t("quelle fuori sessione restano nell'elenco, in secondo piano",function(){
+    pulisci();apri();
+    state.seguite={};state.seguite[items()[0].id]=1;
+    picklist();
+    var righe=document.querySelectorAll(".picklist .prow").length;
+    var fuori=document.querySelectorAll(".picklist .prow.fuori").length;
+    state.seguite={};
+    return (righe>1&&fuori===righe-1)?true:"righe "+righe+", in secondo piano "+fuori;});
+  t("la scelta sopravvive al salvataggio",function(){
+    pulisci();apri();
+    state.seguite={};state.seguite["c:1009070"]=1;
+    var q=JSON.parse(payload());
+    state.seguite={};adopt(q);apri();
+    return eq(JSON.stringify(state.seguite),'{"c:1009070":1}');});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");
