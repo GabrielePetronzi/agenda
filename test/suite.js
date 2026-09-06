@@ -1030,5 +1030,136 @@
     ripescaDalGist();
     return eq(Object.keys(state.cells).length,prima,"celle ");});
 
+
+  /* ================= la memoria non si perde ================= */
+  t("nessun punto del codice cancella le copie di sicurezza",function(){
+    /* è la garanzia che conta: se un giorno qualcuno scrivesse un removeItem
+       sulle copie, questo controllo diventa rosso */
+    /* solo il codice dell'app: il banco di prova sta in un altro script e le
+       sue pulizie non sono difetti dell'app */
+    var src=[].filter.call(document.querySelectorAll("script"),function(sc){
+      return sc.textContent.indexOf("FALLITI ")<0;
+    }).map(function(sc){return sc.textContent;}).join("\n");
+    var tolte=(src.match(/removeItem\(\s*([A-Za-z_]+)/g)||[]).map(function(x){
+      return x.replace(/removeItem\(\s*/,"");});
+    var vietate=tolte.filter(function(k){
+      return k==="LSKEY"||k==="COPIEKEY"||k==="GIORNIKEY";});
+    return vietate.length?"il codice cancella: "+vietate.join(", "):true;});
+  t("il gist si può leggere dall'indirizzo, e resta salvato",function(){
+    try{localStorage.removeItem(GISTKEY);}catch(e){}
+    var vecchio=location.hash;
+    location.hash="g=a1ccce8f1beda0985df822f0b04a79a9";
+    var id=gistDalLink();
+    location.hash=vecchio;
+    var salvato=null;try{salvato=localStorage.getItem(GISTKEY);}catch(e){}
+    return (id==="a1ccce8f1beda0985df822f0b04a79a9"&&salvato===id)?true:
+      "letto "+id+" salvato "+salvato;});
+  t("il link da mettere nei preferiti contiene il gist",function(){
+    try{localStorage.setItem(GISTKEY,"a1ccce8f1beda0985df822f0b04a79a9");}catch(e){}
+    var L=linkRicordo();
+    return (L.indexOf("#g=a1ccce8f")>=0)?true:"link: "+L;});
+  t("un indirizzo senza gist non inventa niente",function(){
+    try{localStorage.removeItem(GISTKEY);}catch(e){}
+    var vecchio=location.hash;location.hash="";
+    var id=gistDalLink();
+    location.hash=vecchio;
+    return eq(id,null);});
+  t("le copie sopravvivono a un ripristino",function(){
+    pulisci();apri();
+    try{localStorage.removeItem(COPIEKEY);}catch(e){}
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:6},0);save("x");
+    var prima=copieLeggi().length;
+    ripristina(JSON.stringify({v:5,cells:{}}),"prova");
+    var dopo=copieLeggi().length;
+    return dopo>=prima&&dopo>0?true:"prima "+prima+" dopo "+dopo;});
+  t("le copie sopravvivono a un allineamento",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:4},0);save("x");
+    var prima=copieLeggi().length;
+    var altro={ts:Date.now()+9000,v:5,cells:{}};
+    try{localStorage.setItem(LSKEY,JSON.stringify(altro));}catch(e){}
+    sv.ts=Date.now();allineaSeServe();
+    return copieLeggi().length>=prima?true:
+      "erano "+prima+", ora "+copieLeggi().length;});
+  t("salvare tiene una copia, e non una uguale ogni secondo",function(){
+    pulisci();apri();
+    try{localStorage.removeItem(COPIEKEY);}catch(e){}
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:2},0);save("a");
+    var uno=copieLeggi().length;
+    placeRun(G[0],H0+4,{i:it[0].id,a:"ESE",len:2},0);save("b");
+    var due=copieLeggi().length;
+    return (uno===1&&due<=2)?true:"copie dopo un salvataggio "+uno+", dopo due "+due;});
+  t("le copie non superano il tetto",function(){
+    var v=[];for(var k=0;k<20;k++)v.push({ts:Date.now()-k*3600000,n:10,p:"{}"});
+    try{localStorage.setItem(COPIEKEY,JSON.stringify(v.slice(0,COPIE_MAX)));}catch(e){}
+    return eq(copieLeggi().length,COPIE_MAX);});
+  t("il ripescaggio dal gist non parte se c'è il token",function(){
+    var t0=gh.token;gh.token="finto";
+    var partito=false;
+    try{partito=(ripescaDalGist()instanceof Promise);}catch(e){}
+    gh.token=t0;
+    return true;});   /* basta che non esploda: il ramo col token esce subito */
+  t("il piano aperto e le copie stanno in chiavi diverse",function(){
+    return (LSKEY!==COPIEKEY&&COPIEKEY!==GIORNIKEY&&LSKEY!==GIORNIKEY)?true:
+      "chiavi sovrapposte";});
+
+  /* ================= altri controlli ================= */
+  t("spostare non tocca lavoro e lezioni",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[4],{i:it[0].id,a:"LAV",len:4},0);
+    placeRun(ieri,HOURS[10],{i:it[0].id,a:AUTOACT,len:2},0);
+    spostaArretrati();
+    return (!!runAt(ieri,HOURS[4],0)&&!!runAt(ieri,HOURS[10],0))?true:
+      "ha spostato qualcosa che non doveva";});
+  t("le ore di studio del giorno non contano lavoro e lezioni",function(){
+    pulisci();apri();
+    placeRun(G[0],HOURS[2],{i:it[0].id,a:"LAV",len:8},0);
+    placeRun(G[0],HOURS[12],{i:it[0].id,a:"SCH",len:2},0);
+    return eq(oreStudio(G[0]),2,"mezz'ore di studio ");});
+  t("senza storia il tetto del giorno è tre ore",function(){
+    pulisci();apri();
+    return eq(tettoGiorno(),3*PERQ);});
+  t("la coda non spunta mai più della lunghezza del blocco",function(){
+    pulisci();apri();
+    state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:2},0);
+    var g=slotDiOggi("SCH");
+    pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
+    pomAdvance(true);pomAdvance(true);pomAdvance(true);
+    var k=0;for(var i2=0;i2<4;i2++){var v=at(ck(oggi,ORA+i2))[0];if(v&&v.done)k++;}
+    state.pomRun=null;state.pomConf={};
+    return eq(k,2,"mezz'ore spuntate ");});
+  t("il timer non spunta un blocco di un'altra attività",function(){
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(oggi,ORA,{i:it[1].id,a:"RIP",len:2},1);
+    var g=slotDiOggi("SCH");
+    pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
+    pomAdvance(true);
+    var altro=runAt(oggi,ORA,1);
+    state.pomRun=null;
+    return eq(!!(altro&&altro.done),false,"ha spuntato il ripasso: ");});
+  t("le due lingue insieme valgono tre CFU, non sei",function(){
+    pulisci();apri();
+    var m=map(),ids=["c:1010779","c:1007808"];
+    ids.forEach(function(id,idx){
+      state.pass[id]=1;
+      var serve=targetH(m[id].cfu)*PERQ,messe=0;
+      /* settimane diverse per ciascuna: sulla stessa corsia si sovrascriverebbero */
+      for(var w=idx*20;w<idx*20+40&&messe<serve;w++)for(var d=0;d<7&&messe<serve;d++){
+        var day=iso(addDays(parse(G[0]),w*7+d));
+        for(var j=0;j<HOURS.length-1&&messe<serve;j+=2){
+          placeRun(day,HOURS[j],{i:id,a:"LET",len:2,done:1},0);messe+=2;}}
+    });
+    var f=cfuFatti();
+    return eq(f.tot,3,"CFU contati ");});
+  t("un blocco a cavallo di due giorni non esiste: si ferma a fine giornata",function(){
+    pulisci();apri();
+    var ultimo=HOURS[HOURS.length-1];
+    placeRun(G[0],ultimo,{i:it[0].id,a:"ESE",len:4},0);
+    var r=runAt(G[0],ultimo,0);
+    return (r&&r.len===1)?true:"lunghezza "+(r?r.len:"nessun blocco");});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

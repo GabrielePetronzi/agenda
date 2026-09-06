@@ -758,6 +758,15 @@ td.tot b{color:var(--tx2);font-weight:500}
 
 /* scadenze in elenco */
 /* le copie di sicurezza, dentro il pannello Backup */
+.bklink{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.bklink u{flex:1 0 100%;text-decoration:none;font-family:"DM Mono",monospace;
+  font-size:10px;color:var(--tx3)}
+.bklink input{flex:1;min-width:0;border:1px solid var(--line);background:var(--sunken);
+  color:var(--tx2);border-radius:var(--r-sm);padding:5px 8px;
+  font-family:"DM Mono",monospace;font-size:10.5px;outline:none}
+.bklink button{border:1px solid var(--line);background:var(--raised);color:var(--tx2);
+  border-radius:var(--r-sm);padding:5px 10px;font-size:11.5px;cursor:pointer}
+.bklink button:hover{color:var(--tx)}
 .bkstato{margin:0 0 8px;font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx3)}
 .bkstato b{color:var(--tx2);font-weight:400}
 .bkcopie{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
@@ -1185,6 +1194,7 @@ td.tot b{color:var(--tx2);font-weight:500}
       Copia questo testo e conservalo, oppure scaricalo. Per rimettere un piano:
       <b>Carica da file</b> se ne hai uno, o scegli una delle copie qui sotto.</p>
     <p class="bkstato" id="bkStato"></p>
+    <div class="bklink" id="bkLink"></div>
     <div class="bkcopie" id="bkCopie"></div>
     <textarea id="bkText" spellcheck="false" style="font-family:'DM Mono',monospace;font-size:10.5px"></textarea>
     <input type="file" id="bkFile" accept="application/json,.json,text/plain" hidden>
@@ -4838,8 +4848,22 @@ async function daGist(link){
    me lo riprendo. È la rete che mancava: senza token l'app non pescava mai dal
    gist, quindi ogni volta che la memoria del browser si svuotava il piano
    spariva pur essendo al sicuro a tre centimetri di distanza. */
+/* Il gist scritto nell'indirizzo. Se il browser cancella i dati del sito se ne
+   va anche il gist salvato, e la rete che ho appena messo sparisce insieme a
+   tutto il resto. Un link che porta con sé il gist invece sopravvive, perché
+   sta nei preferiti e non nella memoria del sito: aprendolo, il piano torna
+   anche da una memoria completamente vuota. */
+function gistDalLink(){
+  const t=(location.hash||"")+" "+(location.search||"");
+  const m=t.match(/(?:^|[#?&])(?:g|gist)=([0-9a-f]{20,})/i);
+  if(!m)return null;
+  try{localStorage.setItem(GISTKEY,m[1]);}catch(e){}
+  gh.gist=m[1];
+  return m[1];
+}
 async function ripescaDalGist(){
   ghRead();
+  gistDalLink()||null;
   if(!gh.gist||gh.token)return false;      /* col token ci pensa ghPull */
   try{
     const d=JSON.parse(await leggiGist(gh.gist));
@@ -4856,6 +4880,11 @@ async function ripescaDalGist(){
 }
 /* Cosa c'è davvero in questo browser, scritto in chiaro: senza, l'unico modo
    di saperlo era la console, e da lì non si passa. */
+function linkRicordo(){
+  ghRead();
+  if(!gh.gist)return "";
+  return location.origin+location.pathname+"#g="+gh.gist;
+}
 function bkStato(){
   const el=document.getElementById("bkStato");if(!el)return;
   const n=k=>{try{return (localStorage.getItem(k)||"").length;}catch(e){return 0;}};
@@ -4864,6 +4893,20 @@ function bkStato(){
     "<b>"+copieLeggi().length+"</b> copie recenti · <b>"+giorniLeggi().length+"</b> del giorno · "+
     (gh.gist?"gist collegato"+(gh.token?" con token":" in sola lettura"):"<b>nessun gist</b>")+
     (n(LSKEY)?"":" · <b>memoria locale vuota</b>");
+  const box=document.getElementById("bkLink");
+  if(box){
+    const L=linkRicordo();
+    box.innerHTML=L
+      ?'<u>Metti questo nei preferiti: riporta il piano anche da un browser '+
+       'svuotato o nuovo.</u><input readonly value="'+L+'"><button id="bkLinkCopy">Copia</button>'
+      :'<u>Recupera una volta da un gist qui sotto: poi qui comparirà un link '+
+       'da mettere nei preferiti, che riporta il piano anche da zero.</u>';
+    const b=document.getElementById("bkLinkCopy");
+    if(b)b.onclick=async()=>{
+      try{await navigator.clipboard.writeText(L);toast("Link copiato");}
+      catch(e){box.querySelector("input").select();toast("Seleziona e copia");}
+    };
+  }
 }
 function bkCopieList(){
   bkStato();
