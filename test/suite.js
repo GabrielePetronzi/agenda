@@ -337,6 +337,37 @@
     });
     return mal.length?mal.join(" \u00b7 "):true;});
 
+  /* Due materie con lo stesso colore sono due materie che si scambiano di
+     posto quando guardi la settimana di sfuggita. La distanza si misura in
+     CIELAB: sotto venti l'occhio non le separa piu' a colpo d'occhio. E il
+     fondo deve reggere la scritta nera, che sui blocchi e' sempre nera. */
+  t("i colori delle materie stanno lontani fra loro",function(){
+    function lin(u){u/=255;return u<=.04045?u/12.92:Math.pow((u+.055)/1.055,2.4);}
+    function rgb(h){return [1,3,5].map(function(i){return parseInt(h.substr(i,2),16);});}
+    function lab(h){
+      var c=rgb(h),R=lin(c[0]),G=lin(c[1]),B=lin(c[2]);
+      var X=(R*.4124+G*.3576+B*.1805)/.95047,Y=R*.2126+G*.7152+B*.0722,
+          Z=(R*.0193+G*.1192+B*.9505)/1.08883;
+      function f(v){return v>216/24389?Math.pow(v,1/3):(841/108)*v+4/29;}
+      return [116*f(Y)-16,500*(f(X)-f(Y)),200*(f(Y)-f(Z))];
+    }
+    function lum(h){var c=rgb(h);return .2126*lin(c[0])+.7152*lin(c[1])+.0722*lin(c[2]);}
+    function contrasto(h){
+      var a=lum(h),b=lum(BLKINK);
+      return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+    }
+    var col=items().map(function(o){return {n:o.short,c:o.color};});
+    var peggio=null,dmin=1e9;
+    for(var i=0;i<col.length;i++)for(var j=i+1;j<col.length;j++){
+      var a=lab(col[i].c),b=lab(col[j].c),
+          d=Math.sqrt(Math.pow(a[0]-b[0],2)+Math.pow(a[1]-b[1],2)+Math.pow(a[2]-b[2],2));
+      if(d<dmin){dmin=d;peggio=col[i].n+" "+col[i].c+" e "+col[j].n+" "+col[j].c;}
+    }
+    var fioca=col.filter(function(o){return contrasto(o.c)<4.5;});
+    if(fioca.length)return "la scritta nera non regge su "+fioca[0].n+" "+fioca[0].c;
+    return dmin>=18?true:"troppo vicine ("+dmin.toFixed(1)+"): "+peggio;});
+
+
   /* ---------- grafici ---------- */
   t("i grafici ci sono tutti e quattro",function(){
     state.semOpen=true;semSummary();

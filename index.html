@@ -1279,7 +1279,11 @@ const hrs=n=>{const v=n/PERQ;return (v%1?v.toFixed(1).replace(".",","):String(v)
    ripetuta tre volte costava sedici pixel al nome della materia */
 const ore=n=>{const v=n/PERQ;return v%1?v.toFixed(1).replace(".",","):String(v);};
 const ICON={
-  LEZ:'<rect x="2" y="3" width="12" height="9" rx="1"/><path d="M5 6h6M5 8.6h4"/>',
+  /* stessa lavagna del motivo, gambe comprese: quando in una striscia il
+     motivo non ci sta è questa a prenderne il posto, e devono essere la
+     stessa cosa */
+  LEZ:'<rect x="2" y="2.2" width="12" height="8" rx="1"/><path d="M4.4 4.8h5M4.4 7.2h7"/>'+
+      '<path d="M4.6 10.2 3.2 13.4M11.4 10.2l1.4 3.2M8 10.2v3.2"/>',
   LET:'<path d="M2 4c2-1.1 4-1.1 6 0 2-1.1 4-1.1 6 0v8c-2-1.1-4-1.1-6 0-2-1.1-4-1.1-6 0z"/><path d="M8 4v8"/>',
   SCH:'<circle cx="3.6" cy="8" r="1.7"/><circle cx="12.4" cy="4.4" r="1.7"/><circle cx="12.4" cy="11.6" r="1.7"/><path d="M5.2 7.3l5.6-2.1M5.2 8.7l5.6 2.1"/>',
   ESE:'<path d="M11.4 2.4l2.2 2.2L6 12.2l-3 .8.8-3z"/><path d="M10 3.8l2.2 2.2"/>',
@@ -1397,16 +1401,18 @@ function punti(w,h,d,op){
 }
 const PUNTI="<circle cx='3' cy='3' r='1.6'/><circle cx='9.5' cy='9' r='1.6'/>";
 const ATRAMA={
-  /* qualcuno che spiega alla lavagna. I telaietti da soli somigliavano troppo
-     al quadratino della spunta — che è pure lui un rettangolo vuoto, e a due
-     passi di distanza. Una figura no: non si confonde con nessun comando.
-     Alta undici pixel: a un blocco da un'ora la fascia che resta è sedici,
-     e una tile più alta si taglierebbe sempre invece di ripetersi. Della
-     figura restano testa, busto e un braccio verso la lavagna: gambe e secondo
-     braccio erano tratti che a misura vera facevano rumore, non un uomo. La
-     mensola del gesso sotto al telaio costa un tratto solo e fa la differenza
-     fra un rettangolo e una lavagna. */
-  LEZ:trama(17,11,"<rect x='1.4' y='1.8' width='8.4' height='6.4' rx='1.3'/>"+"<path d='M2.6 9.1h6'/>"+"<circle cx='13.2' cy='3.2' r='1.05'/>"+"<path d='M13.2 4.5v3.7M13.2 5.5l-1.9-.7'/>"),
+  /* Una lavagna a cavalletto. La lavagna da sola era un rettangolo vuoto come
+     il quadratino della spunta, a due passi di distanza; l'omino di fianco, a
+     misura vera, era tre tratti che non facevano un uomo. Le gambe risolvono
+     tutt'e due i problemi in una volta: rompono il rettangolo, quindi nessun
+     comando le somiglia, e dicono "aula" senza dover disegnare nessuno.
+     Sedici per quattordici, quasi quadrata, perché adesso la tile viene
+     scalata a una divisione intera della fascia e non deve più stare bassa
+     per non tagliarsi: può prendersi lo spazio e mostrare due righe di
+     scrittura sul pannello. */
+  LEZ:trama(16,14,"<rect x='2' y='1.6' width='12' height='8' rx='1.2'/>"+
+    "<path d='M4.4 4.2h5M4.4 6.6h7'/>"+
+    "<path d='M4.6 9.6 3.2 12.8M11.4 9.6l1.4 3.2M8 9.6v3.2'/>"),
   LET:trama(20,6,"<path d='M0 3h20'/>"),                            /* righe di quaderno */
   /* la ramificazione, rada. Il nodo coi tre rami corti era troppo fitto:
      a quella scala diventava uno scarabocchio invece di una struttura. */
@@ -1427,7 +1433,7 @@ const ATRAMA={
    tagliati restano righe e quadretti. Le figure, nelle fasce basse dei blocchi
    corti, vanno ingrandite fino a riempirle una volta sola; i tessuti si
    ripetono e basta. */
-const TRDIM={LEZ:[17,11,1],SCH:[22,16,1],RIP:[15,15,1],PRO:[22,11,0],
+const TRDIM={LEZ:[16,14,1],SCH:[22,16,1],RIP:[15,15,1],PRO:[22,11,0],
   LAB:[13,13,0],LET:[20,6,0],ESE:[7,7,0],LAV:[8,8,0]};
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
@@ -1436,10 +1442,9 @@ const ATRAMALEG={
      stessa figura sta in una tile alta quanto la pastiglia, così se ne vede
      una sola. Le altre non hanno il problema: o sono trame, dove ripetersi è
      il senso, o ci stanno una volta. */
-  LEZ:trama(17,17,"<rect x='2.1' y='4.9' width='8.4' height='6.4' rx='1.3'/>"+
-    "<path d='M3.3 12.2h6'/>"+
-    "<circle cx='13.9' cy='6.3' r='1.05'/>"+
-    "<path d='M13.9 7.6v3.7M13.9 8.6l-1.9-.7'/>",1),
+  LEZ:trama(17,17,"<rect x='2.5' y='2.4' width='12' height='8' rx='1.2'/>"+
+    "<path d='M4.9 5h5M4.9 7.4h7'/>"+
+    "<path d='M5.1 10.4 3.7 13.6M11.9 10.4l1.4 3.2M8.5 10.4v3.2'/>",1),
   LET:trama(20,6,"<path d='M0 3h20'/>",1),
   SCH:trama(22,16,"<path d='M2 8h4.5M6.5 4v8M6.5 4h5M6.5 12h5'/>",1),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>",1),
@@ -1564,10 +1569,17 @@ const COURSES={
  ]
 };
 
-const PAL=["#6E8BFF","#4FB3A0","#E0A458","#D96C7B","#9B7FD4","#5FA8D3",
-           "#82B356","#E08A5B","#C97BB0","#63C2C2","#B0A24E","#7C8CA6",
-           "#8FA4E8","#3F907F","#C98A3C","#C06978","#8C77C1","#4A8FBE",
-           "#6B9440","#BF6E44","#B06D9C","#4EA5A5"];
+/* Ventidue tinte scelte per stare lontane fra loro, non per stare bene in
+   fila: sono i colori che tocca a una materia senza colore suo — un altro
+   piano di studi, una voce aggiunta a mano — e lì l'unica cosa che conta è
+   che due blocchi vicini non si somiglino. La distanza minima fra due
+   qualunque, misurata in CIELAB, passa da 7 a 19; tutte stanno sopra il 5:1
+   di contrasto con la scritta nera, e nessuna somiglia al grigio del ripasso
+   libero o al verde-oliva del lavoro. */
+const PAL=["#FF97B3","#E7857D","#FBC5BA","#C59774","#FBC181","#E3D0A4",
+           "#B49F54","#D0D886","#80AD67","#8FE4AC","#ADDCC7","#19B49F",
+           "#69ABAE","#6CE3ED","#02ADDE","#9CD9FE","#83A3CB","#79A0EB",
+           "#D2CCFD","#B392DB","#FEB4F4","#CA90A8"];
 const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
                 "#4FB3A0","#3F8F7E","#82B356","#6B9440","#B0A24E","#E0A458",
                 "#C98A3C","#E08A5B","#BF6E44","#D96C7B","#B85566","#C97BB0",
@@ -2138,36 +2150,45 @@ const shortOf=n=>n.length>17?n.slice(0,16)+"…":n;
    quattro della chiusura del percorso, che però stanno tutti nello stesso
    semestre e dovendo distinguersi solo per luminosità strozzavano l'intera
    tavolozza. Tutti reggono il testo nero, da 5,0:1 a 14,6:1. */
+/* Il colore di ogni materia. Stanno in famiglie — dati e reti sul turchese,
+   sicurezza sul rosso, intelligenza artificiale sul viola — perché la famiglia
+   aiuta a orientarsi in un piano da venti materie. Ma dentro la famiglia si
+   somigliavano troppo: due tinte del gruppo sicurezza distavano 6,3 in CIELAB,
+   e sotto 20 due blocchi vicini si leggono come lo stesso blocco. Adesso ogni
+   materia resta nella sua famiglia — la tinta si sposta al massimo di trenta
+   gradi — e la distanza se la prende sulla chiarezza e sulla saturazione: la
+   coppia più vicina sta a 21. Nessuna scende sotto 5:1 di contrasto con la
+   scritta nera, che sui blocchi è sempre nera. */
 const MATCOL={
   /* Dati e reti */
-  "c:1009070":"#4D9EB0",
-  "c:1014075":"#9DF5F0",
+  "c:1009070":"#59ADB5",
+  "c:1014075":"#48E7E5",
   /* Metodi numerici */
-  "c:1013075":"#8FB7FD",
+  "c:1013075":"#94D4FC",
   /* Linguaggi e programmazione */
-  "c:1009064":"#A2CB7B",
-  "c:1009066":"#459E77",
+  "c:1009064":"#A5DFBB",
+  "c:1009066":"#37B393",
   /* Sicurezza e affidabilità */
-  "c:1014073":"#E35E60",
-  "c:1010559":"#ECB69A",
-  "c:1009069":"#E5A791",
-  "c:1013066":"#E48449",
+  "c:1014073":"#FFC1D0",
+  "c:1010559":"#DB8E65",
+  "c:1009069":"#FDC885",
+  "c:1013066":"#E9CDB2",
   /* Intelligenza artificiale */
-  "c:1009065":"#FAC7EB",
-  "c:1013067":"#B475BB",
-  "c:1009071":"#E6AAF9",
-  "c:1009073":"#6C8CE6",
+  "c:1009065":"#DBCAF6",
+  "c:1013067":"#A995E0",
+  "c:1009071":"#FAB5F7",
+  "c:1009073":"#5CA5EB",
   /* Lingua e competenze */
-  "c:1010779":"#D08939",
-  "c:1007808":"#F7DE72",
+  "c:1010779":"#B1A154",
+  "c:1007808":"#C3DB8C",
   /* voci di servizio: ripasso senza materia e lavoro, neutre di proposito */
   "_gen":"#B2B7BF",
   "_lav":"#A1A781",
   /* Chiusura del percorso */
-  "c:24688":"#A37F89",
-  "c:1006660":"#D05DA7",
-  "c:1006659":"#FF9BB7",
-  "c:1006658":"#FDDEF3"
+  "c:24688":"#E98387",
+  "c:1006660":"#BE94B4",
+  "c:1006659":"#C5958E",
+  "c:1006658":"#ED8EB8"
 };
 
 /* Colore predefinito ricavato dall'id, così resta lo stesso in ogni anno e
@@ -2268,8 +2289,10 @@ function items(){
   const all=allCourses().concat(voci());
   all.push({id:GENID,name:"Ripasso libero",short:"Ripasso",cfu:0,date:"",kind:"g"});
   all.push({id:WORKID,name:"Lavoro",short:"Lavoro",cfu:0,date:"",kind:"g"});
-  all.forEach(o=>o.color=state.colors[o.id]||
-    (o.id===GENID?"#7C8CA6":(o.id===WORKID?"#8C7B63":autoColor(o.id))));
+  /* anche ripasso libero e lavoro passano da MATCOL come tutte le altre: le
+     due tinte scritte qui dentro erano rimaste indietro, e sul marrone del
+     lavoro la scritta nera stava a 4,3 contro il 4,5 che serve */
+  all.forEach(o=>o.color=state.colors[o.id]||autoColor(o.id));
   return all;
 }
 const map=()=>{const m={};items().forEach(o=>m[o.id]=o);return m;};
