@@ -181,6 +181,18 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
   font-family:"DM Mono",monospace;font-size:12.5px}
 .adder input.tm,.vedit input.tm,.adder input[type=date]{flex:0 0 auto;
   font-family:"DM Mono",monospace;font-size:12px}
+.adder select{flex:1 1 160px;min-width:0;border:1px solid var(--line);
+  background:var(--surface);color:var(--tx);padding:10px 12px;
+  border-radius:var(--r-sm);font-size:13px}
+.adder select:focus{border-color:var(--tx3);outline:none}
+/* la scadenza si cambia dove si legge: la data dell'elenco e' il campo stesso */
+.exrow input{border:1px solid transparent;background:none;color:var(--tx2);
+  font-family:"DM Mono",monospace;font-size:10.5px;padding:3px 4px;
+  border-radius:4px;flex:0 0 auto}
+.exrow input:hover{border-color:var(--line)}
+.exrow input:focus{border-color:var(--action);outline:none;color:var(--tx)}
+/* la materia collegata si riconosce dal punto davanti al nome */
+.exrow .t b{font-weight:400;color:var(--tx3);margin-right:6px}
 input[type=date],input[type=time]{color-scheme:dark}
 html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=time]{color-scheme:light}
 .adder button{display:inline-flex;align-items:center;gap:6px;
@@ -189,9 +201,10 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
   font-size:12px;cursor:pointer;flex:0 0 auto}
 .adder button:hover{border-color:var(--tx3)}
 .searchbox{display:flex;gap:6px;margin-bottom:9px;position:relative}
-.searchbox .sico{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+.searchbox .sico{position:absolute;left:10px;top:50%;transform:translateY(-50%);
   display:flex;color:var(--tx3);pointer-events:none;z-index:1}
-.searchbox input{padding-left:32px}
+.searchbox input{padding:8px 12px 8px 30px;font-size:13px}
+.searchbox button{padding:0 10px}
 .searchbox input:focus+.sico,.searchbox .sico{transition:color .13s}
 .searchbox button{border:1px solid var(--line);background:var(--surface);color:var(--tx3);
   border-radius:var(--r-sm);padding:0 12px;cursor:pointer;font-size:13px;flex:0 0 auto;
@@ -210,31 +223,37 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
    nome è la cosa stretta, e due pixel in più di bordo mandano "Finanza
    computazionale" a capo. Lo spazio sta alla scala finché la scala non
    peggiora quello che deve reggere. */
-.prow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;
-  border:0;border-bottom:1px solid var(--line-soft);padding:8px 10px;cursor:pointer;
+.prow{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;
+  border:0;border-bottom:1px solid var(--line-soft);padding:6px 9px;cursor:pointer;
   color:inherit;transition:background .12s}
 .prow:last-child{border-bottom:0}
 .prow:hover{background:var(--raised)}
 .prow.sel{background:var(--raised);box-shadow:inset 3px 0 0 var(--action)}
-.swatch{width:19px;height:19px;flex:0 0 19px;border-radius:6px;border:0;cursor:pointer;
+.swatch{width:17px;height:17px;flex:0 0 17px;border-radius:5px;border:0;cursor:pointer;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);position:relative}
 .swatch.clash::after{content:"!";position:absolute;right:-5px;top:-6px;width:13px;height:13px;
   border-radius:50%;background:var(--warn);color:#fff;font-family:"DM Mono",monospace;
   font-size:9px;line-height:13px;text-align:center}
-.pnm{flex:1;min-width:0;font-size:12.5px;font-weight:450;line-height:1.3;letter-spacing:-.005em}
+.pnm{flex:1;min-width:0;font-size:12px;font-weight:450;line-height:1.3;letter-spacing:-.005em}
 .pnm em{font-style:normal;display:inline-block;margin-left:7px;font-family:"DM Mono",monospace;
   font-size:9px;letter-spacing:.06em;color:var(--tx3);vertical-align:middle}
 /* La barra deve dirti a colpo d'occhio a che punto sei: più alta, con il
    pianificato in trasparenza e il fatto pieno sopra, e una tacca a metà
    strada per avere un riferimento invece di stimare a occhio. */
-.pnm .bar{position:relative;display:block;height:8px;border-radius:4px;background:var(--sunken);
-  margin-top:6px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+.pnm .bar{position:relative;display:block;height:7px;border-radius:4px;background:var(--sunken);
+  margin-top:5px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
 .pnm .bar i{position:absolute;left:0;top:0;height:100%;min-width:3px;border-radius:4px}
 .pnm .bar u.mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--bg);
   opacity:.55;text-decoration:none}
-.ph{font-family:"DM Mono",monospace;font-size:11.5px;color:var(--tx);flex:0 0 auto;
+.pnm em.dat{cursor:pointer;border:1px solid var(--line);border-radius:4px;
+  padding:1px 5px;margin-left:6px;color:var(--tx2);transition:opacity .12s,color .12s}
+.pnm em.dat.vuota{opacity:.4}
+.prow:hover .pnm em.dat{opacity:1}
+.pnm em.dat:hover{color:var(--tx);border-color:var(--tx3)}
+.pnm em.dat.soon{color:var(--warn);border-color:var(--warn)}
+.ph{font-family:"DM Mono",monospace;font-size:11px;color:var(--tx);flex:0 0 auto;
   text-align:right;line-height:1.25}
-.ph u{display:block;text-decoration:none;font-size:9px;color:var(--tx3);margin-top:3px}
+.ph u{display:block;text-decoration:none;font-size:8.5px;color:var(--tx3);margin-top:2px}
 .pen{flex:0 0 auto;color:var(--tx3);cursor:pointer;font-size:13px;padding:4px;display:flex;
   border-radius:5px;opacity:.55;transition:opacity .12s,color .12s}
 .prow:hover .pen{opacity:1}
@@ -256,6 +275,8 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
   padding:8px 12px;border-radius:var(--r-sm);font-family:"DM Mono",monospace;
   font-size:11px;cursor:pointer}
 .vedit button:hover{color:var(--tx)}
+.vedit .cap{flex:0 0 auto;font-family:"DM Mono",monospace;font-size:10px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--tx3);margin-left:2px}
 #vDel.armed{border-color:var(--warn);color:var(--warn)}
 
 /* trascinamento di una materia dall'elenco fin dentro la griglia:
@@ -278,8 +299,8 @@ body.dropping td.c.dropok{background:var(--tint-hover);
    ============================================================ */
 .tools{display:flex;flex-wrap:wrap;gap:6px}
 .tool{cursor:pointer;background:var(--surface);border:1px solid var(--line);
-  color:var(--tx2);border-radius:var(--r-sm);padding:10px 12px;font-size:13px;
-  display:flex;align-items:center;gap:8px;min-height:38px;transition:.13s}
+  color:var(--tx2);border-radius:var(--r-sm);padding:8px 10px;font-size:12.5px;
+  display:flex;align-items:center;gap:7px;min-height:34px;transition:.13s}
 .tool:hover{color:var(--tx);border-color:var(--tx3);transform:translateY(-1px)}
 .tool[aria-pressed="true"]{background:var(--raised);color:var(--tx);
   border-color:var(--tx3);box-shadow:inset 0 0 0 1px var(--tx3)}
@@ -1004,16 +1025,10 @@ td.tot b{color:var(--tx2);font-weight:500}
         <button id="qClear" title="Azzera la ricerca">✕</button>
       </div>
       <div class="picklist" id="picklist"></div>
-    </div>
-
-    <div class="sec">
-      <p class="lbl" data-ico="GRD">Attività</p>
-      <div class="tools" id="tools"></div>
-    </div>
-
-    <div class="sec">
-      <p class="lbl" data-ico="POM">Pomodoro</p>
-      <div class="tools" id="pomtools"></div>
+      <!-- I promemoria che non sono l'esame di nessuna materia: restano qui
+           sotto le materie, si cambiano sul posto e non hanno un pannello
+           tutto loro. Se non ce ne sono, non c'e' niente da vedere. -->
+      <div id="exList"></div>
     </div>
 
     <details class="fold">
@@ -1028,18 +1043,15 @@ td.tot b{color:var(--tx2);font-weight:500}
       </div>
     </details>
 
-    <details class="fold">
-      <summary><span class="cv">›</span><span class="lbl" data-ico="FLG">Esami e scadenze</span></summary>
-      <div class="inner">
-        <div class="adder">
-          <input id="exDate" type="date" aria-label="Data">
-          <input id="exTime" type="time" class="tm" aria-label="Ora, facoltativa">
-          <input id="exText" type="text" maxlength="46" placeholder="Esame, consegna, colloquio">
-          <button id="exAdd">Aggiungi</button>
-        </div>
-        <div id="exList" style="margin-top:6px"></div>
-      </div>
-    </details>
+    <div class="sec">
+      <p class="lbl" data-ico="GRD">Attività</p>
+      <div class="tools" id="tools"></div>
+    </div>
+
+    <div class="sec">
+      <p class="lbl" data-ico="POM">Pomodoro</p>
+      <div class="tools" id="pomtools"></div>
+    </div>
 
   </aside>
 
@@ -2248,6 +2260,24 @@ function courses(){
   });
   return out;
 }
+/* La data d'esame di una materia sta in due posti: dentro la materia, perche'
+   la barra e i grafici la usano per sapere quanto manca, e nell'elenco delle
+   scadenze, perche' li' si vedono tutte insieme. Questa la scrive in tutt'e
+   due, cosi' non puo' succedere che una dica una cosa e l'altra un'altra.
+   Il nome scritto sopra non si tocca: se lo riscrivessi qui, la sigla corta
+   del blocco passerebbe da quella del piano a una ricavata dal nome lungo. */
+function setDataEsame(id,date,hm){
+  const o=map()[id];if(!o)return;
+  if(id.indexOf("x:")===0){
+    normCustom();
+    const c=state.custom.find(x=>x.id===id);if(c)c.d=date||"";
+  }else{
+    state.over=state.over||{};
+    const ov=Object.assign({},state.over[id]||{});
+    ov.d=date||"";state.over[id]=ov;
+  }
+  syncExam(id,o.name,date||"",hm||"");
+}
 /* tiene allineata la scadenza di una materia con l'elenco delle scadenze */
 function syncExam(id,name,date,hm){
   state.exams=state.exams||[];
@@ -2470,7 +2500,17 @@ function picklist(){
       (fatta?(cfuOk(o)?'<em style="color:var(--done)">superato · '+o.cfu+' CFU</em>'
         :'<em style="color:var(--warn)">superato · mancano '+
           ore(Math.max(0,targetH(o.cfu)*PERQ-oreFatte(o.id)))+' h</em>'):"")+
-      (note[o.id]?'<em style="color:var(--action)">'+note[o.id]+" in nota</em>":"");
+      (note[o.id]?'<em style="color:var(--action)">'+note[o.id]+" in nota</em>":"")+
+      /* La data d'esame sta qui, attaccata alla materia: e' la prima cosa che
+         si cerca dopo aver aggiunto una materia, e mandarla a cercare in un
+         pannello in fondo alla colonna voleva dire non trovarla. Vuota e'
+         quasi trasparente e si accende passandoci sopra; piena si legge
+         sempre, e diventa arancione nella settimana prima. */
+      (o.kind!=="g"?'<em class="dat'+(o.date?"":" vuota")+
+        (o.date&&daysTo(o.date)>=0&&daysTo(o.date)<=7?" soon":"")+
+        '" role="button" tabindex="0" title="'+
+        (o.date?"Esame il "+o.date+" — clicca per cambiarlo":"Segna la data dell'esame")+
+        '">'+(o.date?"esame "+fmt(parse(o.date)):"esame —")+"</em>":"");
     const cl=clash[o.id];
     b.title=tgt?(hrs(h)+" in piano su "+tgt+" h · "+hrs(fh)+" già fatte"):"";
     b.innerHTML='<span class="swatch'+(cl?" clash":"")+'" style="background:'+o.color+'"'+
@@ -2489,7 +2529,7 @@ function picklist(){
       '<span class="ph">'+(tgt?Math.round((h/PERQ)/tgt*100)+"%":(h?hrs(h):"—"))+
         (tgt?"<u>"+ore(h)+"/"+tgt+" h · "+ore(fh)+" ✓</u>"
             :(h?"<u>"+hrs(fh)+" fatte</u>":""))+"</span>"+
-      '<span class="pen'+(editId===o.id?" on":"")+'" role="button" title="Modifica nome, CFU, scadenza" '+
+      '<span class="pen'+(editId===o.id?" on":"")+'" role="button" title="Modifica nome, CFU, data d\'esame" '+
         'aria-label="Modifica">'+icon("ESE",12)+"</span>";
     b.onclick=()=>{
       if(sdAte){sdAte=false;return;}   /* è la coda di un trascinamento, non una scelta */
@@ -2507,6 +2547,19 @@ function picklist(){
     b.querySelector(".pen").onclick=e=>{
       e.stopPropagation();editId=editId===o.id?null:o.id;picklist();
     };
+    const dat=b.querySelector(".dat");
+    if(dat){
+      const apri=e=>{
+        e.stopPropagation();
+        editId=o.id;picklist();
+        /* aprire il modulo e basta lascia comunque da cercare quale dei tre
+           campi sia la data: qui il calendario si apre da solo */
+        const campo=document.querySelector(".vedit.open input.dt");
+        if(campo){campo.focus();try{campo.showPicker();}catch(_){}}
+      };
+      dat.onclick=apri;
+      dat.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();apri(e);}};
+    }
     box.appendChild(b);
 
     const pick=document.createElement("div");
@@ -2581,8 +2634,13 @@ function editForm(o){
   const cf=document.createElement("input");
   cf.type="number";cf.min=0;cf.max=40;cf.className="cfu";cf.placeholder="CFU";
   cf.value=o.cfu||"";cf.setAttribute("aria-label","CFU");
+  /* senza scritta era un campo data in mezzo ad altri due: uno arriva qui
+     cercando la data d'esame e non riconosce quale sia */
+  const cap=document.createElement("span");
+  cap.className="cap";cap.textContent="esame";
   const dt=document.createElement("input");
-  dt.type="date";dt.className="dt";dt.value=o.date||"";dt.setAttribute("aria-label","Scadenza");
+  dt.type="date";dt.className="dt";dt.value=o.date||"";
+  dt.title="Data dell'esame";dt.setAttribute("aria-label","Data dell'esame");
   const tmEl=document.createElement("input");
   tmEl.type="time";tmEl.className="tm";tmEl.setAttribute("aria-label","Ora della scadenza");
   const ex0=(state.exams||[]).find(x=>x.mid===o.id);
@@ -2648,7 +2706,7 @@ function editForm(o){
   const cl=document.createElement("button");cl.textContent="Chiudi";
   cl.onclick=()=>{editId=null;picklist();};
 
-  [nm,cf,dt,tmEl,seg,sup,ok,del,cl].forEach(el=>wrap.appendChild(el));
+  [nm,cf,cap,dt,tmEl,seg,sup,ok,del,cl].forEach(el=>wrap.appendChild(el));
   return wrap;
 }
 
@@ -2752,21 +2810,52 @@ function daysTo(dateIso){
   const a=parse(dateIso),b=new Date();b.setHours(0,0,0,0);
   return Math.round((a-b)/86400000);
 }
+/* Qui restano solo i promemoria liberi — quelli che non sono l'esame di
+   nessuna materia. Le date d'esame stanno sulla riga della materia, che e'
+   dove uno le cerca: un pannello a fondo pagina, con dentro un elenco di
+   scadenze staccate dalle materie, era un secondo posto in cui guardare. */
 function examList(){
-  const box=document.getElementById("exList");box.innerHTML="";
-  const list=(state.exams||[]).slice().sort((a,b)=>a.d<b.d?-1:1);
-  if(!list.length){box.innerHTML='<p class="empty">Nessuna scadenza segnata.</p>';return;}
+  const box=document.getElementById("exList");if(!box)return;
+  box.innerHTML="";
+  const list=(state.exams||[]).filter(x=>!x.mid).sort((a,b)=>a.d<b.d?-1:1);
+  if(!list.length)return;
   list.forEach(x=>{
     const n=daysTo(x.d),r=document.createElement("div");r.className="exrow";
     const cd=n<0?"passato":(n===0?"oggi":(n===1?"domani":"fra "+n+" giorni"));
-    r.innerHTML='<span class="d">'+fmt(parse(x.d))+(x.hm?" · "+x.hm:"")+"</span>"+
-      '<span class="t">'+x.t+"</span>"+
-      '<span class="cd'+(n>=0&&n<=7?" soon":"")+'">'+cd+"</span>";
+    /* La data e' un campo, non una scritta: cambiarla e' la cosa che si fa piu'
+       spesso — un appello che slitta — e mandare a cercare la matita della
+       materia per farlo era un giro che nessuno indovina. */
+    const dd=document.createElement("input");
+    dd.type="date";dd.value=x.d;dd.title="Cambia la data";
+    dd.setAttribute("aria-label","Data di "+x.t);
+    const tt=document.createElement("input");
+    tt.type="time";tt.value=x.hm||"";tt.title="Ora, facoltativa";
+    tt.setAttribute("aria-label","Ora di "+x.t);
+    const scrivi=()=>{
+      if(!dd.value){dd.value=x.d;return;}
+      if(x.mid)setDataEsame(x.mid,dd.value,tt.value||"");
+      else{x.d=dd.value;if(tt.value)x.hm=tt.value;else delete x.hm;}
+      save("Scadenza spostata");commit();examList();panels();picklist();
+    };
+    dd.onchange=scrivi;tt.onchange=scrivi;
+    r.appendChild(dd);r.appendChild(tt);
+    const et=document.createElement("span");et.className="t";
+    /* il pallino dice che quella scadenza e' attaccata a una materia, quindi
+       conta nei grafici e nella barra; senza pallino e' solo un promemoria */
+    et.innerHTML=(x.mid?"<b>•</b>":"")+"";
+    et.appendChild(document.createTextNode(x.t));
+    r.appendChild(et);
+    const cds=document.createElement("span");
+    cds.className="cd"+(n>=0&&n<=7?" soon":"");cds.textContent=cd;
+    r.appendChild(cds);
     const del=document.createElement("button");
     del.innerHTML=icon("XX",11);del.title="Elimina";
     del.onclick=()=>{
-      state.exams=state.exams.filter(y=>y!==x);
-      save("Scadenza eliminata");commit();examList();panels();
+      /* se e' l'esame di una materia va tolto anche di li', se no la materia
+         resterebbe con una data che nell'elenco non c'e' piu' */
+      if(x.mid)setDataEsame(x.mid,"","");
+      else state.exams=state.exams.filter(y=>y!==x);
+      save("Scadenza eliminata");commit();examList();panels();picklist();
     };
     r.appendChild(del);box.appendChild(r);
   });
@@ -5246,21 +5335,6 @@ document.getElementById("newName").addEventListener("keydown",e=>{
   if(e.key==="Enter")document.getElementById("addBtn").click();
 });
 let monthPick=null;
-document.getElementById("exAdd").onclick=()=>{
-  const d=document.getElementById("exDate"),t=document.getElementById("exText");
-  if(!d.value){d.focus();return;}
-  if(!t.value.trim()){t.focus();return;}
-  state.exams=state.exams||[];
-  const tm=document.getElementById("exTime");
-  const rec={d:d.value,t:t.value.trim()};
-  if(tm.value)rec.hm=tm.value;
-  state.exams.push(rec);
-  t.value="";tm.value="";save("Scadenza aggiunta");commit();examList();panels();
-};
-document.getElementById("exText").addEventListener("keydown",e=>{
-  if(e.key==="Enter")document.getElementById("exAdd").click();
-});
-
 const qEl=document.getElementById("q");
 qEl.addEventListener("input",()=>{state.q=qEl.value;picklist();});
 document.getElementById("qClear").onclick=()=>{chiudiRicerca();picklist();qEl.focus();};

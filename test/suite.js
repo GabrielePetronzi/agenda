@@ -1325,5 +1325,63 @@
     var doppia=l1.getBoundingClientRect().height>b.getBoundingClientRect().height*1.5;
     return !doppia?true:"la prima riga è ancora doppia";});
 
+  /* La data d'esame si mette dalla riga della materia, che e' dove uno la
+     cerca appena aggiunta una materia. Prima stava dentro un pannello in
+     fondo alla colonna, e li' non la trovava nessuno. */
+  var _mat=null;
+  function rigaMateria(){
+    state.q="";var el=document.getElementById("q");if(el)el.value="";
+    picklist();
+    var r=document.querySelector("#picklist .prow");
+    if(!r)return null;
+    var nome=r.querySelector(".pnm").childNodes[0].nodeValue;
+    _mat=items().filter(function(o){return o.name===nome;})[0];
+    return r;
+  }
+  t("sulla riga della materia c'e' la data d'esame",function(){
+    pulisci();state.exams=[];state.over={};
+    var r=rigaMateria();if(!r)return "nessuna riga nell'elenco";
+    var d=r.querySelector("em.dat");
+    return d?eq(d.textContent,"esame —"):"manca la pastiglia della data";});
+  t("cliccarla apre il modulo con dentro il campo della data",function(){
+    document.querySelector("#picklist .prow em.dat").onclick(
+      {stopPropagation:function(){}});
+    return document.querySelector(".vedit.open input.dt")?true:
+      "il modulo non si e' aperto sul campo data";});
+  t("salvando, la data finisce nella materia e fra le scadenze",function(){
+    var campo=document.querySelector(".vedit.open input.dt");
+    campo.value="2027-01-20";
+    document.querySelector(".vedit.open input.tm").value="09:30";
+    [].filter.call(document.querySelectorAll(".vedit.open button"),
+      function(b){return b.textContent==="Salva";})[0].click();
+    var o=map()[_mat.id],ex=(state.exams||[]).filter(function(x){return x.mid===_mat.id;});
+    if(ex.length!==1)return "scadenze collegate: "+ex.length+" invece di 1";
+    if(o.date!=="2027-01-20")return "la materia dice "+JSON.stringify(o.date);
+    return eq(ex[0].hm,"09:30","l'ora ");});
+  t("la riga adesso la mostra",function(){
+    rigaMateria();
+    var d=document.querySelector("#picklist .prow em.dat");
+    return /^esame \d/.test(d.textContent)?true:"la riga dice "+d.textContent;});
+  t("il nome corto della materia non cambia quando ci metti la data",function(){
+    var o=items().filter(function(x){return x.id===_mat.id;})[0];
+    return eq(o.short,_mat.short);});
+  t("rimetterla la sposta, non ne aggiunge una seconda",function(){
+    setDataEsame(_mat.id,"2027-02-11","");
+    var ex=(state.exams||[]).filter(function(x){return x.mid===_mat.id;});
+    return (ex.length===1&&ex[0].d==="2027-02-11"&&map()[_mat.id].date==="2027-02-11")?
+      true:"ne ho "+ex.length+" e la materia dice "+map()[_mat.id].date;});
+  t("svuotarla la toglie anche dalle scadenze",function(){
+    setDataEsame(_mat.id,"","");
+    return (!(state.exams||[]).some(function(x){return x.mid===_mat.id;})&&
+            !map()[_mat.id].date)?true:"resta "+JSON.stringify(map()[_mat.id].date);});
+  t("i promemoria liberi restano sotto le materie, gli esami no",function(){
+    state.exams=[{d:"2027-03-01",t:"Consegna progetto"},
+                 {d:"2027-03-05",t:"Un esame",mid:_mat.id}];
+    examList();
+    var righe=document.querySelectorAll("#exList .exrow");
+    if(righe.length!==1)return "righe nell'elenco: "+righe.length+" invece di 1";
+    return righe[0].textContent.indexOf("Consegna")>=0?true:
+      "l'elenco mostra "+righe[0].textContent;});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");
