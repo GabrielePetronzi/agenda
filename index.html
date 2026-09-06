@@ -1603,10 +1603,10 @@ const COURSES={
    qualunque, misurata in CIELAB, passa da 7 a 19; tutte stanno sopra il 5:1
    di contrasto con la scritta nera, e nessuna somiglia al grigio del ripasso
    libero o al verde-oliva del lavoro. */
-const PAL=["#FF97B3","#E7857D","#FBC5BA","#C59774","#FBC181","#E3D0A4",
-           "#B49F54","#D0D886","#80AD67","#8FE4AC","#ADDCC7","#19B49F",
-           "#69ABAE","#6CE3ED","#02ADDE","#9CD9FE","#83A3CB","#79A0EB",
-           "#D2CCFD","#B392DB","#FEB4F4","#CA90A8"];
+const PAL=["#AD7881","#E3575F","#F8B09A","#AE7C49","#FAAA52","#FAE0A1",
+           "#92881F","#E9E86F","#5EA749","#AEF3B2","#19BC8C","#1FFDEB",
+           "#A8F0E9","#0B9691","#2DD8FF","#3B8FB4","#14A8FD","#8680B5",
+           "#DDC8FF","#AA6CD1","#FAA0CC","#DE5493"];
 const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
                 "#4FB3A0","#3F8F7E","#82B356","#6B9440","#B0A24E","#E0A458",
                 "#C98A3C","#E08A5B","#BF6E44","#D96C7B","#B85566","#C97BB0",
@@ -2178,45 +2178,50 @@ const shortOf=n=>n.length>17?n.slice(0,16)+"…":n;
    quattro della chiusura del percorso, che però stanno tutti nello stesso
    semestre e dovendo distinguersi solo per luminosità strozzavano l'intera
    tavolozza. Tutti reggono il testo nero, da 5,0:1 a 14,6:1. */
-/* Il colore di ogni materia. Stanno in famiglie — dati e reti sul turchese,
-   sicurezza sul rosso, intelligenza artificiale sul viola — perché la famiglia
-   aiuta a orientarsi in un piano da venti materie. Ma dentro la famiglia si
-   somigliavano troppo: due tinte del gruppo sicurezza distavano 6,3 in CIELAB,
-   e sotto 20 due blocchi vicini si leggono come lo stesso blocco. Adesso ogni
-   materia resta nella sua famiglia — la tinta si sposta al massimo di trenta
-   gradi — e la distanza se la prende sulla chiarezza e sulla saturazione: la
-   coppia più vicina sta a 21. Nessuna scende sotto 5:1 di contrasto con la
-   scritta nera, che sui blocchi è sempre nera. */
+/* Il colore di ogni materia. Le famiglie non ci sono piu' — dati sul
+   turchese, sicurezza sul rosso — perche' tenerle voleva dire tenere vicine
+   proprio le tinte che si guardano una accanto all'altra nella stessa
+   settimana. Le ventuno tinte sono scelte per stare lontane in CIELAB, con la
+   chiarezza che pesa meno della meta': due colori che cambiano solo di
+   chiarezza restano parenti all'occhio anche quando il numero dice il
+   contrario, ed era il difetto del primo tentativo. La coppia piu' vicina in
+   assoluto sta a 26 (all'inizio 6,3), ed e' quella fra ripasso libero e
+   lavoro, che sono neutri di proposito; fra le materie il minimo e' 28.
+   Poi l'assegnazione: chi divide il semestre finisce nella stessa settimana,
+   quindi le compagne di semestre si scambiano il colore fino a stare il piu'
+   lontano possibile fra loro — la coppia peggiore, li' dentro, passa da 26 a
+   43. La gamma comprende toni piu' scuri di prima: il limite vero e' il 4,5:1
+   di contrasto con la scritta nera, che regge fino a L* 56. */
 const MATCOL={
   /* Dati e reti */
-  "c:1009070":"#59ADB5",
-  "c:1014075":"#48E7E5",
+  "c:1009070":"#44938C",
+  "c:1014075":"#0195F7",
   /* Metodi numerici */
-  "c:1013075":"#94D4FC",
+  "c:1013075":"#FEA0FC",
   /* Linguaggi e programmazione */
-  "c:1009064":"#A5DFBB",
-  "c:1009066":"#37B393",
+  "c:1009064":"#BD7365",
+  "c:1009066":"#039B4F",
   /* Sicurezza e affidabilità */
-  "c:1014073":"#FFC1D0",
-  "c:1010559":"#DB8E65",
-  "c:1009069":"#FDC885",
-  "c:1013066":"#E9CDB2",
+  "c:1014073":"#98951A",
+  "c:1010559":"#E17143",
+  "c:1009069":"#2FDEFF",
+  "c:1013066":"#DE5493",
   /* Intelligenza artificiale */
-  "c:1009065":"#DBCAF6",
-  "c:1013067":"#A995E0",
-  "c:1009071":"#FAB5F7",
-  "c:1009073":"#5CA5EB",
+  "c:1009065":"#A7F3C0",
+  "c:1013067":"#CFBDFC",
+  "c:1009071":"#1FFDEB",
+  "c:1009073":"#4A8CBC",
   /* Lingua e competenze */
-  "c:1010779":"#B1A154",
-  "c:1007808":"#C3DB8C",
+  "c:1010779":"#B67A15",
+  "c:1007808":"#FC6C78",
   /* voci di servizio: ripasso senza materia e lavoro, neutre di proposito */
   "_gen":"#B2B7BF",
   "_lav":"#A1A781",
   /* Chiusura del percorso */
-  "c:24688":"#E98387",
-  "c:1006660":"#BE94B4",
-  "c:1006659":"#C5958E",
-  "c:1006658":"#ED8EB8"
+  "c:24688":"#FFB0D1",
+  "c:1006660":"#BDF382",
+  "c:1006659":"#8578E1",
+  "c:1006658":"#FDD091"
 };
 
 /* Colore predefinito ricavato dall'id, così resta lo stesso in ogni anno e

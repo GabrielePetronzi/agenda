@@ -134,14 +134,19 @@
        il primo si chiude e il secondo prende quello che resta */
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
-    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:3},0);
-    placeRun(oggi,ORA+4,{i:it[0].id,a:"SCH",len:3},0);
-    var g=slotDiOggi("SCH");
-    pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
+    /* Ore fisse del mattino, non l'ora di adesso: partendo da ORA, un banco di
+       prova lanciato di sera piazzava il secondo blocco a mezzanotte, fuori
+       dalla giornata, e il controllo diventava rosso per l'orologio invece che
+       per un difetto. Restano tutt'e due nella stessa fascia, che e' quello
+       che il controllo vuole provare. */
+    var A=8*PERQ,B=10*PERQ;
+    placeRun(oggi,A,{i:it[0].id,a:"SCH",len:3},0);
+    placeRun(oggi,B,{i:it[0].id,a:"SCH",len:3},0);
+    pomStart("SCH",[{date:oggi,start:A,lane:0}]);
     for(var i=0;i<6;i++)pomAdvance(true);
     var c=function(a,b){var k=0;for(var j=a;j<b;j++){
       var v=at(ck(oggi,j))[0];if(v&&v.done)k++;}return k;};
-    var uno=c(ORA,ORA+3),due=c(ORA+4,ORA+7),fermo=state.pomRun===null;
+    var uno=c(A,A+3),due=c(B,B+3),fermo=state.pomRun===null;
     state.pomRun=null;state.pomConf={};
     /* il primo si chiude, il secondo prende il resto e la sua ultima mezz'ora
        si chiude con la sessione che se l'è quasi tutta mangiata; finita la
@@ -365,7 +370,25 @@
     }
     var fioca=col.filter(function(o){return contrasto(o.c)<4.5;});
     if(fioca.length)return "la scritta nera non regge su "+fioca[0].n+" "+fioca[0].c;
-    return dmin>=18?true:"troppo vicine ("+dmin.toFixed(1)+"): "+peggio;});
+    /* ventiquattro con un po' di margine sotto il ventisei che la tavolozza
+       garantisce: sotto venti due blocchi vicini si leggono uguali */
+    if(dmin<24)return "troppo vicine ("+dmin.toFixed(1)+"): "+peggio;
+    /* Chi divide il semestre finisce nella stessa settimana, e li' due colori
+       simili si scambiano di posto davvero: fra compagne di semestre si
+       pretende molto di piu' che fra due materie di anni diversi. */
+    var per={};
+    allCourses().forEach(function(o){
+      var k=o.year+"."+o.sem;(per[k]=per[k]||[]).push(o);});
+    var pmin=1e9,pp=null;
+    Object.keys(per).forEach(function(k){
+      var g=per[k];
+      for(var i=0;i<g.length;i++)for(var j=i+1;j<g.length;j++){
+        var A=lab(g[i].color||autoColor(g[i].id)),B=lab(g[j].color||autoColor(g[j].id));
+        var d=Math.sqrt(Math.pow(A[0]-B[0],2)+Math.pow(A[1]-B[1],2)+Math.pow(A[2]-B[2],2));
+        if(d<pmin){pmin=d;pp=k+": "+g[i].short+" e "+g[j].short;}
+      }});
+    return (pp===null||pmin>=38)?true:
+      "nello stesso semestre stanno a "+pmin.toFixed(1)+" ("+pp+")";});
 
 
   /* Il segnale di fine fase deve arrivare due volte: la prima puo' capitare
