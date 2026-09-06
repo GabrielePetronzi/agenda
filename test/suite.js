@@ -1462,5 +1462,45 @@
     return fin>=21*PERQ?true:
       "si arriva alle "+slotTime(fin)+" con la riga a "+ROW+"px";});
 
+  /* ---------- quello che salta fuori usandola per davvero ---------- */
+  /* Trascinare un blocco sopra un altro se lo mangiava in silenzio: nessun
+     avviso, nessuna corsia di fianco, due ore sparite per un millimetro di
+     troppo col dito. */
+  t("un blocco trascinato non si mangia quello che trova",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"SCH",len:2},0);
+    /* arriva un blocco che partiva dalla corsia 0: deve spostarsi di fianco */
+    var L=corsiaPerArrivo(G[0],H0,2,0);
+    return eq(L,1,"la corsia d'arrivo ");});
+  t("se le tre corsie sono piene lo spostamento non si fa",function(){
+    pulisci();apri();
+    for(var L=0;L<MAXLANE;L++)
+      placeRun(G[0],H0,{i:it[L%3].id,a:"SCH",len:2},L);
+    return eq(corsiaPerArrivo(G[0],H0,2,0),-1,"con tutto pieno ");});
+  t("nella stessa mezz'ora non ci finiscono mai piu' di tre blocchi",function(){
+    pulisci();apri();
+    for(var L=0;L<5;L++)
+      placeRun(G[0],H0,{i:it[L%it.length].id,a:"ESE",len:2},L);
+    var quanti=at(ck(G[0],H0)).filter(Boolean).length;
+    return quanti<=MAXLANE?true:"in una mezz'ora ce ne sono "+quanti;});
+  /* Cancellare una voce lasciava in giro la sua data d'esame: agganciata a una
+     materia che non c'era piu', invisibile nell'elenco e intoccabile. */
+  t("cancellando una materia aggiunta a mano sparisce tutto quello che era suo",function(){
+    pulisci();apri();
+    normCustom();
+    var id="x:prova"+Date.now();
+    state.custom.push({id:id,name:"Tirocinio di prova",cfu:6});
+    placeRun(G[0],H0,{i:id,a:"LAB",len:4},0);
+    setDataEsame(id,"2027-05-05","10:00");
+    state.pass[id]=1;
+    delVoce(id);
+    var celle=0;
+    Object.keys(state.cells).forEach(function(k){
+      (state.cells[k]||[]).forEach(function(v){if(v&&v.i===id)celle++;});});
+    var scad=(state.exams||[]).filter(function(x){return x.mid===id;}).length;
+    var sup=!!(state.pass||{})[id];
+    return (!celle&&!scad&&!sup)?true:
+      "restano: "+celle+" mezz'ore, "+scad+" scadenze, superato="+sup;});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

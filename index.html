@@ -2320,6 +2320,12 @@ function voci(){
   return state.custom.map(c=>({id:c.id,name:c.name,cfu:c.cfu||0,date:c.d||"",
     short:shortOf(c.name),kind:"x"}));
 }
+/* Cancellare una voce vuol dire cancellarla da tutte le parti. Prima toglieva
+   le mezz'ore, il colore e il pennello, ma non la data d'esame: restava
+   agganciata a una materia che non c'era piu' — invisibile nell'elenco, che
+   ormai mostra solo i promemoria liberi, e visibile sulla griglia, dove
+   nessuno poteva piu' toccarla. Un fantasma che non si toglieva. Nemmeno il
+   "superato" se ne andava, e restava nel salvataggio per sempre. */
 function delVoce(id){
   normCustom();
   state.custom=state.custom.filter(c=>c.id!==id);
@@ -2327,8 +2333,17 @@ function delVoce(id){
     const arr=at(k).map(v=>(v&&v.i===id)?null:v);
     setAt(k,arr);
   });
+  state.exams=(state.exams||[]).filter(x=>x.mid!==id);
+  if(state.pass)delete state.pass[id];
+  if(state.over)delete state.over[id];
   delete state.colors[id];
   if(state.brush===id)state.brush=null;
+  /* se il timer stava girando su quei blocchi, resta senza aggancio */
+  if(state.pomRun&&state.pomRun.linked){
+    state.pomRun.linked=state.pomRun.linked.filter(b=>{
+      const v=at(ck(b.date,b.start))[b.lane];return !!v;});
+    if(!state.pomRun.linked.length)state.pomRun.linked=null;
+  }
 }
 /* il ripasso può stare in griglia anche senza materia: voce grigia di servizio */
 const GENID="_gen";
@@ -4348,10 +4363,28 @@ function freeLane(dateIso,start,len){
   }
   return 0;   /* tutte occupate: sovrascrive la prima */
 }
+/* Su quale corsia si posa un blocco che arriva da un'altra parte. La corsia
+   di partenza non ha nessun diritto su quella d'arrivo: se e' occupata se ne
+   prende una libera, e se sono tutte e tre piene torna -1 e lo spostamento non
+   si fa. Prima il blocco trascinato si mangiava in silenzio quello che c'era
+   sotto, senza nemmeno l'avviso che il pennello da' quando sostituisce. */
+function corsiaPerArrivo(dateIso,start,len,voluta){
+  const pieno=L=>{
+    for(let j=0;j<len;j++)if(at(ck(dateIso,start+j))[L])return true;
+    return false;};
+  if(voluta!=null&&voluta<MAXLANE&&!pieno(voluta))return voluta;
+  for(let L=0;L<MAXLANE;L++)if(!pieno(L))return L;
+  return -1;
+}
 function placeRun(dateIso,start,r,lane){
   let L=lane;
   if(L==null)L=(r.lane!=null?r.lane:freeLane(dateIso,start,r.len));
   if(at(ck(dateIso,start))[L]&&lane==null)L=freeLane(dateIso,start,r.len);
+  /* Le corsie sono tre. Il pennello lo sapeva gia' — si ferma e lo dice — ma
+     questa e' l'altra strada per scrivere, quella di incolla, ripeti e
+     trascina: con una corsia scritta a mano dentro un piano importato ci
+     finivano quattro blocchi in mezz'ora, larghi un quarto di colonna. */
+  if(L>=MAXLANE)L=freeLane(dateIso,start,r.len);
   const first=HOURS[0],last=HOURS[HOURS.length-1];
   for(let k=0;k<r.len;k++){
     const sl=start+k;
@@ -5084,8 +5117,23 @@ window.addEventListener("pointermove",e=>{
     if(td.dataset.date===drag.date&&ns===drag.start)return;
     clearRun(drag.date,drag.start,drag.run.len,drag.lane);
     const old=drag.date;
-    drag.date=td.dataset.date;drag.start=ns;
-    placeRun(drag.date,drag.start,drag.run,drag.lane);
+    const vecchiaD=drag.date,vecchiaS=drag.start,vecchiaL=drag.lane;
+    /* Dove arrivo puo' esserci gia' qualcosa. La corsia di partenza non ha
+       nessun diritto su quella d'arrivo: se e' occupata se ne prende una
+       libera — e' lo stesso affiancamento che fa il pennello. E se sono tutte
+       e tre piene lo spostamento non si fa: un blocco trascinato sopra un
+       altro se lo mangiava in silenzio, senza nemmeno l'avviso che il
+       pennello da' quando sostituisce. Due ore di lavoro sparite per un
+       millimetro di troppo col dito. */
+    const L=corsiaPerArrivo(td.dataset.date,ns,drag.run.len,drag.lane);
+    if(L<0){
+      /* niente posto: il blocco resta dov'era */
+      placeRun(vecchiaD,vecchiaS,drag.run,vecchiaL);
+      drawDay(vecchiaD);
+      return;
+    }
+    drag.date=td.dataset.date;drag.start=ns;drag.lane=L;
+    placeRun(drag.date,drag.start,drag.run,L);
     drawDay(old);if(old!==drag.date)drawDay(drag.date);
   }else put(td,null);
 });
