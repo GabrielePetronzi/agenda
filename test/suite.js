@@ -825,5 +825,52 @@
     state.seguite={};adopt(q);apri();
     return eq(JSON.stringify(state.seguite),'{"c:1009070":1}');});
 
+
+  /* ---------- non perdere il piano ---------- */
+  t("ripristinare da un testo rimette i blocchi",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:4},0);
+    var copia=payload();
+    state.cells={};render();
+    var ok=ripristina(copia,"prova");
+    return (ok&&Object.keys(state.cells).length===4)?true:
+      "ok="+ok+" celle="+Object.keys(state.cells).length;});
+  t("un file che non è un piano non tocca niente",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:2},0);
+    var prima=Object.keys(state.cells).length;
+    var a=ripristina("questo non è json","x"), b=ripristina('{"altro":1}',"x");
+    return (!a&&!b&&Object.keys(state.cells).length===prima)?true:
+      "ha accettato roba non valida, celle "+Object.keys(state.cells).length;});
+  t("prima di ripristinare si tiene una copia di quello che c'era",function(){
+    pulisci();apri();
+    try{localStorage.removeItem(COPIEKEY);}catch(e){}
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:6},0);
+    ripristina(JSON.stringify({cells:{},v:5}),"prova");
+    var v=copieLeggi();
+    return (v.length&&v[0].n===6)?true:"copie salvate: "+JSON.stringify(v.map(function(c){return c.n;}));});
+  t("una scheda vecchia non scrive sopra a una più ricca e più recente",function(){
+    pulisci();apri();
+    /* la memoria contiene un piano ricco e appena salvato */
+    var ricco={ts:Date.now()+5000,v:5,cells:{}};
+    for(var k=0;k<40;k++)ricco.cells[state.year+"."+state.ctx+".2026-09-21."+(16+k)]=[{i:it[0].id,a:"LET"}];
+    try{localStorage.setItem(LSKEY,JSON.stringify(ricco));}catch(e){}
+    /* io sono una scheda vecchia con poca roba, e provo a salvare */
+    state.cells={};sv.ts=Date.now()-60000;sv.localSaved=null;
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:1},0);
+    save("prova");
+    var dopo=JSON.parse(localStorage.getItem(LSKEY)||"{}");
+    var celle=Object.keys(dopo.cells||{}).length;
+    return celle>=40?true:"la memoria è scesa a "+celle+" mezz'ore: ha sovrascritto";});
+  t("allinearsi a una scheda più recente riporta i suoi blocchi",function(){
+    pulisci();apri();
+    var ricco={ts:Date.now()+9000,v:5,cells:{}};
+    for(var k=0;k<12;k++)ricco.cells[state.year+"."+state.ctx+".2026-09-22."+(16+k)]=[{i:it[0].id,a:"SCH"}];
+    try{localStorage.setItem(LSKEY,JSON.stringify(ricco));}catch(e){}
+    state.cells={};sv.ts=Date.now();
+    var mosso=allineaSeServe();
+    var n=Object.keys(state.cells).length;
+    return (mosso&&n===12)?true:"allineato="+mosso+" celle="+n;});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

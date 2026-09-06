@@ -739,6 +739,17 @@ td.tot b{color:var(--tx2);font-weight:500}
   text-transform:uppercase;color:var(--tx3);margin-top:5px}
 
 /* scadenze in elenco */
+/* le copie di sicurezza, dentro il pannello Backup */
+.bkcopie{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.bkcopie .bkr{display:flex;align-items:center;gap:8px;padding:6px 8px;
+  border:1px solid var(--line);border-radius:var(--r-sm);background:var(--sunken)}
+.bkcopie .bkr u{text-decoration:none;flex:1;min-width:0;font-family:"DM Mono",monospace;
+  font-size:10.5px;color:var(--tx2)}
+.bkcopie .bkr b{font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx)}
+.bkcopie .bkr button{border:1px solid var(--line);background:var(--raised);color:var(--tx2);
+  border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer}
+.bkcopie .bkr button:hover{color:var(--tx)}
+.bkcopie .vuoto{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
 .exrow{display:flex;align-items:center;gap:10px;padding:10px 2px;
   border-bottom:1px solid var(--line-soft)}
 .exrow .d{font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx2);flex:0 0 auto}
@@ -1144,11 +1155,15 @@ td.tot b{color:var(--tx2);font-weight:500}
   <div class="sheet bk">
     <div class="mhead"><b>Backup del piano</b><button id="bkClose">✕</button></div>
     <p style="font-size:12.5px;color:var(--tx2);margin:0 0 10px;line-height:1.5">
-      Copia questo testo e conservalo. Per ripristinare, incollalo qui e tocca Ripristina.</p>
+      Copia questo testo e conservalo, oppure scaricalo. Per rimettere un piano:
+      <b>Carica da file</b> se ne hai uno, o scegli una delle copie qui sotto.</p>
+    <div class="bkcopie" id="bkCopie"></div>
     <textarea id="bkText" spellcheck="false" style="font-family:'DM Mono',monospace;font-size:10.5px"></textarea>
+    <input type="file" id="bkFile" accept="application/json,.json,text/plain" hidden>
     <div class="mfoot">
       <button id="bkCopy">Copia</button>
       <button id="bkDl">Scarica</button>
+      <button id="bkLoad">Carica da file</button>
       <button id="bkRestore">Ripristina</button>
     </div>
   </div>
@@ -1535,6 +1550,26 @@ function panelDates(p){
 const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
   "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite"];
 const LSKEY="piano-6272-local";
+/* Le copie di sicurezza. Una ogni volta che il piano cambia davvero, al
+   massimo una ogni dieci minuti, le ultime otto. Servono al caso in cui
+   qualcosa scriva sopra al piano: senza, l'unico modo di tornare indietro
+   sarebbe lo storico del gist, che non è raggiungibile da dentro l'app. */
+const COPIEKEY="piano-6272-copie";
+const COPIE_MAX=8, COPIE_OGNI=10*60000;
+function copieLeggi(){
+  try{return JSON.parse(window.localStorage.getItem(COPIEKEY)||"[]");}catch(e){return [];}
+}
+function copiaSalva(p,celle){
+  /* di un piano vuoto non me ne faccio niente, e occuperebbe il posto di una
+     copia buona: le copie servono proprio a tornare indietro da un vuoto */
+  if(!celle)return;
+  try{
+    const v=copieLeggi(),ora=Date.now();
+    if(v.length&&ora-v[0].ts<COPIE_OGNI&&v[0].n===celle)return;
+    v.unshift({ts:ora,n:celle,p:p});
+    window.localStorage.setItem(COPIEKEY,JSON.stringify(v.slice(0,COPIE_MAX)));
+  }catch(e){}
+}
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
         localSaved:null,remoteSaved:null,err:"",local:false,remote:false,touched:false};
 
@@ -1548,6 +1583,26 @@ function localOK(){
 }
 function lsSet(p){try{window.localStorage.setItem(LSKEY,p);return true;}catch(e){sv.err=e.message||"errore locale";return false;}}
 function lsGet(){try{return window.localStorage.getItem(LSKEY);}catch(e){return null;}}
+/* Quello che c'è scritto adesso in memoria, chiunque l'abbia scritto. */
+function lsDati(){
+  const t=lsGet();if(!t)return null;
+  try{return JSON.parse(t);}catch(e){return null;}
+}
+/* Un'altra scheda ha salvato dopo di me: mi allineo invece di restare al
+   passato. Se restassi, al mio primo salvataggio automatico — le lezioni
+   passate si spuntano da sole ogni minuto — riscriverei il mio stato vecchio
+   sopra al suo, ed è esattamente così che sparisce una settimana di lavoro. */
+function allineaSeServe(){
+  const d=lsDati();
+  if(!d||(d.ts||0)<=(sv.ts||0))return false;
+  adopt(d);sv.ts=d.ts||Date.now();
+  const b=body(payload());sv.localSaved=b;
+  histInit();render();
+  toast("Aggiornato da un'altra scheda");
+  return true;
+}
+window.addEventListener("storage",e=>{if(e.key===LSKEY)allineaSeServe();});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)allineaSeServe();});
 
 function syncUI(cls,txt){
   const el=document.getElementById("sync");
@@ -1583,7 +1638,17 @@ function save(msg){
 
   /* livello a: subito, senza attese */
   if(sv.local&&b!==sv.localSaved){
-    if(lsSet(p))sv.localSaved=b;
+    /* Prima di scrivere guardo cosa c'è: se qualcuno ha salvato dopo di me e
+       ha più roba della mia, la mia è una fotografia vecchia — quasi sempre
+       una scheda rimasta aperta che si sveglia per spuntare una lezione. In
+       quel caso mi allineo e lascio perdere il salvataggio, invece di
+       cancellare il lavoro di qualcun altro. */
+    const c=lsDati();
+    const mie=Object.keys(state.cells||{}).length;
+    if(c&&(c.ts||0)>prima&&Object.keys(c.cells||{}).length>mie){
+      sv.ts=prima;allineaSeServe();return;
+    }
+    if(lsSet(p)){sv.localSaved=b;copiaSalva(p,mie);}
     else sv.local=false;
   }
   /* livello b: in coda */
@@ -4590,10 +4655,46 @@ document.getElementById("sync").onclick=e=>{
   d.textContent=parts.join(" · ");
   d.classList.toggle("show");
 };
+/* Rimette in piedi un piano da un testo qualunque, controllando prima che sia
+   un piano vero. Della roba che c'è adesso tiene una copia: ripristinare non
+   deve poter diventare l'ennesimo modo di perdere qualcosa. */
+function ripristina(testo,da){
+  let d;
+  try{d=JSON.parse(testo);}catch(e){toast("Non è un file del piano");return false;}
+  if(!d||typeof d!=="object"||!d.cells){toast("Nel file non c'è nessun piano");return false;}
+  const n=Object.keys(d.cells).length;
+  copiaSalva(payload(),Object.keys(state.cells||{}).length);
+  DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
+  state.exams=state.exams||[];state.collapsed=state.collapsed||{};
+  state.pass=state.pass||{};state.seguite=state.seguite||{};
+  document.getElementById("bkModal").classList.remove("open");
+  save("Rimesse "+hrs(n)+(da?" da "+da:""));histInit();render();
+  return true;
+}
+function bkCopieList(){
+  const box=document.getElementById("bkCopie");if(!box)return;
+  const v=copieLeggi();
+  if(!v.length){box.innerHTML='<span class="vuoto">Nessuna copia automatica ancora.</span>';return;}
+  box.innerHTML=v.map((c,i)=>'<span class="bkr"><b>'+hrs(c.n)+"</b><u>"+
+    new Date(c.ts).toLocaleString("it-IT",{day:"numeric",month:"short",
+      hour:"2-digit",minute:"2-digit"})+'</u><button data-i="'+i+'">Rimetti</button></span>').join("");
+  box.querySelectorAll("button").forEach(b=>{
+    b.onclick=()=>{const c=copieLeggi()[+b.dataset.i];if(c)ripristina(c.p,"una copia automatica");};
+  });
+}
 document.getElementById("backup").onclick=()=>{
   chiudiMenu();
   document.getElementById("bkText").value=payload();
+  bkCopieList();
   document.getElementById("bkModal").classList.add("open");
+};
+document.getElementById("bkLoad").onclick=()=>document.getElementById("bkFile").click();
+document.getElementById("bkFile").onchange=e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{ripristina(String(r.result||""),f.name);e.target.value="";};
+  r.onerror=()=>{toast("Non riesco a leggere il file");e.target.value="";};
+  r.readAsText(f);
 };
 document.getElementById("bkClose").onclick=()=>document.getElementById("bkModal").classList.remove("open");
 document.getElementById("bkModal").onclick=e=>{
@@ -4614,12 +4715,7 @@ document.getElementById("bkDl").onclick=()=>{
   toast("Backup scaricato");
 };
 document.getElementById("bkRestore").onclick=()=>{
-  try{
-    const d=JSON.parse(document.getElementById("bkText").value);
-    DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
-    document.getElementById("bkModal").classList.remove("open");
-    save("Piano ripristinato");histInit();render();
-  }catch(e){toast("Testo non valido");}
+  ripristina(document.getElementById("bkText").value,"il testo incollato");
 };
 
 /* ---------- sincronizzazione ---------- */
