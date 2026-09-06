@@ -140,12 +140,34 @@
     for(var i=0;i<6;i++)pomAdvance(true);
     var c=function(a,b){var k=0;for(var j=a;j<b;j++){
       var v=at(ck(oggi,j))[0];if(v&&v.done)k++;}return k;};
-    var uno=c(ORA,ORA+3),due=c(ORA+4,ORA+7),cassa=Math.round(state.pomRun.credito||0);
+    var uno=c(ORA,ORA+3),due=c(ORA+4,ORA+7),cassa=Math.round(maturato(state.pomRun)-(state.pomRun.spesi||0)*30);
     state.pomRun=null;state.pomConf={};
     /* 179 minuti = 5 mezz'ore spuntate e 29 in cassa: niente perso, niente gonfiato */
     return (uno===3&&due===2&&cassa===29)?true:
       "primo "+uno+"/3, secondo "+due+"/3, in cassa "+cassa+
       " (attesi 3, 2 e 29)";});
+  t("il blocco da un'ora si chiude al minuto sessanta, non alla fine della fase",function(){
+    /* con 45+12 il primo ciclo vale 57 minuti: la seconda mezz'ora matura tre
+       minuti dopo, dentro la sessione seguente, e deve scattare lì — non
+       quarantacinque minuti più tardi quando la sessione finisce */
+    pulisci();apri();
+    state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:2},0);
+    var g=slotDiOggi("SCH");
+    pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
+    var conta=function(){var k=0;for(var i=0;i<2;i++){
+      var v=at(ck(oggi,ORA+i))[0];if(v&&v.done)k++;}return k;};
+    pomAdvance(true);                     /* sessione 45 */
+    pomAdvance(true);                     /* pausa 12 → 57 minuti */
+    var a57=conta();
+    /* tre minuti dentro la sessione dopo: siamo a sessanta */
+    var c=pomConf("SCH");
+    state.pomRun.ends=Date.now()+(c.s-3)*60000;
+    var k=spuntaMaturato(state.pomRun);
+    var a60=conta();
+    state.pomRun=null;state.pomConf={};
+    return (a57===1&&a60===2)?true:
+      "a 57 minuti "+a57+"/2, a 60 minuti "+a60+"/2 (attesi 1 e 2)";});
   t("la parte fatta e quella da fare diventano due blocchi",function(){
     pulisci();apri();
     placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:3},0);
