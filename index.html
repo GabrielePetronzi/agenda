@@ -4609,9 +4609,13 @@ window.addEventListener("afterprint",()=>{
   requestAnimationFrame(()=>{if(autoRow())redrawGrid();});
   if(document.fonts&&document.fonts.ready)
     document.fonts.ready.then(()=>{if(autoRow())redrawGrid();});
-  /* il timer si basa sull'orario di fine: riprende anche dopo una chiusura */
+  /* Il timer si basa sull'orario di fine: riprende anche dopo una chiusura.
+     E se è scaduto mentre la pagina era chiusa la sessione è finita davvero,
+     quindi vale come finita: passava false e il blocco agganciato non veniva
+     spuntato: chiudevi il portatile a sessione avviata e la spunta non
+     arrivava mai. */
   if(state.pomRun){
-    if(state.pomRun.paused==null&&Date.now()>=state.pomRun.ends)pomAdvance(false);
+    if(state.pomRun.paused==null&&Date.now()>=state.pomRun.ends)pomAdvance(true);
     else if(state.pomRun.paused==null)pomLoop();
     pomRender();
   }

@@ -96,6 +96,18 @@
     return eq(somma(),pomConf("ESE").s+pomConf("ESE").b,"minuti ");});
   t("i minuti di oggi contano anche la pausa",function(){
     return eq(pomToday().min,pomConf("ESE").s+pomConf("ESE").b,"minuti di oggi ");});
+  t("una sessione scaduta a pagina chiusa spunta lo stesso",function(){
+    /* è il caso del portatile richiuso a metà sessione: al rientro la
+       sessione è finita davvero, quindi il blocco va spuntato */
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[1].id,a:"ESE",len:2},0);
+    var g=slotDiOggi("ESE");
+    pomStart("ESE",[{date:g.date,start:g.start,lane:g.lane}]);
+    state.pomRun.ends=Date.now()-60000;          /* scaduta un minuto fa */
+    if(state.pomRun.paused==null&&Date.now()>=state.pomRun.ends)pomAdvance(true);
+    var q=runAt(oggi,ORA,0);
+    state.pomRun=null;
+    return eq(!!(q&&q.done),true,"spuntato: ");});
   t("una pausa interrotta non vale quanto una sessione",function(){
     state.log={};
     var c=pomConf("ESE");
