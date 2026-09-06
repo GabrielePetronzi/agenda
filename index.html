@@ -758,6 +758,8 @@ td.tot b{color:var(--tx2);font-weight:500}
 
 /* scadenze in elenco */
 /* le copie di sicurezza, dentro il pannello Backup */
+.bkstato{margin:0 0 8px;font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx3)}
+.bkstato b{color:var(--tx2);font-weight:400}
 .bkcopie{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
 .bkcopie .bkr{display:flex;align-items:center;gap:8px;padding:6px 8px;
   border:1px solid var(--line);border-radius:var(--r-sm);background:var(--sunken)}
@@ -1182,6 +1184,7 @@ td.tot b{color:var(--tx2);font-weight:500}
     <p style="font-size:12.5px;color:var(--tx2);margin:0 0 10px;line-height:1.5">
       Copia questo testo e conservalo, oppure scaricalo. Per rimettere un piano:
       <b>Carica da file</b> se ne hai uno, o scegli una delle copie qui sotto.</p>
+    <p class="bkstato" id="bkStato"></p>
     <div class="bkcopie" id="bkCopie"></div>
     <textarea id="bkText" spellcheck="false" style="font-family:'DM Mono',monospace;font-size:10.5px"></textarea>
     <input type="file" id="bkFile" accept="application/json,.json,text/plain" hidden>
@@ -1643,6 +1646,10 @@ function lsDati(){
 function allineaSeServe(){
   const d=lsDati();
   if(!d||(d.ts||0)<=(sv.ts||0))return false;
+  /* prima di prendere per buono quello che ha scritto un altro, tengo una
+     copia di quello che ho: allinearsi non deve poter essere un modo di
+     perdere il piano */
+  copiaSalva(payload(),Object.keys(state.cells||{}).length);
   adopt(d);sv.ts=d.ts||Date.now();
   const b=body(payload());sv.localSaved=b;
   histInit();render();
@@ -4801,21 +4808,65 @@ function ripristina(testo,da){
 /* Recupero da un gist, con il solo link: un gist segreto si legge senza token
    e senza essere collegati. È la strada che resta quando il browser non ha né
    la copia locale né il token — cioè proprio quando serve. */
+/* Legge il piano da un gist senza token: un gist segreto è pubblico per chi ha
+   il link. Serve a due cose: il recupero a mano, e il ripescaggio automatico
+   qui sotto. */
+async function leggiGist(id){
+  const r=await fetch("https://api.github.com/gists/"+id);
+  if(!r.ok)throw new Error("http "+r.status);
+  const j=await r.json();
+  const f=(j.files&&(j.files["piano.json"]||j.files[Object.keys(j.files)[0]]))||null;
+  if(!f)throw new Error("nessun file");
+  let t=f.content;
+  if(f.truncated&&f.raw_url)t=await (await fetch(f.raw_url)).text();
+  return t;
+}
 async function daGist(link){
   const m=String(link||"").match(/[0-9a-f]{20,}/i);
   if(!m){toast("Link del gist non riconosciuto");return;}
   try{
-    const r=await fetch("https://api.github.com/gists/"+m[0]);
-    if(!r.ok)throw new Error("http "+r.status);
-    const j=await r.json();
-    const f=(j.files&&(j.files["piano.json"]||j.files[Object.keys(j.files)[0]]))||null;
-    if(!f)throw new Error("nessun file");
-    let t=f.content;
-    if(f.truncated&&f.raw_url)t=await (await fetch(f.raw_url)).text();
-    ripristina(t,"il gist");
+    const t=await leggiGist(m[0]);
+    if(ripristina(t,"il gist")){
+      /* me lo tengo: da qui in avanti il piano si ripesca da solo, anche se
+         questo browser non ha il token e quindi non può salvarci nulla */
+      try{localStorage.setItem(GISTKEY,m[0]);}catch(e){}
+      gh.gist=m[0];
+    }
   }catch(e){toast("Non riesco a leggere quel gist");}
 }
+/* All'avvio: se conosco un gist e qui non c'è niente — o c'è molto meno di là —
+   me lo riprendo. È la rete che mancava: senza token l'app non pescava mai dal
+   gist, quindi ogni volta che la memoria del browser si svuotava il piano
+   spariva pur essendo al sicuro a tre centimetri di distanza. */
+async function ripescaDalGist(){
+  ghRead();
+  if(!gh.gist||gh.token)return false;      /* col token ci pensa ghPull */
+  try{
+    const d=JSON.parse(await leggiGist(gh.gist));
+    if(!d||!d.cells)return false;
+    const la=Object.keys(d.cells).length,qua=Object.keys(state.cells||{}).length;
+    if(la<=qua)return false;
+    copiaSalva(payload(),qua);
+    DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
+    state.exams=state.exams||[];state.collapsed=state.collapsed||{};
+    state.pass=state.pass||{};state.seguite=state.seguite||{};
+    save("Ripreso dal gist: "+hrs(la));histInit();render();
+    return true;
+  }catch(e){return false;}
+}
+/* Cosa c'è davvero in questo browser, scritto in chiaro: senza, l'unico modo
+   di saperlo era la console, e da lì non si passa. */
+function bkStato(){
+  const el=document.getElementById("bkStato");if(!el)return;
+  const n=k=>{try{return (localStorage.getItem(k)||"").length;}catch(e){return 0;}};
+  ghRead();
+  el.innerHTML="<b>"+hrs(Object.keys(state.cells||{}).length)+"</b> nel piano aperto · "+
+    "<b>"+copieLeggi().length+"</b> copie recenti · <b>"+giorniLeggi().length+"</b> del giorno · "+
+    (gh.gist?"gist collegato"+(gh.token?" con token":" in sola lettura"):"<b>nessun gist</b>")+
+    (n(LSKEY)?"":" · <b>memoria locale vuota</b>");
+}
 function bkCopieList(){
+  bkStato();
   const box=document.getElementById("bkCopie");if(!box)return;
   const g=giorniLeggi(),v=copieLeggi();
   const riga=(c,tipo,i)=>'<span class="bkr"><b>'+hrs(c.n)+"</b><u>"+
@@ -5203,6 +5254,7 @@ window.addEventListener("afterprint",()=>{
 });
 (async()=>{
   await load();iconify();autoLessons();foldToToday();render();histInit();copiaGiorno();
+  ripescaDalGist();
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
   if(fuori)setTimeout(()=>toast(hrs(fuori)+" fuori dalla fascia "+dayFrom()+"–"+dayTo()),900);

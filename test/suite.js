@@ -999,5 +999,36 @@
     return (a&&conOggi&&a.querySelectorAll("span").length===3)?true:
       "asse: "+testo+" · con oggi: "+conOggi;});
 
+
+  /* ---------- il gist come rete, anche senza token ---------- */
+  t("il pannello dice cosa c'è davvero in memoria",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:4},0);save("x");
+    document.getElementById("backup").click();
+    var el=document.getElementById("bkStato"),t2=el?el.textContent:"";
+    document.getElementById("bkModal").classList.remove("open");
+    return (t2.indexOf("nel piano aperto")>=0&&t2.indexOf("copie recenti")>=0)?true:
+      "dice: "+t2;});
+  t("allinearsi tiene una copia di quello che c'era",function(){
+    pulisci();apri();
+    try{localStorage.removeItem(COPIEKEY);}catch(e){}
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:6},0);
+    /* un'altra scheda scrive qualcosa di più recente */
+    var altro={ts:Date.now()+9000,v:5,cells:{}};
+    altro.cells[state.year+"."+state.ctx+".2026-09-23.20"]=[{i:it[0].id,a:"LET"}];
+    try{localStorage.setItem(LSKEY,JSON.stringify(altro));}catch(e){}
+    sv.ts=Date.now();
+    allineaSeServe();
+    var v=copieLeggi();
+    return (v.length&&v[0].n===6)?true:
+      "copie tenute: "+JSON.stringify(v.map(function(c){return c.n;}))+" (attesa una da 6)";});
+  t("senza token il gist resta una rete: la funzione c'è ed è innocua a vuoto",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:2},0);
+    var prima=Object.keys(state.cells).length;
+    try{localStorage.removeItem(GISTKEY);}catch(e){}
+    ripescaDalGist();
+    return eq(Object.keys(state.cells).length,prima,"celle ");});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");
