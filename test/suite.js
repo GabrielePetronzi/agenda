@@ -751,13 +751,13 @@
     /* 150 h da fare in 10 settimane = 15 h a settimana */
     return riga.textContent.indexOf("15 h a settimana")>=0?true:
       "dice: "+riga.textContent;});
-  t("senza data d'esame la riga del ritmo non compare",function(){
+  t("senza data d'esame dice comunque dove arrivi col piano",function(){
     pulisci();apri();
-    placeRun(G[0],H0,{i:items()[0].id,a:"LET",len:2},0);
+    placeRun(G[0],H0,{i:items()[0].id,a:"LET",len:4},0);
     state.semOpen=true;semSummary();
-    return eq(document.querySelectorAll("#semBody .gritmo").length,0);});
-
-  /* ---------- il promemoria ---------- */
+    var r=document.querySelector("#semBody .gritmo");
+    return (r&&r.textContent.indexOf("dove arrivi col piano")>=0)?true:
+      "dice: "+(r?r.textContent:"niente");});
   t("avvisa una volta sola, e solo se il blocco è vicino",function(){
     /* La prossima mezz'ora può essere fra un minuto o fra ventinove, secondo
        l'orario in cui gira il banco: controllo la regola, non l'orologio. */
@@ -942,17 +942,28 @@
 
 
   /* ---------- la corsa verso l'esame ---------- */
-  t("la corsa si disegna solo con una data d'esame",function(){
+  t("con la data d'esame la meta sale, senza resta orizzontale",function(){
+    /* con un traguardo nel tempo la riga grigia è una salita verso il monte
+       ore; senza, il monte ore è solo una soglia da raggiungere */
     pulisci();apri();
     var o=items()[0];
     placeRun(G[0],H0,{i:o.id,a:"LET",len:4},0);
+    placeRun(iso(addDays(new Date(),14)),H0,{i:o.id,a:"LET",len:4},0);
+    var y=function(){
+      var m=document.querySelector("#semBody .gmeta");
+      if(!m)return null;
+      var p2=m.getAttribute("points").trim().split(" ");
+      return [parseFloat(p2[0].split(",")[1]),parseFloat(p2[p2.length-1].split(",")[1])];
+    };
     state.semOpen=true;semSummary();
-    var senza=document.querySelectorAll("#semBody .gsvg").length;
+    var senza=y();
     state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),70))};
     semSummary();
-    var con=document.querySelectorAll("#semBody .gsvg").length;
+    var con=y();
     state.over={};
-    return (senza===0&&con===1)?true:"senza data "+senza+", con data "+con;});
+    if(!senza||!con)return "manca il disegno: senza="+senza+" con="+con;
+    return (Math.abs(senza[0]-senza[1])<0.5&&con[0]-con[1]>5)?true:
+      "senza data "+senza.join("→")+" (attesa piatta), con data "+con.join("→")+" (attesa in salita)";});
   t("un piano che basta disegna il verde, uno che non basta il rosso",function(){
     pulisci();apri();
     var o=items()[0],tgt=targetH(o.cfu)*PERQ;
@@ -972,16 +983,21 @@
     var verde=!!document.querySelector("#semBody .gpiano.ok");
     state.over={};
     return (rosso&&verde)?true:"poche ore → rosso "+rosso+", tante ore → verde "+verde;});
-  t("l'asse della corsa dice da quando, oggi e la data d'esame",function(){
+  t("l'asse dice da quando e fino a quando, e segna oggi se non è sul bordo",function(){
     pulisci();apri();
     var o=items()[0];
-    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),70))};
-    placeRun(G[0],H0,{i:o.id,a:"LET",len:4},0);
+    /* otto settimane di storia e otto all'esame: oggi cade a meta' */
+    for(var w=1;w<=8;w++)
+      placeRun(iso(addDays(monday(new Date()),-7*w)),HOURS[2],
+        {i:o.id,a:"LET",len:2,done:1},0);
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),56))};
     state.semOpen=true;semSummary();
     var a=document.querySelector("#semBody .gasse");
-    var ok=a&&a.querySelectorAll("span").length===3&&a.textContent.indexOf("oggi")>=0;
+    var conOggi=!!(a&&a.querySelector(".oggi"));
+    var testo=a?a.textContent:"";
     state.over={};
-    return ok?true:"asse: "+(a?a.textContent:"assente");});
+    return (a&&conOggi&&a.querySelectorAll("span").length===3)?true:
+      "asse: "+testo+" · con oggi: "+conOggi;});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

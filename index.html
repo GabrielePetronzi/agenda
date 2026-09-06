@@ -672,7 +672,9 @@ td.tot b{color:var(--tx2);font-weight:500}
 /* colonne: una per settimana */
 .gcol{display:flex;align-items:flex-end;gap:4px;height:104px;
   border-bottom:1px solid var(--line)}
-.gcol .gc{flex:1 1 0;min-width:0;display:flex;flex-direction:column;
+/* Con due settimane sole le colonne diventavano larghe mezzo schermo e il
+   grafico sembrava rotto: un tetto alla larghezza e restano colonne. */
+.gcol .gc{flex:1 1 0;min-width:0;max-width:64px;display:flex;flex-direction:column;
   align-items:center;justify-content:flex-end;height:100%}
 .gcol .gc i{position:relative;display:flex;align-items:flex-end;width:100%;
   min-height:2px;border-radius:3px 3px 0 0;background:var(--raised);
@@ -742,7 +744,7 @@ td.tot b{color:var(--tx2);font-weight:500}
   text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:var(--tx2)}
 .gbar .gt{position:relative;flex:1 1 auto;min-width:0;height:12px}
 .gbar .gr i,.gbar .gr em{position:absolute;left:0;top:0;height:100%;
-  border-radius:4px;min-width:3px}
+  border-radius:4px;min-width:0}
 .gbar .gr i{opacity:.3;background:var(--action)}
 .gbar .gr em{background:var(--action)}
 .gbar .gv{flex:0 0 auto;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
@@ -3602,14 +3604,17 @@ function semSummary(){
   const dentroMetodo=ORD.reduce((a,f)=>a+((fase[f]||{}).t||0),0);
   if(dentroMetodo){
     const mx=Math.max.apply(null,ORD.map(f=>(fase[f]||{}).t||0))||1;
+    /* zero deve disegnare zero: il trattino minimo su una barra vuota diceva
+       che qualcosa era stato fatto quando non era stato fatto niente */
+    const larg=v=>v>0?Math.max(2,v/mx*100).toFixed(1):"0";
     const minF=ORD.slice().sort((a,b)=>((fase[a]||{}).t||0)-((fase[b]||{}).t||0))[0];
     h+='<div class="graf"><h4>Le fasi del metodo<u>quanto pesa ognuna sulle ore del metodo</u></h4>'+
       '<div class="gbar">'+ORD.map(f=>{
         const c=fase[f]||{t:0,d:0},qt=Math.round(c.t/dentroMetodo*100);
         return '<span class="gr" title="'+f+" · "+hrs(c.t)+" in piano, "+hrs(c.d)+' fatte">'+
           '<u class="gl">'+f+"</u>"+
-          '<span class="gt"><i style="width:'+Math.round(c.t/mx*100)+'%"></i>'+
-          '<em style="width:'+Math.round(c.d/mx*100)+'%"></em></span>'+
+          '<span class="gt"><i style="width:'+larg(c.t)+'%"></i>'+
+          '<em style="width:'+larg(c.d)+'%"></em></span>'+
           '<b class="gv">'+qt+"%</b></span>";
       }).join("")+"</div>"+
       '<p class="gnota">La fase più scarsa è <b>'+minF.toLowerCase()+"</b>, "+
@@ -3657,12 +3662,20 @@ function semSummary(){
    Se il tratteggio finisce sotto la retta, il piano non basta — e si vede
    senza leggere un numero. */
 function corsa(r){
-  if(r.gg==null||r.gg<0||!r.tgt)return "";
-  const fine=monday(parse(r.o.date));
+  if(!r.tgt)return "";
   const sett=Object.keys(r.sett).sort();
-  let inizio=sett.length?parse(sett[0]):monday(new Date());
   const oggiLun=monday(new Date());
+  /* Senza data d'esame non c'è un traguardo nel tempo, ma la domanda resta
+     buona: col piano che hai, dove arrivi? Allora l'orizzonte è l'ultima
+     settimana messa in piano, e il monte ore diventa una riga orizzontale
+     invece di una salita. Prima, senza data, non disegnavo niente e la
+     sezione restava vuota. */
+  const conData=r.gg!=null&&r.gg>=0;
+  const fine=conData?monday(parse(r.o.date))
+    :(sett.length?monday(addDays(parse(sett[sett.length-1]),7)):addDays(oggiLun,56));
+  let inizio=sett.length?parse(sett[0]):oggiLun;
   if(inizio>oggiLun)inizio=oggiLun;
+  if(fine<=inizio)return "";
   const n=Math.max(1,Math.round((fine-inizio)/604800000));
   if(n>200)return "";
   const W=100,H=34,px=i=>i/n*W,py=v=>H-Math.min(1,v/r.tgt)*(H-3)-1.5;
@@ -3670,7 +3683,7 @@ function corsa(r){
   for(let i=0;i<=n;i++){
     const k=iso(addDays(inizio,i*7)),c=r.sett[k]||{d:0,p:0};
     cum+=c.d/PERQ;pia+=(c.d+c.p)/PERQ;
-    meta.push([px(i),py(r.tgt*i/n)]);
+    meta.push([px(i),py(conData?r.tgt*i/n:r.tgt)]);
     if(parse(k)<=oggiLun){reali.push([px(i),py(cum)]);iOggi=i;}
     piano.push([px(i),py(pia)]);
   }
@@ -3679,10 +3692,14 @@ function corsa(r){
   /* Il divario si riempie invece di essere disegnato con due fili: a centocinquanta
      ore di obiettivo e quaranta fatte le linee starebbero appiccicate al fondo e
      sembrerebbe che non ci siano dati, non che sei indietro. */
-  const zona=via(meta)+" "+via(piano.slice().reverse());
+  /* Il cuneo ha senso quando c'è una scadenza: dice "il divario si allarga
+     mentre il tempo passa". Senza data la meta è una soglia orizzontale, e
+     riempire tutto quello che manca dipinge di rosso mezzo riquadro senza
+     aggiungere niente a quello che dice già la distanza fra le due righe. */
+  const zona=conData?via(meta)+" "+via(piano.slice().reverse()):"";
   return '<svg class="gsvg" viewBox="0 0 '+W+" "+H+'" preserveAspectRatio="none" '+
       'role="img" aria-label="andamento verso l\u2019esame">'+
-    '<polygon class="gzona'+(ce?" ok":"")+'" points="'+zona+'"/>'+
+    (zona?'<polygon class="gzona'+(ce?" ok":"")+'" points="'+zona+'"/>':"")+
     '<line class="gbase" x1="0" y1="'+py(0)+'" x2="'+W+'" y2="'+py(0)+'"/>'+
     '<polyline class="gmeta" points="'+via(meta)+'"/>'+
     '<line class="goggi" x1="'+px(iOggi)+'" y1="0.5" x2="'+px(iOggi)+'" y2="'+(H-0.5)+'"/>'+
@@ -3693,11 +3710,20 @@ function corsa(r){
     /* i riferimenti dell'asse stanno fuori dall'svg: dentro un viewBox stirato
        il testo si deformerebbe insieme al disegno */
     '<div class="gasse"><span>'+fmt(inizio)+"</span>"+
-      '<span class="oggi" style="left:'+(iOggi/n*100).toFixed(1)+'%">oggi</span>'+
-      "<span>"+fmt(parse(r.o.date))+"</span></div>";
+      /* vicino ai bordi l'etichetta di oggi finisce sopra alle date: lì la
+         riga verticale basta da sola */
+      (iOggi/n>0.1&&iOggi/n<0.9
+        ?'<span class="oggi" style="left:'+(iOggi/n*100).toFixed(1)+'%">oggi</span>':"")+
+      "<span>"+(conData?fmt(parse(r.o.date)):"fine del piano")+"</span></div>";
 }
 function ritmoRiga(r){
-  if(r.gg==null||r.gg<0)return "";
+  const num0=v=>(v%1?v.toFixed(1).replace(".",","):String(v));
+  if(r.gg==null||r.gg<0){
+    const arrivo=r.f+r.fut;
+    return '<div class="gritmo'+(arrivo>=r.tgt-0.01?" ok":"")+'"><b>'+
+      num0(Math.round(arrivo*10)/10)+" h</b> è dove arrivi col piano che hai, su "+
+      r.tgt+" h · metti la data dell\u2019esame per sapere se basta</div>";
+  }
   const manca=Math.max(0,r.tgt-r.f);
   if(!manca)return '<div class="gritmo ok">obiettivo raggiunto</div>';
   const sett=Math.max(1,Math.ceil(r.gg/7)),serve=manca/sett;
