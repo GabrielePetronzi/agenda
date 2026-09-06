@@ -128,6 +128,24 @@
     return (dopoSess===1&&dopoPausa===2&&dopoSecondo===3)?true:
       "mezz'ore spuntate: dopo la sessione "+dopoSess+" (attesa 1), dopo la pausa "+
       dopoPausa+" (attese 2), dopo la seconda sessione "+dopoSecondo+" (attese 3)";});
+  t("chiuso un blocco, il tempo avanzato va nel prossimo di oggi",function(){
+    /* 45+12+45+20+45+12 = 179 minuti su due blocchi da un'ora e mezza:
+       il primo si chiude e il secondo prende quello che resta */
+    pulisci();apri();
+    state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:3},0);
+    placeRun(oggi,ORA+4,{i:it[0].id,a:"SCH",len:3},0);
+    var g=slotDiOggi("SCH");
+    pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
+    for(var i=0;i<6;i++)pomAdvance(true);
+    var c=function(a,b){var k=0;for(var j=a;j<b;j++){
+      var v=at(ck(oggi,j))[0];if(v&&v.done)k++;}return k;};
+    var uno=c(ORA,ORA+3),due=c(ORA+4,ORA+7),cassa=Math.round(state.pomRun.credito||0);
+    state.pomRun=null;state.pomConf={};
+    /* 179 minuti = 5 mezz'ore spuntate e 29 in cassa: niente perso, niente gonfiato */
+    return (uno===3&&due===2&&cassa===29)?true:
+      "primo "+uno+"/3, secondo "+due+"/3, in cassa "+cassa+
+      " (attesi 3, 2 e 29)";});
   t("la parte fatta e quella da fare diventano due blocchi",function(){
     pulisci();apri();
     placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:3},0);
