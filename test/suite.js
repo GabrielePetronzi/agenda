@@ -140,34 +140,73 @@
     for(var i=0;i<6;i++)pomAdvance(true);
     var c=function(a,b){var k=0;for(var j=a;j<b;j++){
       var v=at(ck(oggi,j))[0];if(v&&v.done)k++;}return k;};
-    var uno=c(ORA,ORA+3),due=c(ORA+4,ORA+7),cassa=Math.round(maturato(state.pomRun)-(state.pomRun.spesi||0)*30);
+    var uno=c(ORA,ORA+3),due=c(ORA+4,ORA+7),fermo=state.pomRun===null;
     state.pomRun=null;state.pomConf={};
-    /* 179 minuti = 5 mezz'ore spuntate e 29 in cassa: niente perso, niente gonfiato */
-    return (uno===3&&due===2&&cassa===29)?true:
-      "primo "+uno+"/3, secondo "+due+"/3, in cassa "+cassa+
-      " (attesi 3, 2 e 29)";});
-  t("il blocco da un'ora si chiude al minuto sessanta, non alla fine della fase",function(){
-    /* con 45+12 il primo ciclo vale 57 minuti: la seconda mezz'ora matura tre
-       minuti dopo, dentro la sessione seguente, e deve scattare lì — non
-       quarantacinque minuti più tardi quando la sessione finisce */
+    /* il primo si chiude, il secondo prende il resto e la sua ultima mezz'ora
+       si chiude con la sessione che se l'è quasi tutta mangiata; finita la
+       fascia il timer si ferma da solo */
+    return (uno===3&&due===3&&fermo)?true:
+      "primo "+uno+"/3, secondo "+due+"/3, timer fermo: "+fermo+
+      " (attesi 3, 3 e true)";});
+  t("la mezz'ora scatta quando la compi, non a fine fase",function(){
+    /* Su un blocco lungo il conto deve scorrere: dopo sessione e pausa sono 57
+       minuti e una mezz'ora sola; tre minuti dentro la sessione dopo sono
+       sessanta, e la seconda mezz'ora deve scattare lì — non alla fine di
+       quella sessione, quarantacinque minuti più in là. */
+    pulisci();apri();
+    state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:6},0);      /* tre ore */
+    var g=slotDiOggi("SCH");
+    pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
+    var conta=function(){var k=0;for(var i=0;i<6;i++){
+      var v=at(ck(oggi,ORA+i))[0];if(v&&v.done)k++;}return k;};
+    pomAdvance(true);pomAdvance(true);                    /* 45 + 12 = 57 */
+    var a57=conta();
+    var c=pomConf("SCH");
+    state.pomRun.ends=Date.now()+(c.s-3)*60000;           /* tre minuti dentro */
+    spuntaMaturato(state.pomRun);
+    var a60=conta();
+    state.pomRun=null;state.pomConf={};
+    return (a57===1&&a60===2)?true:
+      "a 57 minuti "+a57+"/6, a 60 minuti "+a60+"/6 (attesi 1 e 2)";});
+  t("il blocco si chiude a fine sessione, senza aspettare la pausa",function(){
+    /* un'ora di studio: dopo i 45 minuti resta mezz'ora, meno di una sessione,
+       e non ne farai un'altra per quella: il blocco si chiude lì */
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
     placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:2},0);
     var g=slotDiOggi("SCH");
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
-    var conta=function(){var k=0;for(var i=0;i<2;i++){
-      var v=at(ck(oggi,ORA+i))[0];if(v&&v.done)k++;}return k;};
-    pomAdvance(true);                     /* sessione 45 */
-    pomAdvance(true);                     /* pausa 12 → 57 minuti */
-    var a57=conta();
-    /* tre minuti dentro la sessione dopo: siamo a sessanta */
-    var c=pomConf("SCH");
-    state.pomRun.ends=Date.now()+(c.s-3)*60000;
-    var k=spuntaMaturato(state.pomRun);
-    var a60=conta();
+    pomAdvance(true);                       /* fine della sessione da 45 */
+    var k=0;for(var i=0;i<2;i++){var v=at(ck(oggi,ORA+i))[0];if(v&&v.done)k++;}
+    var infase=state.pomRun&&state.pomRun.phase;
     state.pomRun=null;state.pomConf={};
-    return (a57===1&&a60===2)?true:
-      "a 57 minuti "+a57+"/2, a 60 minuti "+a60+"/2 (attesi 1 e 2)";});
+    return (k===2&&infase==="break")?true:
+      "mezz'ore "+k+"/2, fase "+infase+" (attesi 2 e break)";});
+  t("finita la fascia il timer si ferma da solo",function(){
+    pulisci();apri();
+    state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:2},0);
+    var g=slotDiOggi("SCH");
+    pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
+    pomAdvance(true);                       /* sessione: chiude il blocco */
+    var pausa=state.pomRun&&state.pomRun.phase==="break";
+    pomAdvance(true);                       /* fine pausa: niente più, si ferma */
+    var fermo=state.pomRun===null;
+    state.pomConf={};
+    return (pausa&&fermo)?true:"la pausa è partita: "+pausa+", timer fermo: "+fermo;});
+  t("la pausa che ferma il timer non finisce due volte a registro",function(){
+    pulisci();apri();
+    state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+    state.log={};
+    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:2},0);
+    var g=slotDiOggi("SCH");
+    pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
+    pomAdvance(true);pomAdvance(true);
+    var m=0;Object.keys(state.log).forEach(function(k2){
+      Object.keys(state.log[k2]).forEach(function(f){m+=state.log[k2][f];});});
+    state.pomConf={};
+    return eq(m,57,"minuti a registro ");});
   t("la parte fatta e quella da fare diventano due blocchi",function(){
     pulisci();apri();
     placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:3},0);

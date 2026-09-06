@@ -2771,6 +2771,42 @@ function spuntaMaturato(r){
   }
   return fatte;
 }
+/* A che ora del giorno sta un blocco: mattina, pomeriggio o sera. Le stesse
+   tre fasce del grafico "quando studi". */
+function fascia(sl){return sl<13*PERQ?0:(sl<19*PERQ?1:2);}
+const FASCE=["mattina","pomeriggio","sera"];
+/* Resta ancora qualcosa di questa attività, oggi, in questa fascia? */
+function restaNellaFascia(act,f){
+  return runsOf(iso(new Date())).some(r=>r.v.a===act&&!r.v.done&&fascia(r.start)===f);
+}
+/* Chiude la coda del blocco a fine sessione. Se di un blocco restano meno
+   minuti di una sessione intera non ne farai un'altra per quel pezzetto: il
+   blocco è finito quando finisce la sessione che se l'è mangiato quasi tutto,
+   non a metà della sessione dopo. È l'unico punto in cui le mezz'ore spuntate
+   possono superare i minuti girati, e solo di quel pezzetto: il registro dei
+   minuti resta esatto. */
+function chiudiCoda(r){
+  if(!r||!r.linked||!r.linked.length)return 0;
+  const c=pomConf(r.act);let chiuse=0;
+  r.linked.forEach(b=>{
+    const base=at(ck(b.date,b.start))[b.lane];
+    if(!base)return;
+    let resta=0;
+    for(let sl=b.start;;sl++){
+      const v=at(ck(b.date,sl))[b.lane];
+      if(!v||v.i!==base.i||v.a!==base.a)break;
+      if(!v.done)resta++;
+    }
+    if(!resta||resta*(60/PERQ)>=c.s)return;   /* niente, o troppo per un avanzo */
+    for(let sl=b.start;;sl++){
+      const key=ck(b.date,sl),arr=at(key).slice(),v=arr[b.lane];
+      if(!v||v.i!==base.i||v.a!==base.a)break;
+      if(!v.done){v.done=1;setAt(key,arr);chiuse++;}
+    }
+  });
+  if(chiuse)r.spesi=(r.spesi||0)+chiuse;
+  return chiuse;
+}
 function pomAdvance(auto){
   const r=state.pomRun;if(!r)return;
   const c=pomConf(r.act);
@@ -2780,7 +2816,8 @@ function pomAdvance(auto){
     const min=auto?c.s:(c.s*60000-rest)/60000;
     logAdd(r.act,min,linkedIds(r));
     r.min=(r.min||0)+min;
-    const k=spuntaMaturato(r);
+    let k=spuntaMaturato(r);
+    if(auto)k+=chiudiCoda(r);
     if(k)afterEdit(hrs(k)+" segnate come fatte");
     if(auto){
       const t=pomToday();
@@ -2803,6 +2840,16 @@ function pomAdvance(auto){
     const kp=spuntaMaturato(r);
     if(kp)afterEdit(hrs(kp)+" segnate come fatte");
     if(auto)pomToday().min+=durP;
+    /* Finita la fascia, il timer si ferma: dopo tre ore di mattina si mangia,
+       non si riparte con un'altra sessione che nessuno farà. */
+    const ultimo=r.linked&&r.linked.length?r.linked[r.linked.length-1]:null;
+    const f=ultimo?fascia(ultimo.start):null;
+    if(f!==null&&!restaNellaFascia(r.act,f)){
+      if(auto)notify("Fascia finita","Non è rimasto altro di "+
+        actOf(r.act).n.toLowerCase()+" per la "+FASCE[f]);
+      toast("Finita la "+FASCE[f]+": timer fermato");
+      pomStop(true);return;
+    }
     if(auto)notify("Pausa finita","Riprendi con "+actOf(r.act).n.toLowerCase());
     r.cycle=r.phase==="long"?1:r.cycle+1;
     r.phase="work";
@@ -2820,9 +2867,12 @@ function pomRestart(){
   save();pomRender();if(r.paused==null)pomLoop();
   toast("Ripartito da "+Math.round(dur/60000)+" min");
 }
-function pomStop(){
+/* senzaRegistro: quando chi ferma il timer ha già messo a registro la fase in
+   corso, come la pausa che si chiude da sola a fine fascia. Senza questo quei
+   minuti finirebbero nel registro due volte. */
+function pomStop(senzaRegistro){
   const old=state.pomRun;
-  logPartial(old);
+  if(!senzaRegistro)logPartial(old);
   state.pomRun=null;clearInterval(pomTick);pomTick=null;save();pomRender();
   if(old&&old.linked)old.linked.forEach(b=>drawDay(b.date));
   pomPanel();
