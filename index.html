@@ -1388,13 +1388,15 @@ const ATRAMA={
      passi di distanza. Una figura no: non si confonde con nessun comando.
      Alta undici pixel: a un blocco da un'ora la fascia che resta è sedici,
      e una tile più alta si taglierebbe sempre invece di ripetersi. Della
-     figura restano testa e busto: braccia e gambe erano quattro tratti che a
-     misura vera diventavano rumore, non un uomo. */
-  LEZ:trama(16,11,"<rect x='1.5' y='2' width='8' height='6.5' rx='.8'/>"+"<circle cx='12.6' cy='3.4' r='1.1'/><path d='M12.6 4.9v3.6'/>"),
+     figura restano testa, busto e un braccio verso la lavagna: gambe e secondo
+     braccio erano tratti che a misura vera facevano rumore, non un uomo. La
+     mensola del gesso sotto al telaio costa un tratto solo e fa la differenza
+     fra un rettangolo e una lavagna. */
+  LEZ:trama(17,11,"<rect x='1.4' y='1.8' width='8.4' height='6.4' rx='1.3'/>"+"<path d='M2.6 9.1h6'/>"+"<circle cx='13.2' cy='3.2' r='1.05'/>"+"<path d='M13.2 4.5v3.7M13.2 5.5l-1.9-.7'/>"),
   LET:trama(20,6,"<path d='M0 3h20'/>"),                            /* righe di quaderno */
   /* la ramificazione, rada. Il nodo coi tre rami corti era troppo fitto:
      a quella scala diventava uno scarabocchio invece di una struttura. */
-  SCH:trama(24,18,"<path d='M2 9h5M7 3.5v11M7 3.5h6M7 14.5h6'/>"),
+  SCH:trama(22,16,"<path d='M2 8h4.5M6.5 4v8M6.5 4h5M6.5 12h5'/>"),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>"),                      /* quadretti */
   /* campione sul vetrino, non bolle: i due cerchi vuoti si confondevano con
      l'anello del ripasso, perché erano tondi come lui e grandi uguale */
@@ -1413,10 +1415,12 @@ const ATRAMALEG={
      stessa figura sta in una tile alta quanto la pastiglia, così se ne vede
      una sola. Le altre non hanno il problema: o sono trame, dove ripetersi è
      il senso, o ci stanno una volta. */
-  LEZ:trama(17,17,"<rect x='2.4' y='5.25' width='8' height='6.5' rx='.8'/>"+
-    "<circle cx='13.5' cy='6.65' r='1.1'/><path d='M13.5 8.15v3.6'/>",1),
+  LEZ:trama(17,17,"<rect x='2.1' y='4.9' width='8.4' height='6.4' rx='1.3'/>"+
+    "<path d='M3.3 12.2h6'/>"+
+    "<circle cx='13.9' cy='6.3' r='1.05'/>"+
+    "<path d='M13.9 7.6v3.7M13.9 8.6l-1.9-.7'/>",1),
   LET:trama(20,6,"<path d='M0 3h20'/>",1),
-  SCH:trama(24,18,"<path d='M2 9h5M7 3.5v11M7 3.5h6M7 14.5h6'/>",1),
+  SCH:trama(22,16,"<path d='M2 8h4.5M6.5 4v8M6.5 4h5M6.5 12h5'/>",1),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>",1),
   LAB:punti(13,13,PUNTI,1),
   PRO:trama(22,11,"<path d='M0 5.5h22M0 .6h22M0 10.4h22M5.5 0v5.5M16.5 0v5.5M11 5.5v5.5M.6 5.5v5.5M21.4 5.5v5.5'/>",1),
