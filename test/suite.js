@@ -71,10 +71,23 @@
 
   /* ---------- pomodoro ---------- */
   pulisci();apri();
-  var n=new Date(), ORA=n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
+  /* Due ancore diverse, e la differenza conta.
+     ORA e' la mezz'ora in cui siamo adesso: serve solo ai tre controlli che
+     provano se il timer aggancia il blocco che copre questo momento, e va
+     tenuta dentro la giornata — a mezzanotte meno un quarto un blocco lungo
+     comincerebbe fuori e verrebbe tagliato, e il rosso sarebbe dell'orologio,
+     non del programma.
+     MATT sono le otto del mattino: la usano tutti gli altri, che di "adesso"
+     non hanno bisogno — slotDiOggi, quando non trova niente che copra questo
+     momento, prende comunque il primo blocco di oggi. Ho gia' perso un giro a
+     inseguire tre rossi che erano solo le 23:16. */
+  var n=new Date(), ORA=Math.min(n.getHours()*PERQ+(n.getMinutes()>=30?1:0),
+                                 HOURS[HOURS.length-1]-1);
+  var MATT=8*PERQ;
   placeRun(oggi,Math.max(0,ORA-4),{i:it[0].id,a:"ESE",len:2},0);
   placeRun(oggi,ORA,{i:it[1].id,a:"ESE",len:2},0);
-  placeRun(oggi,Math.min(46,ORA+6),{i:it[2].id,a:"ESE",len:2},0);
+  placeRun(oggi,Math.min(HOURS[HOURS.length-1]-1,ORA+6),{i:it[2].id,a:"ESE",len:2},
+    ORA+6>HOURS[HOURS.length-1]-1?1:0);
   placeRun(oggi,ORA,{i:it[3].id,a:"RIP",len:2},1);
   t("il timer prende lo slot che copre adesso",function(){
     var g=slotDiOggi("ESE");return g?eq(g.start,ORA,"slot "):"nessuno slot";});
@@ -101,12 +114,12 @@
     /* è il caso del portatile richiuso a metà sessione: al rientro la
        sessione è finita davvero, quindi il blocco va spuntato */
     pulisci();apri();
-    placeRun(oggi,ORA,{i:it[1].id,a:"ESE",len:2},0);
+    placeRun(oggi,MATT,{i:it[1].id,a:"ESE",len:2},0);
     var g=slotDiOggi("ESE");
     pomStart("ESE",[{date:g.date,start:g.start,lane:g.lane}]);
     state.pomRun.ends=Date.now()-60000;          /* scaduta un minuto fa */
     if(state.pomRun.paused==null&&Date.now()>=state.pomRun.ends)pomAdvance(true);
-    var q=runAt(oggi,ORA,0);
+    var q=runAt(oggi,MATT,0);
     state.pomRun=null;
     return eq(!!(q&&q.done),true,"spuntato: ");});
   t("un blocco da un'ora e mezza non si spunta tutto in quarantacinque minuti",function(){
@@ -114,11 +127,11 @@
        45 minuti, cioè una mezz'ora spuntata e un quarto d'ora in cassa. */
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:15,l:30,n:4}};
-    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:3},0);
+    placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:3},0);
     var g=slotDiOggi("SCH");
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
     var conta=function(){var n=0;for(var i=0;i<3;i++){
-      var v=at(ck(oggi,ORA+i))[0];if(v&&v.done)n++;}return n;};
+      var v=at(ck(oggi,MATT+i))[0];if(v&&v.done)n++;}return n;};
     pomAdvance(true);                       /* fine sessione: 45 min */
     var dopoSess=conta();
     pomAdvance(true);                       /* fine pausa: +15 = 60 min */
@@ -134,7 +147,7 @@
        il primo si chiude e il secondo prende quello che resta */
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
-    /* Ore fisse del mattino, non l'ora di adesso: partendo da ORA, un banco di
+    /* Ore fisse del mattino, non l'ora di adesso: partendo da MATT, un banco di
        prova lanciato di sera piazzava il secondo blocco a mezzanotte, fuori
        dalla giornata, e il controllo diventava rosso per l'orologio invece che
        per un difetto. Restano tutt'e due nella stessa fascia, che e' quello
@@ -154,6 +167,25 @@
     return (uno===3&&due===3&&fermo)?true:
       "primo "+uno+"/3, secondo "+due+"/3, timer fermo: "+fermo+
       " (attesi 3, 3 e true)";});
+  /* Il timer deve finire il blocco che ha in mano prima di passare al
+     prossimo. Sembra ovvio e non lo era: chiedeva "che blocco copre adesso?"
+     anche mentre continuava, e a meta' mattina l'orologio sta gia' dentro il
+     blocco dopo. */
+  t("il timer finisce il blocco che ha in mano, a qualunque ora sia",function(){
+    pulisci();apri();
+    state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+    var A=8*PERQ,B=10*PERQ;
+    placeRun(oggi,A,{i:it[0].id,a:"SCH",len:3},0);
+    placeRun(oggi,B,{i:it[0].id,a:"SCH",len:3},0);
+    pomStart("SCH",[{date:oggi,start:A,lane:0}]);
+    pomAdvance(true);pomAdvance(true);        /* 45 + 12 minuti */
+    var dove=(state.pomRun&&state.pomRun.linked||[]).map(function(x){return x.start;});
+    var primo=0;for(var i=0;i<3;i++){var v=at(ck(oggi,A+i))[0];if(v&&v.done)primo++;}
+    var secondo=0;for(var j=0;j<3;j++){var w=at(ck(oggi,B+j))[0];if(w&&w.done)secondo++;}
+    state.pomRun=null;state.pomConf={};
+    if(dove.some(function(s){return s>=B;}))
+      return "e' saltato al blocco delle dieci: agganciato a "+dove.join(",");
+    return secondo===0?true:"ha gia' spuntato "+secondo+" mezz'ore del blocco dopo";});
   t("la mezz'ora scatta quando la compi, non a fine fase",function(){
     /* Su un blocco lungo il conto deve scorrere: dopo sessione e pausa sono 57
        minuti e una mezz'ora sola; tre minuti dentro la sessione dopo sono
@@ -161,11 +193,11 @@
        quella sessione, quarantacinque minuti più in là. */
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
-    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:6},0);      /* tre ore */
+    placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:6},0);      /* tre ore */
     var g=slotDiOggi("SCH");
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
     var conta=function(){var k=0;for(var i=0;i<6;i++){
-      var v=at(ck(oggi,ORA+i))[0];if(v&&v.done)k++;}return k;};
+      var v=at(ck(oggi,MATT+i))[0];if(v&&v.done)k++;}return k;};
     pomAdvance(true);pomAdvance(true);                    /* 45 + 12 = 57 */
     var a57=conta();
     var c=pomConf("SCH");
@@ -180,11 +212,11 @@
        e non ne farai un'altra per quella: il blocco si chiude lì */
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
-    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:2},0);
     var g=slotDiOggi("SCH");
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
     pomAdvance(true);                       /* fine della sessione da 45 */
-    var k=0;for(var i=0;i<2;i++){var v=at(ck(oggi,ORA+i))[0];if(v&&v.done)k++;}
+    var k=0;for(var i=0;i<2;i++){var v=at(ck(oggi,MATT+i))[0];if(v&&v.done)k++;}
     var infase=state.pomRun&&state.pomRun.phase;
     state.pomRun=null;state.pomConf={};
     return (k===2&&infase==="break")?true:
@@ -192,7 +224,7 @@
   t("finita la fascia il timer si ferma da solo",function(){
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
-    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:2},0);
     var g=slotDiOggi("SCH");
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
     pomAdvance(true);                       /* sessione: chiude il blocco */
@@ -205,7 +237,7 @@
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
     state.log={};
-    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:2},0);
     var g=slotDiOggi("SCH");
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
     pomAdvance(true);pomAdvance(true);
@@ -215,8 +247,8 @@
     return eq(m,57,"minuti a registro ");});
   t("la parte fatta e quella da fare diventano due blocchi",function(){
     pulisci();apri();
-    placeRun(oggi,ORA,{i:it[0].id,a:"SCH",len:3},0);
-    var key=ck(oggi,ORA),arr=at(key).slice();arr[0].done=1;setAt(key,arr);
+    placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:3},0);
+    var key=ck(oggi,MATT),arr=at(key).slice();arr[0].done=1;setAt(key,arr);
     var rs=runsOf(oggi).filter(function(x){return x.lane===0;});
     return (rs.length===2&&rs[0].len===1&&rs[1].len===2)?true:
       "blocchi: "+JSON.stringify(rs.map(function(x){return x.len+(x.v.done?" fatto":" da fare");}));});

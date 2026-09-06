@@ -3216,14 +3216,41 @@ function spuntaMaturato(r){
     }
   });
   r.spesi=(r.spesi||0)+fatte;
-  /* finito un blocco, il timer si sposta sul prossimo di oggi: se no i minuti
-     maturati dopo non avrebbero più dove andare */
-  if(fatte&&r.linked.every(b=>{
-      const q=runAt(b.date,b.start,b.lane);return q&&q.done;})){
-    const g=slotDiOggi(r.act);
-    if(g)r.linked=[{date:g.date,start:g.start,lane:g.lane}];
+  /* Prima si finisce quello che si ha in mano, poi si passa al prossimo.
+     Qui c'erano due sbagli che si coprivano a vicenda. Il primo: per sapere se
+     il blocco era finito guardava il blocco che comincia alla mezz'ora
+     agganciata — ma appena ne spunti una, quella mezz'ora diventa un blocco a
+     sé, fatto, e il resto diventa un altro blocco; quindi risultava finito
+     dopo la prima mezz'ora. Il secondo: per il seguito chiedeva "che blocco
+     copre adesso?", che è la domanda giusta quando parti e quella sbagliata
+     quando continui — a metà mattina l'orologio sta già dentro il blocco
+     dopo. Insieme facevano questo: cominci alle otto su un blocco da un'ora e
+     mezza, e dopo i primi quarantacinque minuti il timer se ne va sul blocco
+     delle dieci, lasciando quello delle otto spuntato per un terzo. Di notte
+     non si vedeva, perché l'orologio non stava dentro nessun blocco e il
+     ripiego pescava il pezzo giusto per caso. */
+  if(fatte){
+    const resti=r.linked.map(b=>restaDelBlocco(b)).filter(Boolean);
+    if(resti.length)r.linked=resti;
+    else{
+      const g=slotDiOggi(r.act);
+      if(g)r.linked=[{date:g.date,start:g.start,lane:g.lane}];
+    }
   }
   return fatte;
+}
+/* La prima mezz'ora ancora da fare del blocco agganciato, o niente se il
+   blocco è finito. "Stesso blocco" vuol dire stessa materia e stessa attività
+   sulla stessa corsia, di seguito: è la stessa regola con cui la griglia
+   disegna un blocco solo. */
+function restaDelBlocco(b){
+  const base=at(ck(b.date,b.start))[b.lane];
+  if(!base)return null;
+  for(let sl=b.start;;sl++){
+    const v=at(ck(b.date,sl))[b.lane];
+    if(!v||v.i!==base.i||v.a!==base.a)return null;
+    if(!v.done)return {date:b.date,start:sl,lane:b.lane};
+  }
 }
 /* A che ora del giorno sta un blocco: mattina, pomeriggio o sera. Le stesse
    tre fasce del grafico "quando studi". */
