@@ -7,7 +7,7 @@
   }
   var eq=function(a,b,q){return a===b?true:(q||"")+" ho "+JSON.stringify(a)+" invece di "+JSON.stringify(b);};
   var pulisci=function(){state.cells={};state.pass={};state.log={};state.pomLog=null;
-    state.pomRun=null;state.over={};selRuns={};};
+    state.pomRun=null;state.over={};state.colors={};state.exams=[];selRuns={};};
   var it=items(), oggi=iso(new Date()), G=[], H0=0;
   /* La giornata mostrata va riaperta a mano ogni volta che adopt() la rimette
      com'era: placeRun scarta gli slot fuori dalla fascia, quindi senza questo
@@ -329,6 +329,241 @@
     state.pomRun=null;pomRender();stickyOffsets();
     return (tb.top>=pb.bottom-1&&gb.top>=tb.bottom-1)?true:
       "pom "+Math.round(pb.bottom)+" topbar "+Math.round(tb.top)+" gridbar "+Math.round(gb.top);});
+
+
+  /* ---------- modello dei dati ---------- */
+  pulisci();apri();
+  t("la nota sta sulla prima mezz'ora del blocco",function(){
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:2,n:"cap. 4"},0);
+    var a=at(ck(G[0],H0))[0],b=at(ck(G[0],H0+1))[0];
+    return (a.n==="cap. 4"&&!b.n)?true:"prima="+a.n+" seconda="+b.n;});
+  t("anyRunAt trova il blocco su qualunque corsia",function(){
+    placeRun(G[0],H0+4,{i:it[1].id,a:"RIP",len:2},1);
+    var r=anyRunAt(G[0],H0+4);return r?eq(r.lane,1,"corsia "):"non trovato";});
+  t("due blocchi staccati restano due",function(){
+    pulisci();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:1},0);
+    placeRun(G[0],H0+2,{i:it[0].id,a:"ESE",len:1},0);
+    return eq(runsOf(G[0]).length,2);});
+  t("clearRun tocca solo la corsia che gli dici",function(){
+    pulisci();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:2},0);
+    placeRun(G[0],H0,{i:it[1].id,a:"RIP",len:2},1);
+    clearRun(G[0],H0,2,0);
+    return (!runAt(G[0],H0,0)&&!!runAt(G[0],H0,1))?true:
+      "corsia0="+!!runAt(G[0],H0,0)+" corsia1="+!!runAt(G[0],H0,1);});
+  t("le mezz'ore fuori dalla fascia vengono dichiarate",function(){
+    pulisci();setDayRange(8,20);
+    var d=G[0];
+    state.cells[state.year+"."+state.ctx+"."+d+".44"]=[{i:it[0].id,a:"ESE"}];
+    var f=outOfRange();apri();
+    return f>0?true:"outOfRange ha detto "+f;});
+  t("copiare un giorno non si porta dietro gli altri",function(){
+    pulisci();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:2},0);
+    placeRun(G[1],H0,{i:it[1].id,a:"RIP",len:2},0);
+    var d=dayData(G[0]);
+    return eq(Object.keys(d).length,2,"mezz'ore copiate ");});
+
+  /* ---------- salvataggio ---------- */
+  t("tutte le chiavi durevoli sopravvivono al giro",function(){
+    pulisci();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:2},0);
+    state.collapsed={1:1};state.pass={"c:1009070":1};state.exams=[{mid:"x",d:"2027-01-08",t:"prova"}];
+    state.colors={"c:1009070":"#123456"};state.dayFrom=7;state.dayTo=23;
+    var prima={};DURABLE.forEach(function(k){prima[k]=JSON.stringify(state[k]);});
+    var q=JSON.parse(payload());
+    state.cells={};state.exams=[];state.colors={};
+    adopt(q);
+    var diversi=DURABLE.filter(function(k){
+      return prima[k]!==undefined&&prima[k]!==JSON.stringify(state[k]);});
+    /* dayFrom/dayTo li normalizza adopt: quelli non li conto */
+    diversi=diversi.filter(function(k){return k!=="dayFrom"&&k!=="dayTo";});
+    apri();
+    return diversi.length?"cambiate: "+diversi.join(", "):true;});
+  t("il ripeti sparisce dopo una modifica nuova",function(){
+    pulisci();apri();histInit();
+    placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:2},0);commit();
+    undo();
+    placeRun(G[0],H0+4,{i:it[1].id,a:"RIP",len:2},0);commit();
+    redo();
+    return eq(!!runAt(G[0],H0,0),false,"il vecchio è tornato: ");});
+
+  /* ---------- CFU ---------- */
+  t("il monte ore è venticinque ore per CFU",function(){
+    return (targetH(6)===150&&targetH(9)===225&&targetH(0)===0)?true:
+      "6→"+targetH(6)+" 9→"+targetH(9)+" 0→"+targetH(0);});
+  t("i CFU a scelta oltre il richiesto non contano",function(){
+    pulisci();apri();
+    /* tre materie a scelta superate con le ore: 18 CFU, il tetto è 18 */
+    var sc=items().filter(function(o){return o.kind==="c"&&!o.ob;});
+    sc.forEach(function(o,idx){
+      state.pass[o.id]=1;
+      var serve=targetH(o.cfu)*PERQ,messe=0;
+      for(var w=idx*30;w<idx*30+80&&messe<serve;w++)for(var d=0;d<7&&messe<serve;d++){
+        var day=iso(addDays(parse(G[0]),w*7+d));
+        for(var j=0;j<HOURS.length-1&&messe<serve;j+=2){
+          placeRun(day,HOURS[j],{i:o.id,a:"LET",len:2,done:1},0);messe+=2;}}
+    });
+    var f=cfuFatti();
+    return (f.sc===18&&f.sc<=f.piano.sce)?true:"a scelta contati "+f.sc+" su "+f.piano.sce;});
+  t("le ore senza il superato non bastano",function(){
+    var o=items().filter(function(x){return x.kind==="c"&&!x.ob;})[0];
+    delete state.pass[o.id];
+    return eq(cfuOk(o),false);});
+
+  /* ---------- pomodoro, casi storti ---------- */
+  t("in pausa il tempo non matura",function(){
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:4},0);
+    var g=slotDiOggi("ESE");
+    pomStart("ESE",[{date:g.date,start:g.start,lane:g.lane}]);
+    var c=pomConf("ESE");
+    state.pomRun.paused=c.s*60000;          /* messo in pausa subito */
+    var a=maturato(state.pomRun),b=maturato(state.pomRun);
+    state.pomRun=null;
+    return (Math.round(a)===0&&a===b)?true:"maturato "+a+" e poi "+b;});
+  t("saltare la sessione non spunta niente",function(){
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2},0);
+    var g=slotDiOggi("ESE");
+    pomStart("ESE",[{date:g.date,start:g.start,lane:g.lane}]);
+    pomAdvance(false);                      /* è il tasto Salta */
+    var q=runAt(oggi,ORA,0);state.pomRun=null;
+    return eq(!!(q&&q.done),false,"spuntato: ");});
+  t("saltare mette a registro solo il girato",function(){
+    pulisci();apri();state.log={};
+    placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2},0);
+    var g=slotDiOggi("ESE");
+    pomStart("ESE",[{date:g.date,start:g.start,lane:g.lane}]);
+    pomAdvance(false);
+    var m=0;Object.keys(state.log).forEach(function(k){
+      Object.keys(state.log[k]).forEach(function(f){m+=state.log[k][f];});});
+    state.pomRun=null;
+    return m<=1?true:"ha registrato "+m+" minuti invece di ~0";});
+  t("le lezioni non prendono il pomodoro",function(){
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:AUTOACT,len:2},0);
+    pomFromCell(oggi,ORA,0);
+    var partito=!!state.pomRun;state.pomRun=null;pomAskBlock(false);
+    return eq(partito,false,"è partito: ");});
+  t("il timer non aggancia un blocco già fatto",function(){
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2,done:1},0);
+    return eq(slotDiOggi("ESE"),null);});
+  t("una sessione senza aggancio non spunta niente e non si rompe",function(){
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2},0);
+    pomStart("ESE",[]);
+    pomAdvance(true);
+    var q=runAt(oggi,ORA,0);state.pomRun=null;
+    return eq(!!(q&&q.done),false,"spuntato: ");});
+  t("i minuti si dividono fra le materie agganciate",function(){
+    pulisci();apri();state.log={};
+    logAdd("ESE",60,[it[0].id,it[1].id]);
+    var k=state.year+"."+state.ctx+"."+iso(new Date());
+    var d=state.log[k]||{};
+    return (d[it[0].id+"|ESE"]===30&&d[it[1].id+"|ESE"]===30)?true:
+      "ha diviso così: "+JSON.stringify(d);});
+  t("riavvia riporta la fase all'inizio",function(){
+    pulisci();apri();
+    pomStart("ESE",[]);
+    state.pomRun.ends=Date.now()+60000;     /* un minuto alla fine */
+    pomRestart();
+    var resta=Math.round((state.pomRun.ends-Date.now())/60000);
+    state.pomRun=null;
+    return eq(resta,pomConf("ESE").s,"minuti rimasti ");});
+  t("il conto del giorno riparte quando cambia giorno",function(){
+    state.pomLog={d:"2020-01-01",n:9,min:400,byAct:{}};
+    var t2=pomToday();
+    return (t2.n===0&&t2.min===0)?true:"n="+t2.n+" min="+t2.min;});
+
+  /* ---------- grafici ---------- */
+  t("senza niente in piano i grafici lo dicono",function(){
+    pulisci();apri();state.semOpen=true;semSummary();
+    var b=document.getElementById("semBody");
+    return b.querySelector(".empty")?true:"non c'è il messaggio di vuoto";});
+  t("le fasi del metodo non contano il lavoro",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"LET",len:2},0);
+    placeRun(G[0],H0+4,{i:it[0].id,a:"LAV",len:2},0);
+    state.semOpen=true;semSummary();
+    var righe=[].map.call(document.querySelectorAll("#semBody .gbar .gr .gl"),
+      function(e){return e.textContent;});
+    return righe.indexOf("Lavoro")<0?true:"fra le fasi c'è: "+righe.join(", ");});
+  t("la proiezione mette prima l'esame più vicino",function(){
+    pulisci();apri();
+    var a=items()[0],b=items()[1];
+    state.over[a.id]={n:a.name,c:6,d:iso(addDays(new Date(),90))};
+    state.over[b.id]={n:b.name,c:6,d:iso(addDays(new Date(),10))};
+    placeRun(G[0],H0,{i:a.id,a:"LET",len:2},0);
+    placeRun(G[0],H0+4,{i:b.id,a:"LET",len:2},0);
+    state.semOpen=true;semSummary();
+    var primo=document.querySelector("#semBody .gp .gph b");
+    var atteso=(state.over[b.id]||{}).n;
+    state.over={};
+    return primo?eq(primo.textContent,atteso):"nessuna proiezione";});
+  t("le tre fasce del giorno cadono dove devono",function(){
+    return (fascia(12*PERQ+1)===0&&fascia(13*PERQ)===1&&
+            fascia(18*PERQ+1)===1&&fascia(19*PERQ)===2)?true:
+      "12:30→"+fascia(12*PERQ+1)+" 13:00→"+fascia(13*PERQ)+
+      " 18:30→"+fascia(18*PERQ+1)+" 19:00→"+fascia(19*PERQ);});
+
+  /* ---------- colori e leggibilità ---------- */
+  var lum=function(h){
+    var n=parseInt(h.slice(1),16),c=[n>>16&255,n>>8&255,n&255].map(function(v){
+      v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);});
+    return .2126*c[0]+.7152*c[1]+.0722*c[2];};
+  var contrasto=function(a,b){
+    var x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+  t("il testo nero si legge su ogni colore di materia",function(){
+    var male=items().filter(function(o){return o.kind==="c";})
+      .filter(function(o){return contrasto(o.color,BLKINK)<4.5;})
+      .map(function(o){return o.short+" "+contrasto(o.color,BLKINK).toFixed(1)+":1";});
+    return male.length?"sotto 4,5:1 → "+male.join(", "):true;});
+  t("due materie dello stesso periodo non hanno lo stesso colore",function(){
+    var c=colorClashes();
+    return Object.keys(c).length?"stesso colore: "+Object.keys(c).join(", "):true;});
+  t("il colore di una materia non cambia da una chiamata all'altra",function(){
+    var id="c:1009070";
+    return eq(autoColor(id),autoColor(id));});
+  t("le otto trame sono tutte diverse",function(){
+    var v=ACTS.map(function(a){return ATRAMA[a.k];});
+    return eq(new Set(v).size,ACTS.length,"trame distinte ");});
+  t("ogni attività ha la sua trama anche nella legenda",function(){
+    var senza=ACTS.filter(function(a){return !ATRAMALEG[a.k]||ATRAMALEG[a.k]==="none";});
+    return senza.length?"senza trama: "+senza.map(function(a){return a.n;}).join(", "):true;});
+
+  /* ---------- interfaccia ---------- */
+  t("il motivo non finisce sotto il quadratino della spunta",function(){
+    pulisci();apri();
+    ACTS.forEach(function(a,i){placeRun(G[0],H0+i*4,{i:it[0].id,a:a.k,len:(i%3)+1},0);});
+    render();
+    var male=[].filter.call(document.querySelectorAll(".blk"),function(b){
+      var tr=b.querySelector("span.tr"),tk=b.querySelector(".tick");
+      if(!tr||!tk)return false;
+      var A=tr.getBoundingClientRect(),B=tk.getBoundingClientRect();
+      return A.right>B.left+1&&A.left<B.right-1&&A.bottom>B.top+1&&A.top<B.bottom-1;});
+    return male.length?male.map(function(b){
+      var A=b.querySelector("span.tr").getBoundingClientRect(),
+          B=b.querySelector(".tick").getBoundingClientRect();
+      return "["+(b.className.replace("blk","").trim()||"normale")+" riga "+
+        document.documentElement.dataset.row+" fascia "+Math.round(A.left)+"-"+
+        Math.round(A.right)+"/"+Math.round(A.top)+"-"+Math.round(A.bottom)+
+        " spunta "+Math.round(B.left)+"-"+Math.round(B.right)+"/"+
+        Math.round(B.top)+"-"+Math.round(B.bottom)+"]";}).join(" "):true;});
+  t("ogni pulsante degli strumenti dice cosa fa",function(){
+    var muti=[].filter.call(document.querySelectorAll(".tool"),function(b){
+      return !b.title&&!b.getAttribute("aria-label");});
+    return muti.length?muti.length+" pulsanti senza spiegazione":true;});
+  t("nel tema chiaro le scritte dei blocchi restano nere",function(){
+    var prima=state.theme;
+    document.documentElement.setAttribute("data-theme","light");
+    render();
+    var b=document.querySelector(".blk");
+    var col=b?getComputedStyle(b).color:"";
+    document.documentElement.setAttribute("data-theme",prima||"dark");render();
+    return col==="rgb(20, 22, 27)"?true:"il colore del testo è "+col;});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

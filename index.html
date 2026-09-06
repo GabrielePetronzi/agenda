@@ -488,7 +488,11 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
 .blk.mini em{display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 24px 0 7px}
 .blk.mini em b{padding-right:0;flex:0 1 auto;max-width:74%}
 .blk.mini em s{margin-top:0;flex:0 1 auto;min-width:0}
-.blk.mini em span.tr{flex:1 1 0;min-width:0;align-self:stretch;margin-left:1px;
+/* margine suo: quello della fascia orizzontale esce di sette pixel dai bordi
+   per arrivare al filo del blocco, ma qui la fascia sta di fianco al testo e
+   quei sette pixel se li mangia dalla distanza dal quadratino della spunta —
+   a riga minima ci finiva sotto. */
+.blk.mini em span.tr{flex:1 1 0;min-width:0;align-self:stretch;margin:0 0 0 1px;
   background-image:var(--tr)}
 .blk.mini::before{content:none}
 .blk.mini .rsz{height:6px}
