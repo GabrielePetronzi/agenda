@@ -1548,5 +1548,33 @@
     return (affiancato===2&&pieno===MAXLANE&&sopravvissuti===MAXLANE)?true:
       "affiancati "+affiancato+" (attesi 2) · con tre piene "+pieno+", ne sopravvivono "+sopravvissuti;});
 
+  t("incollare due volte nello stesso posto non fa due blocchi",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:2},0);render();
+    toggleSel(G[0],H0+2,0);copyBlocks();
+    cursor={date:G[1],slot:H0+2,lane:0};
+    pasteBlocks();pasteBlocks();          /* ⌘-clic e poi ⌘V, per abitudine */
+    var quanti=at(ck(G[1],H0+2)).filter(Boolean).length;
+    var largo=document.querySelector('.blk[data-date="'+G[1]+'"]');
+    return (quanti===1&&largo&&largo.style.width==="100%")?true:
+      "nella casella ci sono "+quanti+" blocchi, largo "+(largo?largo.style.width:"—");});
+  t("dopo l'incolla la selezione si svuota",function(){
+    return eq(Object.keys(selRuns).length,0,"selezionati ");});
+  /* Un blocco rimasto solo sulla seconda corsia restava largo meta', con
+     l'altra meta' vuota. */
+  t("cancellato il vicino, il blocco rimasto torna largo tutto",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(G[0],H0,{i:it[1].id,a:"LEZ",len:2},1);
+    render();
+    var prima=document.querySelectorAll('.blk[data-date="'+G[0]+'"]').length;
+    clearRun(G[0],H0,2,0);
+    afterEdit("prova");
+    var r=runAt(G[0],H0,0);
+    var bl=document.querySelector('.blk[data-date="'+G[0]+'"]');
+    return (prima===2&&r&&r.i===it[1].id&&bl&&bl.style.width==="100%")?true:
+      "prima "+prima+" blocchi · ora sulla corsia 0: "+(r?r.i:"niente")+
+      " · largo "+(bl?bl.style.width:"—");});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

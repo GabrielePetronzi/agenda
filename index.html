@@ -4787,7 +4787,12 @@ function copyBlocks(){
     dd:Math.round((parse(r.date)-minDay)/86400000),
     ds:r.start-minSlot,len:r.len,i:r.i,a:r.a,n:r.n,done:r.done
   }));
-  save();toast("Copiati "+runs.length+(runs.length===1?" blocco":" blocchi"));
+  /* Dice cosa ha copiato, per nome: la selezione resta finche' non premi Esc,
+     e un blocco scelto ieri e dimenticato finiva negli appunti insieme a
+     quello di oggi — e poi sulla griglia, dove nessuno se lo aspettava. */
+  const m=map();
+  const elenco=runs.map(r=>(m[r.i]?m[r.i].short:"?")+" "+hrs(r.len)).join(", ");
+  save();toast("Copiat"+(runs.length===1?"o":"i")+": "+elenco);
 }
 function pasteBlocks(){
   if(!state.blockClip||!state.blockClip.length){toast("Niente da incollare");return;}
@@ -4797,10 +4802,15 @@ function pasteBlocks(){
   if(att)puntaQui(att);
   if(!cursor){toast("Tocca prima una cella dove incollare");return;}
   const base=parse(cursor.date);
-  let messi=0,senzaPosto=0;
+  let messi=0,senzaPosto=0,gia=0;
   state.blockClip.forEach(b=>{
     const d=iso(addDays(base,b.dd)),st=cursor.slot+b.ds;
     if(st<HOURS[0]||st>HOURS[HOURS.length-1])return;
+    /* Lo stesso blocco nello stesso posto non si incolla due volte: ⌘-clic
+       sulla casella e poi ⌘V, per abitudine, sono due incolla, e il secondo
+       metteva una copia di fianco alla prima — due blocchi uguali larghi
+       meta', che sembravano un difetto e lo erano. */
+    if(runsOf(d).some(r=>r.start===st&&r.len===b.len&&r.v.i===b.i&&r.v.a===b.a)){gia++;return;}
     /* dove c'e' gia' qualcosa si affianca; dove sono piene tutte e tre le
        corsie non si incolla, invece di sovrascrivere in silenzio */
     const L=corsiaPerArrivo(d,st,b.len,null);
@@ -4808,8 +4818,13 @@ function pasteBlocks(){
     placeRun(d,st,{i:b.i,a:b.a,n:b.n,done:b.done,len:b.len},L);
     messi++;
   });
+  /* la selezione ha finito il suo lavoro: quello che era scelto e' negli
+     appunti, e tenerlo evidenziato porta a copiarlo un'altra volta senza
+     volerlo */
+  selRuns={};
   afterEdit(messi?("Incollat"+(messi===1?"o":"i")+" "+messi+(messi===1?" blocco":" blocchi")+
-    (senzaPosto?", "+senzaPosto+" senza posto":"")):"Niente posto dove incollare");
+    (senzaPosto?", "+senzaPosto+" senza posto":"")+(gia?", "+gia+" c'era gia'":""))
+    :(gia?"C'e' gia', non lo incollo due volte":"Niente posto dove incollare"));
 }
 function deleteSel(){
   const keys=Object.keys(selRuns);
@@ -4851,10 +4866,34 @@ function setDone(dateIso,start,lane,val2){
   afterEdit(val2?"Fatto":"Da fare");
 }
 
+/* Un blocco rimasto da solo sulla seconda corsia — perche' quello di fianco
+   e' stato cancellato — restava disegnato a meta' larghezza, con l'altra
+   meta' vuota: la corsia e' un indice, e nessuno la rimetteva a posto.
+   Qui ogni blocco scende di una corsia se sotto ha posto per tutta la sua
+   lunghezza, finche' non si muove piu' niente. Il timer che fosse agganciato
+   a un blocco che scende lo segue. */
+function compattaCorsie(dateIso){
+  let mosso=false;
+  for(let giro=0;giro<MAXLANE;giro++){
+    let cambiato=false;
+    runsOf(dateIso).filter(r=>r.lane>0).sort((a,b)=>a.lane-b.lane).forEach(r=>{
+      const sotto=r.lane-1;
+      for(let k=0;k<r.len;k++)if(at(ck(dateIso,r.start+k))[sotto])return;
+      clearRun(dateIso,r.start,r.len,r.lane);
+      placeRun(dateIso,r.start,{i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,len:r.len},sotto);
+      if(state.pomRun&&state.pomRun.linked)state.pomRun.linked.forEach(b=>{
+        if(b.date===dateIso&&b.lane===r.lane&&b.start>=r.start&&b.start<r.start+r.len)b.lane=sotto;});
+      cambiato=true;mosso=true;
+    });
+    if(!cambiato)break;
+  }
+  return mosso;
+}
 function afterEdit(msg){
-  save(msg);commit();
   const days=new Set();
   for(let p=0;p<PANELS;p++)panelDates(p).forEach(d=>days.add(iso(d)));
+  days.forEach(d=>compattaCorsie(d));
+  save(msg);commit();
   days.forEach(d=>drawDay(d));
   refreshMetrics();selInfo();
 }
@@ -5178,6 +5217,11 @@ window.addEventListener("pointermove",e=>{
   if(painting){
     const cancellava=state.erase;
     painting=false;
+    if(cancellava){
+      const days=new Set();
+      for(let p=0;p<PANELS;p++)panelDates(p).forEach(d=>days.add(iso(d)));
+      days.forEach(d=>{if(compattaCorsie(d))drawDay(d);});
+    }
     commit();reportOverwrite();
     if(overflowWarn){toast("Massimo "+MAXLANE+" blocchi affiancati");overflowWarn=false;}
     refreshMetrics();
