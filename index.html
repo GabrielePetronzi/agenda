@@ -1103,7 +1103,6 @@ td.tot b{color:var(--tx2);font-weight:500}
       </div>
 
       <div class="grp sep">
-        <button class="btn" id="sideBtn">Affianca</button>
         <button class="btn" id="eraseBtn">Cancella</button>
       </div>
     </div>
@@ -1616,7 +1615,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    2. STATO
    ============================================================ */
 const KEY="piano-6272-v5";
-let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,affianca:false,
+let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
            pomConf:null,pomRun:null,pomLog:null,log:{},dayFrom:8,dayTo:24,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
@@ -2040,7 +2039,6 @@ window.addEventListener("keydown",e=>{
   /* da 1 a 7: l'attività con cui dipingere */
   if(k>="1"&&k<="9"&&ACTS[+k-1]){e.preventDefault();pickAct(ACTS[+k-1].k);return;}
   if(k==="e"||k==="E"){e.preventDefault();document.getElementById("eraseBtn").click();return;}
-  if(k==="a"||k==="A"){e.preventDefault();document.getElementById("sideBtn").click();return;}
   if(k==="o"||k==="O"){e.preventDefault();document.getElementById("wToday").click();return;}
   /* con il fuoco su una casella le frecce servono a muoversi lì dentro;
      fuori dalla griglia cambiano settimana */
@@ -2824,17 +2822,6 @@ function gridModes(){
   er.className="btn"+(state.erase?" warnon":"");
   er.title=state.erase?"Tocca o trascina per svuotare: si spegne quando rilasci"
                       :"Cancella un tratto di slot, per una volta sola";
-  /* Affiancare due blocchi nella stessa mezz'ora si poteva gia' fare, ma solo
-     tenendo premuto ⌥ mentre dipingi: una scorciatoia che sa solo chi legge
-     l'elenco delle scorciatoie. Qui e' un interruttore come Cancella. */
-  const af=document.getElementById("sideBtn");
-  if(af){
-    af.className="btn"+(state.affianca?" on":"");
-    af.title=state.affianca
-      ?"Dipingendo sopra a un blocco lo affianchi invece di spostarlo — fino a "+MAXLANE+" per mezz'ora"
-      :"Metti due materie nella stessa mezz'ora, una di fianco all'altra";
-  }
-  document.body.classList.toggle("affianca",!!state.affianca);
   /* la griglia cambia carattere secondo quello che sta per succedere */
   document.body.classList.toggle("paint",!state.erase&&!!state.brush);
   document.body.classList.toggle("erasing",!!state.erase);
@@ -2846,8 +2833,6 @@ function modeFlag(){
     el.textContent="Tocca il blocco su cui avviare il pomodoro";}
   else if(state.erase){el.className="modeflag on";el.style.background="var(--warn)";
     el.textContent="Cancella un tratto — si spegne quando rilasci";}
-  else if(state.affianca){el.className="modeflag on";el.style.background="var(--action)";
-    el.textContent="Affianca — dipingi sopra a un blocco e gli si mette di fianco";}
   else{el.className="modeflag";el.style.background="";}
 }
 function status(){
@@ -2855,9 +2840,6 @@ function status(){
   const clip=state.clip?'<span style="color:var(--tx3)"> — appunti: '+state.clip.label+" ("+hrs(state.clip.hours)+")</span>":"";
   if(state.erase){el.innerHTML="<b>CANCELLA</b> · tocca o trascina per svuotare, "+
     "poi torna il pennello di prima"+clip;return;}
-  if(state.affianca&&state.brush&&m[state.brush]){
-    el.innerHTML="<b>AFFIANCA</b> · "+m[state.brush].name+", "+actOf(state.act).n.toLowerCase()+
-      " — dipingendo sopra a un blocco gli si mette di fianco"+clip;return;}
   if(!state.brush||!m[state.brush]){
     el.innerHTML=state.act==="RIP"
       ? "<b>RIPASSO LIBERO</b> · senza materia, in grigio"+clip
@@ -5003,7 +4985,7 @@ function wire(t){
        tocco secco resta un tocco e il doppio tocco di prima ci arriva.
        Con ⌥ premuto la presa si disattiva e il tratto dipinge, che è il
        solo modo di affiancare un blocco a uno che riempie già la cella. */
-    if(!state.erase&&!e.altKey&&!state.affianca&&e.target.closest(".blk")){
+    if(!state.erase&&!e.altKey&&e.target.closest(".blk")){
       const r=runAt(td.dataset.date,+td.dataset.h,lane)||anyRunAt(td.dataset.date,+td.dataset.h);
       if(r){armMove={run:r,off:(+td.dataset.h)-r.start,x:e.clientX,y:e.clientY};return;}
     }
@@ -5570,13 +5552,6 @@ document.getElementById("rpGo").onclick=doRepeat;
 
 document.getElementById("eraseBtn").onclick=()=>{
   state.erase=!state.erase;
-  if(state.erase)state.affianca=false;
-  save();tools();status();modeFlag();pomPanel();panels();
-};
-document.getElementById("sideBtn").onclick=()=>{
-  state.affianca=!state.affianca;
-  /* i due modi si escludono: cancellare affiancando non vuol dire niente */
-  if(state.affianca)state.erase=false;
   save();tools();status();modeFlag();pomPanel();panels();
 };
 document.getElementById("printBtn").onclick=()=>{chiudiMenu();window.print();};
@@ -5695,7 +5670,6 @@ const KEYS=[
   ["Griglia",[
     [["1","…","8"],"Scegli l'attività con cui dipingere"],
     [["E"],"Cancella un tratto: al rilascio torna il pennello di prima"],
-    [["A"],"Affianca: dipingere sopra a un blocco non lo sposta, gli si mette di fianco"],
     [["Trascina"],"Prendi un blocco per il corpo e portalo dove vuoi"],
     [["⌥/Alt","Trascina"],"Dipinge anche sopra a un blocco: lo affianca"],
     [["Spazio"],"Dipinge la casella che ha il fuoco"],

@@ -1393,19 +1393,6 @@
     setDataEsame(_mat.id,"","");
     return (!(state.exams||[]).some(function(x){return x.mid===_mat.id;})&&
             !map()[_mat.id].date)?true:"resta "+JSON.stringify(map()[_mat.id].date);});
-  /* Due materie nella stessa mezz'ora si potevano gia' affiancare, ma solo
-     con ⌥ premuto. Adesso c'e' l'interruttore, e deve fare la stessa cosa. */
-  t("con Affianca acceso, dipingere su un blocco non lo sposta",function(){
-    pulisci();apri();state.affianca=false;
-    placeRun(G[0],H0,{i:it[0].id,a:"LEZ",len:2},0);
-    render();
-    var td=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+H0+'"]');
-    /* senza l'interruttore la presa del blocco si arma: e' lo spostamento */
-    var bloccato=!(!state.erase&&!state.affianca&&td.querySelector(".blk"));
-    state.affianca=true;
-    var libero=!(!state.erase&&!state.affianca&&td.querySelector(".blk"));
-    state.affianca=false;
-    return (!bloccato&&libero)?true:"con l'interruttore spento "+bloccato+", acceso "+libero;});
   t("due blocchi diversi stanno nella stessa mezz'ora, su due corsie",function(){
     pulisci();apri();
     placeRun(G[0],H0,{i:it[0].id,a:"LEZ",len:2},0);
@@ -1417,14 +1404,6 @@
       '"][data-h="'+H0+'"] .blk'),function(b){
       var x=b.getBoundingClientRect();return Math.round(x.left)+"+"+Math.round(x.width);});
     return r[0]!==r[1]?true:"sono sovrapposti nello stesso posto: "+r.join(" ");});
-  t("l'interruttore Affianca e Cancella non stanno accesi insieme",function(){
-    state.erase=false;state.affianca=false;
-    document.getElementById("sideBtn").click();
-    document.getElementById("eraseBtn").click();
-    var ok=state.erase&&!state.affianca;
-    state.erase=false;state.affianca=false;gridModes();
-    return ok?true:"erase="+state.erase+" affianca="+state.affianca;});
-
   t("aggiungendo una materia si puo' gia' mettere la data d'esame",function(){
     state.custom=[];state.exams=[];
     document.getElementById("newName").value="Tesi di laurea";

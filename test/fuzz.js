@@ -27,7 +27,7 @@
   function pulito(){
     state.cells={};state.exams=[];state.over={};state.custom=[];state.pass={};
     state.colors={};state.clip=null;state.pomRun=null;state.pomLog=null;
-    state.log={};state.brush=null;state.erase=false;state.affianca=false;
+    state.log={};state.brush=null;state.erase=false;
     selRuns={};setDayRange(8,24);
     state.anchor[state.ctx]=iso(monday(new Date()));
     state.span=7;applySpan();render();histInit();commit();
