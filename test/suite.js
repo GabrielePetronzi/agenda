@@ -1576,5 +1576,25 @@
       "prima "+prima+" blocchi · ora sulla corsia 0: "+(r?r.i:"niente")+
       " · largo "+(bl?bl.style.width:"—");});
 
+  /* Il caso vero: frecce fino a una casella (il fuoco resta li'), poi ⌘-clic
+     su un'altra. Deve incollare dove hai cliccato, non dove era il fuoco. */
+  t("il ⌘-clic incolla dove clicchi anche se il fuoco e' rimasto altrove",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(G[4],H0+8,{i:GENID,a:"RIP",len:1},0);   /* un ripasso piu' in basso */
+    render();
+    toggleSel(G[0],H0+4,0);copyBlocks();
+    var lontana=document.querySelector('td.c[data-date="'+G[4]+'"][data-h="'+(H0+8)+'"]');
+    lontana.focus();                                   /* il fuoco resta sul ripasso */
+    var td=document.querySelector('td.c[data-date="'+G[4]+'"][data-h="'+(H0+4)+'"]');
+    var r=td.getBoundingClientRect();
+    td.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,cancelable:true,pointerId:1,
+      clientX:r.left+r.width/2,clientY:r.top+r.height/2,buttons:1,isPrimary:true,metaKey:true}));
+    td.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
+    var qui=runAt(G[4],H0+4,0),sotto=at(ck(G[4],H0+8)).filter(Boolean).length;
+    clearSel();
+    if(!qui||qui.i!==it[0].id)return "alle "+slotTime(H0+4)+" non e' arrivato niente";
+    return sotto===1?true:"di fianco al ripasso ci sono finiti "+sotto+" blocchi";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

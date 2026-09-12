@@ -1614,6 +1614,11 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
 /* ============================================================
    2. STATO
    ============================================================ */
+/* Che versione stai guardando. Si aggiorna a ogni pubblicazione ed e'
+   scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
+   domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
+   memoria — e senza questo nessuno dei due puo' rispondere. */
+const VERSIONE="12 set 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4794,11 +4799,12 @@ function copyBlocks(){
   const elenco=runs.map(r=>(m[r.i]?m[r.i].short:"?")+" "+hrs(r.len)).join(", ");
   save();toast("Copiat"+(runs.length===1?"o":"i")+": "+elenco);
 }
-function pasteBlocks(){
+function pasteBlocks(dove){
   if(!state.blockClip||!state.blockClip.length){toast("Niente da incollare");return;}
-  /* la casella col fuoco vince: e' quella in cui sei arrivato con le frecce */
-  const att=document.activeElement&&document.activeElement.closest&&
-            document.activeElement.closest("td.c");
+  /* la casella toccata, se c'e'; se no quella col fuoco, cioe' dove sei
+     arrivato con le frecce */
+  const att=dove||(document.activeElement&&document.activeElement.closest&&
+            document.activeElement.closest("td.c"));
   if(att)puntaQui(att);
   if(!cursor){toast("Tocca prima una cella dove incollare");return;}
   const base=parse(cursor.date);
@@ -4992,13 +4998,20 @@ function wire(t){
     if(pomPick){pomFromCell(td.dataset.date,+td.dataset.h,lane);return;}
 
     cursor={date:td.dataset.date,slot:+td.dataset.h,lane:lane};
+    /* Il preventDefault qui sopra impedisce al tocco di spostare il fuoco,
+       quindi il fuoco restava sulla casella raggiunta con le frecce mentre il
+       cursore andava su quella toccata — e l'incolla, che da' ragione al
+       fuoco, finiva nella casella sbagliata: una riga sotto, di fianco al
+       ripasso. Il gesto piu' recente deve vincere, e per farlo basta che i
+       due stiano sempre d'accordo. */
+    try{td.focus({preventScroll:true});}catch(_){}
 
     if(e.ctrlKey||e.metaKey){
       if(toggleSel(td.dataset.date,+td.dataset.h,lane))return;
       /* Casella vuota. Un tocco normale qui dipingerebbe col pennello, quindi
          non c'e' modo di dire "incolla qui" col mouse senza sporcare: lo dice
          questo, lo stesso gesto con cui si e' scelto cosa copiare. */
-      if(state.blockClip&&state.blockClip.length)pasteBlocks();
+      if(state.blockClip&&state.blockClip.length)pasteBlocks(td);
       else toast("Nessun blocco qui");
       return;
     }
@@ -5408,7 +5421,8 @@ function bkStato(){
   el.innerHTML="<b>"+hrs(Object.keys(state.cells||{}).length)+"</b> nel piano aperto · "+
     "<b>"+copieLeggi().length+"</b> copie recenti · <b>"+giorniLeggi().length+"</b> del giorno · "+
     (gh.gist?"gist collegato"+(gh.token?" con token":" in sola lettura"):"<b>nessun gist</b>")+
-    (n(LSKEY)?"":" · <b>memoria locale vuota</b>");
+    (n(LSKEY)?"":" · <b>memoria locale vuota</b>")+
+    " · versione <b>"+VERSIONE+"</b>";
   const box=document.getElementById("bkLink");
   if(box){
     const L=linkRicordo();
