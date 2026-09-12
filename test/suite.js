@@ -1667,7 +1667,32 @@
       try{var r=x.poi();if(r===true)ok++;else{ko++;T.push("KO · "+x.nome+" · "+r);}}
       catch(e){ko++;T.push("KO · "+x.nome+" · eccezione: "+e.message);}
     });
-    document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
+    /* Chi non ha il Mac usa Ctrl: copia, incolla, aggiungi alla selezione e
+     incolla col clic devono rispondere a Ctrl esattamente come a ⌘. */
+  t("copia, incolla e Ctrl-clic funzionano con Ctrl, non solo con ⌘",function(){
+    pulisci();apri();clearSel();state.blockClip=null;
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(G[1],H0+2,{i:it[1].id,a:"LEZ",len:2},0);
+    render();
+    var bl=function(d){return document.querySelector('.blk[data-date="'+d+'"]');};
+    var ctrl=function(el,tp){var r=el.getBoundingClientRect();
+      el.dispatchEvent(new PointerEvent(tp,{bubbles:true,cancelable:true,pointerId:1,
+        clientX:r.left+r.width/2,clientY:r.top+r.height/2,buttons:tp==="pointerdown"?1:0,
+        isPrimary:true,ctrlKey:true}));};
+    tocco(bl(G[0]));
+    ctrl(bl(G[1]),"pointerdown");ctrl(bl(G[1]),"pointerup");lastTap={sig:null,t:0};
+    var due=Object.keys(selRuns).length;
+    document.body.dispatchEvent(new KeyboardEvent("keydown",{key:"c",bubbles:true,cancelable:true,ctrlKey:true}));
+    var copiati=(state.blockClip||[]).length;
+    var td=document.querySelector('td.c[data-date="'+G[3]+'"][data-h="'+(H0+2)+'"]');
+    ctrl(td,"pointerdown");ctrl(td,"pointerup");
+    var incollati=runsOf(G[3]).length+runsOf(G[4]).length;
+    clearSel();
+    if(due!==2)return "Ctrl-clic non ha aggiunto alla selezione ("+due+")";
+    if(copiati!==2)return "Ctrl+C ha copiato "+copiati+" blocchi invece di 2";
+    return incollati===2?true:"Ctrl-clic sulla casella vuota ha incollato "+incollati+" blocchi invece di 2";});
+
+  document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
   if(rinviati.length)setTimeout(verdetto,400);else verdetto();
