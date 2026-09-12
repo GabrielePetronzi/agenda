@@ -1534,5 +1534,40 @@
     return (!celle&&!scad&&!sup)?true:
       "restano: "+celle+" mezz'ore, "+scad+" scadenze, superato="+sup;});
 
+  /* ---------- copia e incolla dei blocchi ---------- */
+  /* Il punto in cui si incolla deve seguire le frecce: prima restava dove
+     avevi cliccato, cioe' sopra al blocco appena copiato. */
+  t("copiato un blocco, le frecce spostano dove si incolla",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"SCH",len:2,n:"cap. 3"},0);
+    render();
+    toggleSel(G[0],H0+4,0);
+    copyBlocks();
+    var td=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+(H0+4)+'"]');
+    cursor={date:G[0],slot:H0+4,lane:0};
+    td.focus();
+    moveFocus(td,"ArrowRight");          /* il giorno dopo, stessa ora */
+    pasteBlocks();
+    clearSel();
+    var q=runAt(G[1],H0+4,0);
+    if(!q)return "nella casella accanto non c'e' niente";
+    if(q.i!==it[0].id||q.len!==2||q.n!=="cap. 3")return "e' arrivato un blocco diverso";
+    /* e sopra all'originale non deve essersi affiancata una copia */
+    return eq(runsOf(G[0]).length,1,"blocchi rimasti sul giorno di partenza ");});
+  t("incollare su una casella piena affianca, su tre piene si ferma",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(G[2],H0,{i:it[1].id,a:"LEZ",len:2},0);
+    for(var L=0;L<MAXLANE;L++)placeRun(G[3],H0,{i:it[L].id,a:"ESE",len:2},L);
+    render();
+    toggleSel(G[0],H0,0);copyBlocks();clearSel();
+    cursor={date:G[2],slot:H0,lane:0};pasteBlocks();
+    var affiancato=at(ck(G[2],H0)).filter(Boolean).length;
+    cursor={date:G[3],slot:H0,lane:0};pasteBlocks();
+    var pieno=at(ck(G[3],H0)).filter(Boolean).length;
+    var sopravvissuti=at(ck(G[3],H0)).filter(function(v){return v&&v.a==="ESE";}).length;
+    return (affiancato===2&&pieno===MAXLANE&&sopravvissuti===MAXLANE)?true:
+      "affiancati "+affiancato+" (attesi 2) · con tre piene "+pieno+", ne sopravvivono "+sopravvissuti;});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

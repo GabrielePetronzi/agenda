@@ -4809,14 +4809,25 @@ function copyBlocks(){
 }
 function pasteBlocks(){
   if(!state.blockClip||!state.blockClip.length){toast("Niente da incollare");return;}
+  /* la casella col fuoco vince: e' quella in cui sei arrivato con le frecce */
+  const att=document.activeElement&&document.activeElement.closest&&
+            document.activeElement.closest("td.c");
+  if(att)puntaQui(att);
   if(!cursor){toast("Tocca prima una cella dove incollare");return;}
   const base=parse(cursor.date);
+  let messi=0,senzaPosto=0;
   state.blockClip.forEach(b=>{
     const d=iso(addDays(base,b.dd)),st=cursor.slot+b.ds;
     if(st<HOURS[0]||st>HOURS[HOURS.length-1])return;
-    placeRun(d,st,{i:b.i,a:b.a,n:b.n,done:b.done,len:b.len},null);
+    /* dove c'e' gia' qualcosa si affianca; dove sono piene tutte e tre le
+       corsie non si incolla, invece di sovrascrivere in silenzio */
+    const L=corsiaPerArrivo(d,st,b.len,null);
+    if(L<0){senzaPosto++;return;}
+    placeRun(d,st,{i:b.i,a:b.a,n:b.n,done:b.done,len:b.len},L);
+    messi++;
   });
-  afterEdit("Incollati "+state.blockClip.length+" blocchi");
+  afterEdit(messi?("Incollat"+(messi===1?"o":"i")+" "+messi+(messi===1?" blocco":" blocchi")+
+    (senzaPosto?", "+senzaPosto+" senza posto":"")):"Niente posto dove incollare");
 }
 function deleteSel(){
   const keys=Object.keys(selRuns);
@@ -4900,19 +4911,27 @@ function editNote(dateIso,start,lane){
 }
 
 /* sposta il fuoco di una casella nella direzione della freccia */
+/* Il punto in cui si incolla segue la casella che ha il fuoco. Prima lo
+   spostava solo un tocco del mouse: con le frecce il fuoco andava avanti e il
+   punto restava dov'era, cioe' sopra al blocco appena copiato — e la copia
+   finiva li', di fianco all'originale, invece che nella casella scelta. */
+function puntaQui(td){
+  if(!td)return;
+  cursor={date:td.dataset.date,slot:+td.dataset.h,lane:0};
+}
 function moveFocus(td,k){
   const tr=td.parentElement,tb=tr.parentElement;
   const celle=[...tr.querySelectorAll("td.c")],i=celle.indexOf(td);
   if(k==="ArrowLeft"||k==="ArrowRight"){
     const n=celle[i+(k==="ArrowRight"?1:-1)];
-    if(n)n.focus();
+    if(n){n.focus();puntaQui(n);}
     return;
   }
   const righe=[...tb.querySelectorAll("tr")].filter(r=>r.querySelector("td.c"));
   const r=righe[righe.indexOf(tr)+(k==="ArrowDown"?1:-1)];
   if(!r)return;
   const n=[...r.querySelectorAll("td.c")][i];
-  if(n)n.focus();
+  if(n){n.focus();puntaQui(n);}
 }
 
 /* ---------- interazione ---------- */
@@ -4954,7 +4973,12 @@ function wire(t){
     cursor={date:td.dataset.date,slot:+td.dataset.h,lane:lane};
 
     if(e.ctrlKey||e.metaKey){
-      if(!toggleSel(td.dataset.date,+td.dataset.h,lane))toast("Nessun blocco qui");
+      if(toggleSel(td.dataset.date,+td.dataset.h,lane))return;
+      /* Casella vuota. Un tocco normale qui dipingerebbe col pennello, quindi
+         non c'e' modo di dire "incolla qui" col mouse senza sporcare: lo dice
+         questo, lo stesso gesto con cui si e' scelto cosa copiare. */
+      if(state.blockClip&&state.blockClip.length)pasteBlocks();
+      else toast("Nessun blocco qui");
       return;
     }
 
@@ -5684,6 +5708,7 @@ const KEYS=[
     [["/"],"Salta nella ricerca delle materie"],
     [["?"],"Apre questa legenda"]]],
   ["Selezione",[
+    [["⌘/Ctrl","Clic"],"Seleziona un blocco; su una casella vuota incolla lì"],
     [["Esc"],"Annulla la selezione o chiude la finestra"],
     [["Canc"],"Elimina i blocchi selezionati"],
     [["F"],"Segna come fatti i blocchi selezionati"]]],
@@ -5691,7 +5716,7 @@ const KEYS=[
     [["⌘/Ctrl","Z"],"Annulla"],
     [["⌘/Ctrl","Y"],"Rifai"],
     [["⌘/Ctrl","C"],"Copia i blocchi selezionati"],
-    [["⌘/Ctrl","V"],"Incolla dove sei"]]]
+    [["⌘/Ctrl","V"],"Incolla nella casella col fuoco — ci arrivi con le frecce"]]]
 ];
 function ksList(){
   const box=document.getElementById("ksList");
