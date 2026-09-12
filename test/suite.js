@@ -1596,5 +1596,46 @@
     if(!qui||qui.i!==it[0].id)return "alle "+slotTime(H0+4)+" non e' arrivato niente";
     return sotto===1?true:"di fianco al ripasso ci sono finiti "+sotto+" blocchi";});
 
+  /* Un clic secco su un blocco lo seleziona; un altro blocco prende il posto
+     del primo; e la copia prende quello che e' selezionato adesso, non il
+     primo copiato. */
+  function tocco(el,meta){
+    var r=el.getBoundingClientRect();
+    ["pointerdown","pointerup"].forEach(function(tp){
+      el.dispatchEvent(new PointerEvent(tp,{bubbles:true,cancelable:true,pointerId:1,
+        clientX:r.left+r.width/2,clientY:r.top+r.height/2,buttons:tp==="pointerdown"?1:0,
+        isPrimary:true,metaKey:!!meta}));});
+    lastTap={sig:null,t:0};          /* ogni tocco e' un tocco nuovo, non un doppio */
+  }
+  t("un clic seleziona il blocco, un clic su un altro prende il suo posto",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(G[1],H0+2,{i:it[1].id,a:"LEZ",len:2},0);
+    render();
+    /* ogni selezione ridisegna il giorno: il blocco va ripescato ogni volta */
+    var bl=function(d){return document.querySelector('.blk[data-date="'+d+'"]');};
+    tocco(bl(G[0]));
+    var uno=Object.keys(selRuns).length,primo=uno&&selRuns[Object.keys(selRuns)[0]].i;
+    tocco(bl(G[1]));
+    var due=Object.keys(selRuns).length,secondo=due&&selRuns[Object.keys(selRuns)[0]].i;
+    copyBlocks();
+    var copiato=state.blockClip&&state.blockClip[0]&&state.blockClip[0].i;
+    tocco(bl(G[1]));
+    var zero=Object.keys(selRuns).length;
+    clearSel();
+    if(uno!==1||primo!==it[0].id)return "dopo il primo clic selezionati "+uno;
+    if(due!==1||secondo!==it[1].id)return "dopo il secondo clic selezionati "+due+" ("+secondo+")";
+    if(copiato!==it[1].id)return "ha copiato "+copiato+" invece del secondo";
+    return zero===0?true:"il clic sul blocco gia' scelto non lo toglie";});
+  t("col ⌘ il clic aggiunge alla selezione invece di sostituirla",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(G[1],H0+2,{i:it[1].id,a:"LEZ",len:2},0);
+    render();
+    tocco(document.querySelector('.blk[data-date="'+G[0]+'"]'));
+    tocco(document.querySelector('.blk[data-date="'+G[1]+'"]'),true);
+    var n=Object.keys(selRuns).length;clearSel();
+    return eq(n,2,"selezionati ");});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
     (T.length?" || "+T.join(" || "):"");

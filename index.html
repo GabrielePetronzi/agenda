@@ -1618,7 +1618,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="12 set 2026 · c";
+const VERSIONE="12 set 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5223,7 +5223,28 @@ window.addEventListener("pointermove",e=>{
   }else put(td,null);
 });
 
-["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,()=>{
+/* Un tocco secco su un blocco lo seleziona: e' quello che chiunque si
+   aspetta, ed e' quello che si faceva col ⌘ premuto — che nessuno sa di
+   dover premere. Cosi' "clicco un altro blocco e lo copio" copia davvero
+   l'altro, invece di lasciare negli appunti il primo. Il clic da solo
+   seleziona solo quello; col ⌘ si aggiunge a quelli gia' scelti. La presa
+   per lo spostamento resta: il tocco diventa spostamento solo se il dito si
+   muove, e allora qui drag e' gia' pieno e non si seleziona niente. */
+function selezionaSolo(r){
+  const k=selKey(r.date,r.start,r.lane);
+  const prima=Object.keys(selRuns);
+  const eraSolo=prima.length===1&&!!selRuns[k];
+  const giorni=new Set(prima.map(x=>selRuns[x].date));giorni.add(r.date);
+  selRuns={};
+  if(!eraSolo)selRuns[k]=r;
+  giorni.forEach(d=>drawDay(d));selInfo();
+}
+["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,e=>{
+  if(armMove&&!drag&&ev==="pointerup"){
+    const r=armMove.run;armMove=null;
+    if(!(e.ctrlKey||e.metaKey))selezionaSolo(r);
+    return;
+  }
   armMove=null;
   if(rz){rz=null;afterEdit();}
   if(drag){drag=null;afterEdit();}
@@ -5740,7 +5761,8 @@ const KEYS=[
     [["/"],"Salta nella ricerca delle materie"],
     [["?"],"Apre questa legenda"]]],
   ["Selezione",[
-    [["⌘/Ctrl","Clic"],"Seleziona un blocco; su una casella vuota incolla lì"],
+    [["Clic"],"Seleziona un blocco (un altro clic lo toglie)"],
+    [["⌘/Ctrl","Clic"],"Aggiunge alla selezione; su una casella vuota incolla lì"],
     [["Esc"],"Annulla la selezione o chiude la finestra"],
     [["Canc"],"Elimina i blocchi selezionati"],
     [["F"],"Segna come fatti i blocchi selezionati"]]],
