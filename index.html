@@ -972,6 +972,16 @@ td.tot b{color:var(--tx2);font-weight:500}
   display:flex;align-items:center;gap:10px}
 .toast .ico{flex:0 0 auto;color:var(--done)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* "c'e' una versione nuova": sta in alto, non se ne va da sola, e ha il
+   pulsante che serve. Un browser che tiene il file vecchio in memoria e'
+   la prima cosa da escludere quando "fa ancora lo stesso". */
+.aggiorna{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:95;
+  display:flex;align-items:center;gap:10px;padding:9px 12px 9px 14px;
+  background:var(--action);color:#fff;border-radius:var(--r-sm);
+  font-family:"DM Mono",monospace;font-size:11.5px;box-shadow:var(--shadow)}
+.aggiorna button{border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.14);
+  color:#fff;border-radius:5px;padding:5px 10px;font:inherit;cursor:pointer}
+.aggiorna button:hover{background:rgba(255,255,255,.26)}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media print{
@@ -1618,7 +1628,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="12 set 2026 · d";
+const VERSIONE="12 set 2026 · e";
 const KEY="piano-6272-v5";
 let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5848,8 +5858,36 @@ window.addEventListener("afterprint",()=>{
   if(printFold){state.collapsed=printFold;printFold=null;}
   ROW=0;autoRow();panels();
 });
+/* Chiede al server che versione ha, scavalcando la memoria del browser, e
+   la confronta con quella in esecuzione. Se sono diverse lo dice, con il
+   pulsante per ricaricare. Solo in rete: aperta da file non c'e' nessun
+   server a cui chiedere. Ripete ogni dieci minuti, che e' quanto GitHub
+   Pages tiene in memoria una pagina. */
+async function controllaVersione(){
+  if(!/^https?:/.test(location.protocol))return null;
+  let testo;
+  try{
+    const r=await fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"});
+    if(!r.ok)return null;
+    testo=await r.text();
+  }catch(e){return null;}
+  const m=/const VERSIONE="([^"]+)"/.exec(testo);
+  if(!m)return null;
+  if(m[1]!==VERSIONE)mostraAggiornamento(m[1]);
+  return m[1];
+}
+function mostraAggiornamento(nuova){
+  if(document.getElementById("aggiorna"))return;
+  const b=document.createElement("div");b.className="aggiorna";b.id="aggiorna";
+  b.innerHTML="C'è una versione nuova ("+nuova+"), questa è la "+VERSIONE+
+    ' <button id="aggiornaBtn">Ricarica</button>';
+  document.body.appendChild(b);
+  document.getElementById("aggiornaBtn").onclick=()=>location.reload();
+}
 (async()=>{
   await load();iconify();autoLessons();foldToToday();render();histInit();copiaGiorno();
+  setTimeout(controllaVersione,1500);
+  setInterval(controllaVersione,10*60*1000);
   ripescaDalGist();
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();

@@ -1,7 +1,10 @@
-  var T=[],ok=0,ko=0;
+  var T=[],ok=0,ko=0,rinviati=[];
   function t(nome,f){
     try{var r=f();
       if(r===true){ok++;}
+      /* un controllo che deve aspettare (una promessa che si risolve dopo)
+         restituisce {poi:funzione}: si valuta alla fine, prima del verdetto */
+      else if(r&&typeof r.poi==="function")rinviati.push({nome:nome,poi:r.poi});
       else{ko++;T.push("KO · "+nome+" · "+r);}
     }catch(e){ko++;T.push("KO · "+nome+" · eccezione: "+e.message);}
   }
@@ -1637,5 +1640,34 @@
     var n=Object.keys(selRuns).length;clearSel();
     return eq(n,2,"selezionati ");});
 
-  document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
-    (T.length?" || "+T.join(" || "):"");
+  /* Quando il server ha una versione diversa da quella in esecuzione lo
+     deve dire, con il pulsante per ricaricare. Il fetch e' finto: risponde
+     con un file che dichiara un'altra versione. */
+  t("se il server ha una versione nuova compare l'avviso per ricaricare",function(){
+    var veroFetch=window.fetch,veroProto=null;
+    window.fetch=function(){return Promise.resolve({ok:true,text:function(){
+      return Promise.resolve('x const VERSIONE="prova futura" x');}});};
+    var esito=null;
+    /* la pagina di prova e' aperta da file: si finge il protocollo */
+    var loc={protocol:"https:",pathname:"/agenda/"};
+    var codice=controllaVersione.toString().replace(/location\./g,"loc.");
+    var f=new Function("loc","fetch","VERSIONE","mostraAggiornamento","return ("+codice+")();");
+    f(loc,window.fetch,VERSIONE,mostraAggiornamento);
+    window.fetch=veroFetch;
+    /* il fetch finto risolve subito, ma dopo questo giro: si controlla tra un attimo */
+    var fine=Date.now()+300;
+    return {poi:function(){
+      var c=document.getElementById("aggiorna");
+      var ok=!!c&&c.textContent.indexOf("prova futura")>=0&&!!document.getElementById("aggiornaBtn");
+      if(c)c.remove();
+      return ok?true:"l'avviso non e' comparso";},quando:fine};});
+
+  function verdetto(){
+    rinviati.forEach(function(x){
+      try{var r=x.poi();if(r===true)ok++;else{ko++;T.push("KO · "+x.nome+" · "+r);}}
+      catch(e){ko++;T.push("KO · "+x.nome+" · eccezione: "+e.message);}
+    });
+    document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
+      (T.length?" || "+T.join(" || "):"");
+  }
+  if(rinviati.length)setTimeout(verdetto,400);else verdetto();
