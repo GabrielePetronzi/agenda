@@ -1781,7 +1781,14 @@
     apri();
     return tot===4?true:"dopo il salvataggio di sfondo ci sono "+tot+" blocchi invece dei 4 dell'altra scheda";});
 
-  document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
+  /* Il verdetto. I controlli che hanno chiesto di aspettare (una promessa che
+     si risolve dopo) si valutano qui, prima di scrivere il titolo. */
+  function verdetto(){
+    rinviati.forEach(function(x){
+      try{var r=x.poi();if(r===true)ok++;else{ko++;T.push("KO · "+x.nome+" · "+r);}}
+      catch(e){ko++;T.push("KO · "+x.nome+" · eccezione: "+e.message);}
+    });
+    document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
   if(rinviati.length)setTimeout(verdetto,400);else verdetto();
