@@ -984,10 +984,12 @@
     var ricco={ts:Date.now()+5000,v:5,cells:{}};
     for(var k=0;k<40;k++)ricco.cells[state.year+"."+state.ctx+".2026-09-21."+(16+k)]=[{i:it[0].id,a:"LET"}];
     try{localStorage.setItem(LSKEY,JSON.stringify(ricco));}catch(e){}
-    /* io sono una scheda vecchia con poca roba, e provo a salvare */
+    /* io sono una scheda vecchia con poca roba, e mi sveglio da sola per
+       salvare: solo i salvataggi di sfondo passano dalla guardia, un gesto
+       della persona vince sempre */
     state.cells={};sv.ts=Date.now()-60000;sv.localSaved=null;
     placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:1},0);
-    save("prova");
+    save(null,true);
     var dopo=JSON.parse(localStorage.getItem(LSKEY)||"{}");
     var celle=Object.keys(dopo.cells||{}).length;
     return celle>=40?true:"la memoria è scesa a "+celle+" mezz'ore: ha sovrascritto";});
@@ -1774,6 +1776,39 @@
     if(!vuoti)return "gli appunti sono rimasti pieni";
     if(qui)return "in informatica ci sono "+qui+" mezz'ore che non c'erano";
     return (dopo&&dopo.i===it[0].id)?true:"tornando al piano il blocco non c'e' piu'";});
+
+  /* "Svuota settimana", confermato, e i blocchi tornavano: la guardia contro
+     le schede vecchie prendeva la cancellazione — meno blocchi di prima — per
+     una fotografia vecchia, se un'altra scheda aveva salvato nel frattempo. */
+  t("svuotare la settimana vince anche se un'altra scheda ha salvato nel frattempo",function(){
+    pulisci();apri();
+    for(var d=0;d<5;d++)placeRun(G[d],H0+4,{i:it[0].id,a:"SCH",len:4},0);
+    save("x");
+    /* un'altra scheda scrive qualcosa di piu' recente, con piu' roba */
+    var altro=JSON.parse(payload());altro.ts=Date.now()+5000;
+    altro.cells[ck(G[6],H0)]=[{i:it[1].id,a:"LEZ"}];
+    try{localStorage.setItem(LSKEY,JSON.stringify(altro));}catch(e){}
+    wipeWeek(0);
+    var rimasti=G.reduce(function(a,d){return a+runsOf(d).length;},0);
+    var scritto=JSON.parse(lsGet());
+    var inMemoria=Object.keys(scritto.cells||{}).length;
+    return (rimasti===0&&inMemoria===0)?true:
+      "in griglia "+rimasti+" blocchi, in memoria "+inMemoria+" mezz'ore";});
+  t("una scheda che si sveglia da sola invece cede a chi ha salvato dopo",function(){
+    pulisci();apri();
+    /* alle dieci: adottando il salvataggio dell'altra scheda torna la sua
+       fascia oraria, 8-24, e una mezz'ora a mezzanotte resterebbe fuori */
+    placeRun(G[0],20,{i:it[0].id,a:"LEZ",len:2},0);
+    save("x");
+    var altro=JSON.parse(payload());altro.ts=Date.now()+5000;
+    for(var d=1;d<4;d++)altro.cells[ck(G[d],20)]=[{i:it[1].id,a:"SCH"}];
+    try{localStorage.setItem(LSKEY,JSON.stringify(altro));}catch(e){}
+    sv.ts=Date.now()-60000;                 /* questa scheda e' rimasta indietro */
+    setDoneQuiet(G[0],20,0,true);           /* ...e si sveglia per spuntare una lezione */
+    save(null,true);                        /* il salvataggio di sfondo */
+    var tot=G.reduce(function(a,d){return a+runsOf(d).length;},0);
+    apri();
+    return tot===4?true:"dopo il salvataggio di sfondo ci sono "+tot+" blocchi invece dei 4 dell'altra scheda";});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");

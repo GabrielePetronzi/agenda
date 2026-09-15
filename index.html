@@ -1737,7 +1737,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="15 set 2026 · b";
+const VERSIONE="15 set 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:6,theme:"dark",piano:"SDE",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -1876,7 +1876,10 @@ function toast(m){
   clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),1400);
 }
 
-function save(msg){
+/* sfondo=true la chiamano solo i timer: la spunta automatica delle lezioni e
+   il tic del pomodoro. E' l'unico caso in cui la guardia qui sotto ha
+   diritto di parola. */
+function save(msg,sfondo){
   const prima=sv.ts;
   sv.touched=true;sv.ts=Date.now();
   const p=payload(),b=body(p);
@@ -1895,9 +1898,14 @@ function save(msg){
        una scheda rimasta aperta che si sveglia per spuntare una lezione. In
        quel caso mi allineo e lascio perdere il salvataggio, invece di
        cancellare il lavoro di qualcun altro. */
+    /* La guardia vale solo per i salvataggi di sfondo. Prima valeva per
+       tutti, e "Svuota settimana" — che per definizione ha meno blocchi di
+       prima — veniva presa per una fotografia vecchia ogni volta che un'altra
+       scheda aveva salvato nel frattempo: confermavi, e i blocchi tornavano.
+       Un gesto tuo vince sempre; una scheda che si sveglia da sola no. */
     const c=lsDati();
     const mie=Object.keys(state.cells||{}).length;
-    if(c&&(c.ts||0)>prima&&Object.keys(c.cells||{}).length>mie){
+    if(sfondo&&c&&(c.ts||0)>prima&&Object.keys(c.cells||{}).length>mie){
       sv.ts=prima;allineaSeServe();return;
     }
     if(lsSet(p)){sv.localSaved=b;copiaSalva(p,mie);}
@@ -3232,7 +3240,7 @@ function autoLessons(){
     if(cambiato)touched.add(dt);
   });
   if(touched.size){
-    save();
+    save(null,true);
     touched.forEach(dt=>drawDay(dt));
     refreshMetrics();
   }
@@ -3607,7 +3615,7 @@ function pomLoop(){
     if(Date.now()>=r.ends){pomAdvance(true);return;}
     /* la mezz'ora scatta nel minuto in cui l'hai davvero compiuta */
     const k=spuntaMaturato(r);
-    if(k){save();afterEdit(hrs(k)+" segnate come fatte");}
+    if(k){save(null,true);afterEdit(hrs(k)+" segnate come fatte");}
     pomRender(true);
   },1000);
 }
