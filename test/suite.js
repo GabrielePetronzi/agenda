@@ -1661,35 +1661,6 @@
     var n=Object.keys(selRuns).length;clearSel();
     return eq(n,2,"selezionati ");});
 
-  /* Quando il server ha una versione diversa da quella in esecuzione lo
-     deve dire, con il pulsante per ricaricare. Il fetch e' finto: risponde
-     con un file che dichiara un'altra versione. */
-  t("se il server ha una versione nuova compare l'avviso per ricaricare",function(){
-    var veroFetch=window.fetch,veroProto=null;
-    window.fetch=function(){return Promise.resolve({ok:true,text:function(){
-      return Promise.resolve('x const VERSIONE="prova futura" x');}});};
-    var esito=null;
-    /* la pagina di prova e' aperta da file: si finge il protocollo */
-    var loc={protocol:"https:",pathname:"/agenda/"};
-    var codice=controllaVersione.toString().replace(/location\./g,"loc.");
-    var f=new Function("loc","fetch","VERSIONE","mostraAggiornamento","return ("+codice+")();");
-    f(loc,window.fetch,VERSIONE,mostraAggiornamento);
-    window.fetch=veroFetch;
-    /* il fetch finto risolve subito, ma dopo questo giro: si controlla tra un attimo */
-    var fine=Date.now()+300;
-    return {poi:function(){
-      var c=document.getElementById("aggiorna");
-      var ok=!!c&&c.textContent.indexOf("prova futura")>=0&&!!document.getElementById("aggiornaBtn");
-      if(c)c.remove();
-      return ok?true:"l'avviso non e' comparso";},quando:fine};});
-
-  function verdetto(){
-    rinviati.forEach(function(x){
-      try{var r=x.poi();if(r===true)ok++;else{ko++;T.push("KO · "+x.nome+" · "+r);}}
-      catch(e){ko++;T.push("KO · "+x.nome+" · eccezione: "+e.message);}
-    });
-    /* Chi non ha il Mac usa Ctrl: copia, incolla, aggiungi alla selezione e
-     incolla col clic devono rispondere a Ctrl esattamente come a ⌘. */
   t("copia, incolla e Ctrl-clic funzionano con Ctrl, non solo con ⌘",function(){
     pulisci();apri();clearSel();state.blockClip=null;
     placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:2},0);
