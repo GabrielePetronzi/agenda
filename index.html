@@ -89,6 +89,8 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .moremenu.open{display:block}
 .mm{max-width:1440px;margin:0 auto;padding:12px var(--pad);display:flex;
   align-items:center;gap:10px;flex-wrap:wrap}
+.mm .mmlbl{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);align-self:center}
 .mm button{display:inline-flex;align-items:center;gap:8px;
   background:var(--raised);border:1px solid var(--line);color:var(--tx2);
   border-radius:var(--r-sm);font-family:"DM Mono",monospace;font-size:11.5px;
@@ -1027,6 +1029,8 @@ td.tot b{color:var(--tx2);font-weight:500}
   <div class="moremenu" id="moremenu">
     <div class="mm">
       <span class="sync" id="sync" role="status" aria-live="polite"><i></i><span>Pronto</span></span>
+      <span class="mmlbl">Piano di studi</span>
+      <div class="seg" id="segPiano" aria-label="Piano di studi"></div>
       <button id="syncBtn">Sincronizza dispositivi</button>
       <button id="backup">Backup</button>
       <button id="ksBtn">Scorciatoie</button>
@@ -1276,11 +1280,8 @@ td.tot b{color:var(--tx2);font-weight:500}
    1. DATI
    ============================================================ */
 const PANELS=4;
-const CTX={
-  "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-21"},
-  "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"},
-  "S":{label:"Sessione Esami",       name:"Sessione d'esame", start:"2027-01-07"}
-};
+/* I periodi dell'anno dipendono dal piano di studi: li mette applicaPiano() */
+let CTX={};
 const DSH=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
 const MESI=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
 const MESIL=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto",
@@ -1333,6 +1334,7 @@ const ICON={
   LAB:'<path d="M6.4 2.2v4.3L3.1 12.1A1.1 1.1 0 0 0 4 13.8h8a1.1 1.1 0 0 0 .9-1.7L9.6 6.5V2.2"/><path d="M5.4 2.2h5.2M5.3 9.6h5.4"/>',
   PRO:'<rect x="2" y="2.4" width="5.4" height="5.4" rx="1"/><rect x="8.6" y="2.4" width="5.4" height="5.4" rx="1"/><rect x="5.3" y="9" width="5.4" height="5" rx="1"/>',
   RIP:'<path d="M13.2 8a5.2 5.2 0 1 1-1.7-3.9"/><path d="M13.4 2.1v3.3h-3.3"/>',
+  NAS:'<path d="M12 4.6a4.4 4.4 0 1 0 0 6.8"/><path d="M3.2 6.9h6.4M3.2 9.1h6.4"/>',
   LAV:'<rect x="1.9" y="5.1" width="12.2" height="7.7" rx="1.3"/>'+
       '<path d="M5.9 5.1V3.8a1.1 1.1 0 0 1 1.1-1.1h2a1.1 1.1 0 0 1 1.1 1.1v1.3"/>'+
       '<path d="M1.9 8.3h12.2"/><path d="M7.2 8.3h1.6"/>',
@@ -1420,7 +1422,7 @@ function icon(k,size){
    niente. La lezione è l'unica liscia: è la pagina ancora da riempire. */
 const AFASE={LEZ:"Acquisizione",LET:"Acquisizione",SCH:"Rielaborazione",
              ESE:"Applicazione",LAB:"Applicazione",PRO:"Applicazione",
-             RIP:"Ricordo",LAV:"fuori dal metodo"};
+             RIP:"Ricordo",LAV:"fuori dal metodo",NAS:"fuori dal metodo"};
 function trama(w,h,d,op){
   const svg="<svg xmlns='http://www.w3.org/2000/svg' width='"+w+"' height='"+h+
     "' viewBox='0 0 "+w+" "+h+"'><g fill='none' stroke='%2314161B' stroke-opacity='"+
@@ -1469,7 +1471,8 @@ const ATRAMA={
      doppio (somigliava alle righe della lettura) e i cerchi concentrici
      (somigliavano ai cerchi che allora aveva il laboratorio). */
   RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",.30),
-  LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>")
+  LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>"),
+  NAS:trama(12,8,"<path d='M1 4h4M7 4h4'/>")
 };
 /* Quanto è grande una tile, e se è una figura o un tessuto. Serve a scalarla:
    una figura tagliata a metà non è un simbolo, mentre righe e quadretti
@@ -1477,7 +1480,7 @@ const ATRAMA={
    corti, vanno ingrandite fino a riempirle una volta sola; i tessuti si
    ripetono e basta. */
 const TRDIM={LEZ:[16,14,1],SCH:[22,16,1],RIP:[15,15,1],PRO:[22,11,0],
-  LAB:[13,13,0],LET:[20,6,0],ESE:[7,7,0],LAV:[8,8,0]};
+  LAB:[13,13,0],LET:[20,6,0],ESE:[7,7,0],LAV:[8,8,0],NAS:[12,8,0]};
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
   /* La pastiglia della legenda è 17px e la tile del blocco è alta 11: ce ne
@@ -1494,14 +1497,15 @@ const ATRAMALEG={
   LAB:punti(13,13,PUNTI,1),
   PRO:trama(22,11,"<path d='M0 5.5h22M0 .6h22M0 10.4h22M5.5 0v5.5M16.5 0v5.5M11 5.5v5.5M.6 5.5v5.5M21.4 5.5v5.5'/>",1),
   RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",1),
-  LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>",1)};
+  LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>",1),
+  NAS:trama(12,8,"<path d='M1 4h4M7 4h4'/>",1)};
 
 /* I CFU del titolo. Questo numero va scritto, non dedotto: l'elenco contiene
    più insegnamenti a scelta di quanti ne servano, quindi la somma del piano
    non è il totale della laurea. È l'unica cosa da cambiare se cambia il corso
    — a 0 se lo ricava sommando tutto il piano, che è la cosa giusta per un
    piano dove non c'è niente a scelta. */
-const CFU_TITOLO=120;
+let CFU_TITOLO=120;
 /* Quanto pesa la parte dovuta e quanto quella a scelta, ricavati dal piano
    invece che scritti a mano: se il piano cambia cambiano da soli. Le
    alternative (una lingua fra due, un tirocinio fra tre) contano una volta.
@@ -1518,7 +1522,12 @@ function pianoCfu(){
   /* Se il piano non ha niente a scelta, il piano è la laurea: il totale è la
      sua somma e non c'è nessun numero da tenere aggiornato a mano. Il numero
      scritto serve solo quando l'elenco offre più scelte di quante ne servano. */
-  const tot=distingue?(CFU_TITOLO||somma):somma;
+  /* Il totale della laurea vale quando l'elenco offre piu' di quanto serve:
+     con la tabella degli obbligatori (che distingue), o anche senza, se la
+     somma dei corsi supera i CFU del titolo — e' il caso di un piano
+     triennale pieno di scelte ma senza la tabella. Se invece l'elenco e'
+     esattamente la laurea, il totale e' la sua somma. */
+  const tot=(distingue||(CFU_TITOLO&&somma>CFU_TITOLO))?(CFU_TITOLO||somma):somma;
   return distingue?{tot:tot,obb:obb,sce:Math.max(0,tot-obb),due:true}
                   :{tot:tot,obb:tot,sce:0,due:false};
 }
@@ -1566,12 +1575,29 @@ const ACTS=[
   {k:"LAB",n:"Laboratorio"},
   {k:"PRO",n:"Progetto"},
   {k:"RIP",n:"Ripasso"},
-  {k:"LAV",n:"Lavoro"}
+  {k:"LAV",n:"Lavoro"},
+  /* la NASPI si mette come il lavoro: senza materia, si spunta da sola quando
+     l'ora passa, non conta come studio. E' il tempo che ha un nome suo. */
+  {k:"NAS",n:"NASPI"}
 ];
 
 const ANNI_ROMANI=["I","II","III","IV","V","VI"];
 function anni(){return Object.keys(COURSES).map(Number).sort((a,b)=>a-b);}
-const COURSES={
+/* I piani di studio. Ce ne sono due perche' li hai fatti tutt'e due, e
+   quello attivo lo scegli dal menu: le materie, i CFU della laurea e le date
+   dei semestri sono i suoi. I blocchi in griglia restano separati per piano —
+   la chiave di ogni mezz'ora porta il nome del piano, tranne per il primo che
+   c'era, cosi' quello che avevi salvato resta com'e' — e tornando indietro si
+   ritrova tutto. */
+const PIANI={
+  LM18:{
+    nome:"Scienze Informatiche (LM-18)",cfu:120,
+    ctx:{
+      "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-21"},
+      "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"},
+      "S":{label:"Sessione Esami",       name:"Sessione d'esame", start:"2027-01-07"}
+    },
+    corsi:{
  /* Laurea magistrale in Scienze Informatiche (LM-18) — Università di Parma
     Coorte 2026/27, curriculum GENERALE, CdS 5069.
     Fonte: piano degli studi ufficiale di ateneo. p = semestre, u = CFU.
@@ -1603,7 +1629,75 @@ const COURSES={
   {c:"1006659",n:"Tirocinio presso struttura dell'ateneo",k:"Tiroc. ateneo",p:2,u:6,ob:1,alt:"tir"},
   {c:"1006660",n:"Tirocinio in mobilità internazionale",k:"Tiroc. estero",p:2,u:6,ob:1,alt:"tir"}
  ]
+}
+  },
+  SDE:{
+    /* Laurea triennale in Scienze dell'Educazione e dei Processi Formativi —
+       Universita' di Parma. Senza la tabella degli obbligatori: la barra dei
+       CFU mostra solo il totale, 180, e non separa scelta da obbligo. */
+    nome:"Scienze dell'Educazione",cfu:180,
+    ctx:{
+      "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-14"},
+      "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-08"},
+      "S":{label:"Sessione Esami",       name:"Sessione d'esame", start:"2026-12-07"}
+    },
+    corsi:{
+ 1:[
+  {c:"16764",n:"Storia dell'educazione",k:"Storia educ.",p:1,u:10},
+  {c:"C8772",n:"Sociologia generale e fondamenti della ricerca sociale",k:"Sociologia gen.",p:1,u:10},
+  {c:"03079",n:"Psicologia dello sviluppo",k:"Psic. sviluppo",p:1,u:10},
+  {c:"26338",n:"Idoneità lingua inglese B — 1",k:"Inglese B",p:1,u:6},
+  {c:"13220",n:"Pedagogia generale e sociale",k:"Pedagogia gen.",p:2,u:10},
+  {c:"C8773",n:"Antropologia culturale e sociale",k:"Antropologia",p:2,u:10}
+ ],
+ 2:[
+  {c:"94162",n:"Elementi di didattica innovativa per la scuola e l'extrascuola",k:"Didattica innov.",p:1,u:8},
+  {c:"00870",n:"Psicologia sociale",k:"Psic. sociale",p:1,u:8},
+  {c:"C8783",n:"Educazione inclusiva nella scuola e nel territorio",k:"Educ. inclusiva",p:1,u:8},
+  {c:"C8782",n:"Pedagogia dell'inclusione e della marginalità",k:"Ped. inclusione",p:1,u:8},
+  {c:"73378",n:"Genere e culture della scienza",k:"Genere scienza",p:1,u:8},
+  {c:"C8780",n:"Geografia del mondo contemporaneo",k:"Geografia",p:1,u:8},
+  {c:"C8779",n:"Storia del mondo contemporaneo nel XIX e XX secolo",k:"Storia contemp.",p:1,u:8},
+  {c:"B8521",n:"Storia, patrimonio, cittadinanza",k:"Storia patrim.",p:1,u:8},
+  {c:"16692",n:"Laboratorio di informatica",k:"Lab. informatica",p:1,u:1},
+  {c:"C8775",n:"Laboratorio propedeutico all'attività di tirocinio",k:"Lab. tirocinio",p:1,u:3},
+  {c:"15579",n:"Pedagogia interculturale",k:"Ped. intercult.",p:2,u:8},
+  {c:"61359",n:"Psicologia dei gruppi e di comunità",k:"Psic. gruppi",p:2,u:8},
+  {c:"02517",n:"Sociologia dell'educazione",k:"Soc. educazione",p:2,u:8},
+  {c:"C8776",n:"Sociologia delle differenze e delle disuguaglianze",k:"Soc. differenze",p:2,u:8},
+  {c:"99505",n:"Compiti di sviluppo psicologici in adolescenza",k:"Adolescenza",p:2,u:8},
+  {c:"42972",n:"Diritto dei servizi sociali",k:"Diritto servizi",p:2,u:8},
+  {c:"94411",n:"Citizenship education and active participation",k:"Citizenship",p:2,u:4},
+  {c:"94410",n:"History and culture of European cities",k:"Eur. cities",p:2,u:4},
+  {c:"94414",n:"Gender studies in education",k:"Gender studies",p:2,u:4},
+  {c:"94413",n:"Intercultural pedagogy",k:"Intercult. ped.",p:2,u:4}
+ ],
+ 3:[
+  {c:"C8876",n:"Agency e mondi digitali",k:"Agency digitali",p:1,u:8},
+  {c:"94109",n:"Ambienti digitali, musei e educazione al patrimonio culturale",k:"Ambienti digit.",p:1,u:8},
+  {c:"B3448",n:"Metodologie dell'osservazione e della riflessività pedagogica",k:"Metod. osserv.",p:1,u:8},
+  {c:"03084",n:"Psicologia clinica",k:"Psic. clinica",p:1,u:8},
+  {c:"94244",n:"Psicologia del lavoro e dell'orientamento",k:"Psic. lavoro",p:1,u:8},
+  {c:"15349",n:"Tirocinio",k:"Tirocinio",p:1,u:10},
+  {c:"C8875",n:"Laboratorio di formazione professionale per l'educatore socio-pedagogico",k:"Lab. formazione",p:1,u:2},
+  {c:"27281",n:"Seminari",k:"Seminari",p:1,u:1},
+  {c:"17268",n:"Prova finale",k:"Prova finale",p:1,u:3},
+  {c:"31675",n:"Progettazione e valutazione degli interventi educativi",k:"Progettazione",p:2,u:8},
+  {c:"C8786",n:"Educazione al genere, all'affettività e alla sessualità",k:"Educ. affettività",p:2,u:8},
+  {c:"C8788",n:"Media capabilities e educazione nei territori",k:"Media capabilit.",p:2,u:8},
+  {c:"94110",n:"Antropologia ed etnografia dei servizi socio-educativi",k:"Antrop. servizi",p:2,u:8},
+  {c:"C8789",n:"Sociologia delle istituzioni di welfare, della cittadinanza e del controllo sociale",k:"Soc. welfare",p:2,u:8}
+ ]
+}
+  }
 };
+let COURSES={};
+function pianoAttivo(){return PIANI[state.piano]||PIANI.LM18;}
+function applicaPiano(){
+  const P=pianoAttivo();
+  COURSES=P.corsi;CTX=P.ctx;CFU_TITOLO=P.cfu;
+  autoMap=null;                      /* i colori automatici si rifanno sul piano nuovo */
+}
 
 /* Ventidue tinte scelte per stare lontane fra loro, non per stare bene in
    fila: sono i colori che tocca a una materia senza colore suo — un altro
@@ -1628,9 +1722,9 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="12 set 2026 · f";
+const VERSIONE="15 set 2026 · a";
 const KEY="piano-6272-v5";
-let state={v:5,theme:"dark",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
+let state={v:5,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
            pomConf:null,pomRun:null,pomLog:null,log:{},dayFrom:8,dayTo:24,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
@@ -1668,7 +1762,7 @@ function panelDates(p){
    b) storage dell'artifact: se presente, scritto con throttle
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
-const DURABLE=["v","theme","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
+const DURABLE=["v","theme","piano","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
   "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite"];
 const LSKEY="piano-6272-local";
 /* Le copie di sicurezza. Una ogni volta che il piano cambia davvero, al
@@ -1989,7 +2083,10 @@ document.addEventListener("visibilitychange",()=>{
 /* ============================================================
    3c. CRONOLOGIA — annulla / rifai
    ============================================================ */
-const HKEYS=["cells","colors","custom","exams","over"];
+/* Anche piano, anno e periodo: annullare riporta dove la modifica e' stata
+   fatta, se no dopo un cambio di piano l'annulla rimetteva le mezz'ore di un
+   piano mentre se ne guardava un altro. */
+const HKEYS=["cells","colors","custom","exams","over","piano","year","ctx"];
 let hist={past:[],future:[],cur:null};
 
 function snap(){const o={};HKEYS.forEach(k=>o[k]=state[k]);return JSON.stringify(o);}
@@ -2004,7 +2101,9 @@ function commit(){
 }
 function applySnap(s){
   const o=JSON.parse(s);
+  const pianoPrima=state.piano;
   HKEYS.forEach(k=>{if(o[k]!==undefined)state[k]=o[k];});
+  if(state.piano!==pianoPrima){applicaPiano();state.anchor={};selRuns={};}
   hist.cur=s;save();render();histUI();
 }
 function undo(){
@@ -2081,6 +2180,8 @@ let pieghePresenti=false;
 function adopt(d){
   if(d.collapsed!==undefined)pieghePresenti=true;
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
+  if(!PIANI[state.piano])state.piano="LM18";
+  applicaPiano();
   setDayRange(state.dayFrom==null?DAY_FROM:state.dayFrom,
               state.dayTo==null?DAY_TO:state.dayTo);
   state.exams=state.exams||[];state.collapsed=state.collapsed||{};state.pass=state.pass||{};
@@ -2129,7 +2230,12 @@ function migrate(d){
   let moved=0;const out={};
   Object.keys(d.cells).forEach(k=>{
     const p=k.split(".");
-    if(p.length===5&&/^\d+$/.test(p[2])){
+    /* il formato antico era anno.periodo.settimana.giorno.slot, cinque pezzi
+       tutti numerici. Anche una chiave col piano davanti ha cinque pezzi —
+       SDE.1.1.2026-09-17.22 — e senza il controllo sul primo la scambiava
+       per antica e la riscriveva in una data inventata: le mezz'ore del
+       secondo piano sparivano al primo ricaricamento. */
+    if(p.length===5&&/^\d+$/.test(p[0])&&/^\d+$/.test(p[2])){
       const base=monday(parse(CTX[p[1]]?CTX[p[1]].start:CTX["1"].start));
       const day=addDays(base,7*(+p[2])+(+p[3]));
       out[p[0]+"."+p[1]+"."+iso(day)+"."+p[4]]=d.cells[k];moved++;
@@ -2230,6 +2336,7 @@ const MATCOL={
   /* voci di servizio: ripasso senza materia e lavoro, neutre di proposito */
   "_gen":"#B2B7BF",
   "_lav":"#A1A781",
+  "_naspi":"#FDCCC0",
   /* Chiusura del percorso */
   "c:24688":"#FFB0D1",
   "c:1006660":"#BDF382",
@@ -2248,6 +2355,7 @@ function idHash(id){
   return h;
 }
 let autoMap=null,autoFirma="";
+applicaPiano();                    /* il piano di partenza, prima di qualunque lettura */
 function autoBuild(){
   const corsi=[];
   Object.keys(COURSES).forEach(y=>COURSES[y].forEach(c=>corsi.push("c:"+c.c)));
@@ -2361,13 +2469,15 @@ function delVoce(id){
 /* il ripasso può stare in griglia anche senza materia: voce grigia di servizio */
 const GENID="_gen";
 const WORKID="_lav";
+const NASPIID="_naspi";
 /* attività che si piazzano anche senza scegliere una materia */
-const LIBERE={RIP:GENID,LAV:WORKID};
+const LIBERE={RIP:GENID,LAV:WORKID,NAS:NASPIID};
 function brushNow(){return state.brush||LIBERE[state.act]||null;}
 function items(){
   const all=allCourses().concat(voci());
   all.push({id:GENID,name:"Ripasso libero",short:"Ripasso",cfu:0,date:"",kind:"g"});
   all.push({id:WORKID,name:"Lavoro",short:"Lavoro",cfu:0,date:"",kind:"g"});
+  all.push({id:NASPIID,name:"NASPI",short:"NASPI",cfu:0,date:"",kind:"g"});
   /* anche ripasso libero e lavoro passano da MATCOL come tutte le altre: le
      due tinte scritte qui dentro erano rimaste indietro, e sul marrone del
      lavoro la scritta nera stava a 4,3 contro il 4,5 che serve */
@@ -2375,7 +2485,12 @@ function items(){
   return all;
 }
 const map=()=>{const m={};items().forEach(o=>m[o.id]=o);return m;};
-const ck=(dateIso,h)=>state.year+"."+state.ctx+"."+dateIso+"."+h;
+/* Il prefisso di tutte le chiavi delle mezz'ore: piano (se non e' il primo),
+   anno di corso, periodo. Chi legge la chiave la legge dalla fine — l'ultimo
+   pezzo e' la mezz'ora, il penultimo il giorno — cosi' non importa quanti
+   pezzi ci siano davanti. */
+const PRE=()=>(state.piano&&state.piano!=="LM18"?state.piano+".":"")+state.year+"."+state.ctx+".";
+const ck=(dateIso,h)=>PRE()+dateIso+"."+h;
 const actOf=k=>ACTS.find(a=>a.k===k)||ACTS[0];
 const rgb=h=>{const n=parseInt(h.slice(1),16);return [n>>16,(n>>8)&255,n&255];};
 function ink(h){const c=rgb(h);return (.299*c[0]+.587*c[1]+.114*c[2])/255>.62?"#0D0F13":"#FFFFFF";}
@@ -2409,7 +2524,7 @@ function countPanel(p){
   return out;
 }
 function totalCtx(id){
-  const pre=state.year+"."+state.ctx+".";
+  const pre=PRE();
   let n=0,f=0;
   Object.keys(state.cells).forEach(k=>{
     if(k.indexOf(pre)!==0)return;
@@ -2426,6 +2541,25 @@ const targetH=cfu=>cfu?cfu*25:0;
    ============================================================ */
 function controls(){
   document.documentElement.setAttribute("data-theme",state.theme);
+  const sp0=document.getElementById("segPiano");
+  if(sp0){
+    sp0.innerHTML="";
+    Object.keys(PIANI).forEach(id=>{
+      const b=document.createElement("button");
+      b.textContent=PIANI[id].nome;b.setAttribute("aria-pressed",(state.piano||"LM18")===id);
+      b.onclick=()=>{
+        if((state.piano||"LM18")===id)return;
+        if(state.pomRun)pomStop(true);   /* era agganciato a mezz'ore del piano vecchio */
+        state.piano=id;state.year=1;state.ctx="1";state.brush=null;state.anchor={};
+        selRuns={};editId=null;
+        /* gli appunti erano di materie dell'altro piano: incollarli qui
+           metterebbe in griglia blocchi invisibili, con le ore che contano */
+        state.blockClip=null;state.clip=null;
+        applicaPiano();save("Piano: "+PIANI[id].nome);commit();chiudiMenu();render();
+      };
+      sp0.appendChild(b);
+    });
+  }
   const y=document.getElementById("segYear"),p=document.getElementById("segCtx");
   y.innerHTML="";p.innerHTML="";
   const AA=anni();
@@ -2859,7 +2993,9 @@ function status(){
     el.innerHTML=state.act==="RIP"
       ? "<b>RIPASSO LIBERO</b> · senza materia, in grigio"+clip
       : (state.act==="LAV"
-        ? "<b>LAVORO</b> · senza materia, in marrone"+clip
+        ? "<b>LAVORO</b> · senza materia, in oliva"+clip
+        : state.act==="NAS"
+        ? "<b>NASPI</b> · senza materia, in pesca"+clip
         : "Scegli una materia o una voce."+clip);
     return;
   }
@@ -2884,7 +3020,15 @@ function shift(days){
 }
 
 /* ---------- esami e scadenze ---------- */
-function examsOn(dateIso){return (state.exams||[]).filter(x=>x.d===dateIso);}
+/* Le scadenze del piano attivo, piu' i promemoria liberi. L'esame di una
+   materia dell'altro piano resta salvato ma qui non c'entra: senza questo
+   filtro gli appelli di informatica comparivano sulla griglia di scienze
+   dell'educazione. */
+function scadenzeAttive(){
+  const m=map();
+  return (state.exams||[]).filter(x=>!x.mid||m[x.mid]);
+}
+function examsOn(dateIso){return scadenzeAttive().filter(x=>x.d===dateIso);}
 /* slot in cui cade una scadenza con ora */
 function examSlot(x){
   if(!x.hm)return null;
@@ -2903,7 +3047,7 @@ function daysTo(dateIso){
 function examList(){
   const box=document.getElementById("exList");if(!box)return;
   box.innerHTML="";
-  const list=(state.exams||[]).filter(x=>!x.mid).sort((a,b)=>a.d<b.d?-1:1);
+  const list=scadenzeAttive().filter(x=>!x.mid).sort((a,b)=>a.d<b.d?-1:1);
   if(!list.length)return;
   list.forEach(x=>{
     const n=daysTo(x.d),r=document.createElement("div");r.className="exrow";
@@ -2984,14 +3128,14 @@ const AUTOACT="LEZ";
    il lavoro perché è lavoro — l'orario lo decide qualcun altro e non lo
    recuperi la sera. Per queste due il pomodoro non ha senso e non finiscono
    fra gli arretrati. */
-const AUTOSPUNTA=["LEZ","LAV"];
+const AUTOSPUNTA=["LEZ","LAV","NAS"];
 function daSola(a){return AUTOSPUNTA.indexOf(a)>=0;}
 function autoLessons(){
   const now=new Date(),oggi=iso(now);
   const slotOra=now.getHours()*PERQ+(now.getMinutes()>=30?1:0);
   const touched=new Set();
   Object.keys(state.cells).forEach(k=>{
-    const parts=k.split("."),dt=parts[2],sl=+parts[3];
+    const parts=k.split("."),dt=parts[parts.length-2],sl=+parts[parts.length-1];
     if(dt>oggi)return;                        /* futuro: si lascia stare */
     if(dt===oggi&&sl>=slotOra)return;         /* oggi, non ancora passata */
     const arr=at(k);let cambiato=false;
@@ -3032,7 +3176,7 @@ function promemoria(){
   const oggi=iso(new Date()),n=new Date(),m=map();
   const adesso=n.getHours()*60+n.getMinutes();
   runsOf(oggi).forEach(r=>{
-    if(r.v.done||r.v.a==="LAV")return;
+    if(r.v.done||r.v.a==="LAV"||r.v.a==="NAS")return;
     const manca=r.start*(60/PERQ)-adesso;
     if(manca<0||manca>PREAVVISO)return;
     const k=oggi+"."+r.start+"."+r.lane;
@@ -3059,7 +3203,8 @@ const POM_DEF={
   LAB:{s:45,b:8,n:2,l:20},
   PRO:{s:45,b:8,n:2,l:20},
   RIP:{s:17,b:8,n:3,l:20},
-  LAV:{s:50,b:10,n:2,l:20}
+  LAV:{s:50,b:10,n:2,l:20},
+  NAS:{s:50,b:10,n:2,l:20}
 };
 function pomConf(k){
   state.pomConf=state.pomConf||{};
@@ -3116,7 +3261,7 @@ function linkedIds(r){
 }
 /* minuti registrati nel periodo aperto, in tutto o per una sola materia */
 function logMin(id){
-  const pre=state.year+"."+state.ctx+".";
+  const pre=PRE();
   let n=0;
   Object.keys(state.log||{}).forEach(k=>{
     if(k.indexOf(pre)!==0)return;
@@ -3635,9 +3780,9 @@ function inRitardo(dateIso,r){
   return dateIso<oggi||r.start+r.len<=oraAdesso();
 }
 function arretrati(){
-  const pre=state.year+"."+state.ctx+".",giorni={},out=[];
+  const pre=PRE(),giorni={},out=[];
   Object.keys(state.cells).forEach(k=>{
-    if(k.indexOf(pre)===0)giorni[k.split(".")[2]]=1;
+    if(k.indexOf(pre)===0){const q=k.split(".");giorni[q[q.length-2]]=1;}
   });
   Object.keys(giorni).sort().forEach(d=>{
     runsOf(d).forEach(r=>{
@@ -3763,12 +3908,12 @@ function lateBar(){
 function semSummary(){
   const box=document.getElementById("semBody");
   if(!state.semOpen){box.innerHTML="";return;}
-  const m=map(),pre=state.year+"."+state.ctx+".",oggi=TODAY;
+  const m=map(),pre=PRE(),oggi=TODAY;
   const wk={},fase={},mappa={},mat={},ritmo4={},qui={},sm={};
   const lun4=iso(addDays(monday(new Date()),-28)),lunOra=iso(monday(new Date()));
   let tot=0,done=0,saltate=0;
   Object.keys(state.cells).forEach(k=>{
-    const p=k.split("."),dt=p[2],sl=+p[3];
+    const p=k.split("."),dt=p[p.length-2],sl=+p[p.length-1];
     const d=parse(dt),g=(d.getDay()+6)%7;
     const banda=sl<13*PERQ?0:(sl<19*PERQ?1:2);
     const dentro=k.indexOf(pre)===0, futuro=dt>=oggi;
@@ -4817,11 +4962,12 @@ function pasteBlocks(dove){
             document.activeElement.closest("td.c"));
   if(att)puntaQui(att);
   if(!cursor){toast("Tocca prima una cella dove incollare");return;}
-  const base=parse(cursor.date);
+  const base=parse(cursor.date),m=map();
   let messi=0,senzaPosto=0,gia=0;
   state.blockClip.forEach(b=>{
     const d=iso(addDays(base,b.dd)),st=cursor.slot+b.ds;
     if(st<HOURS[0]||st>HOURS[HOURS.length-1])return;
+    if(!m[b.i])return;                 /* materia di un altro piano: non qui */
     /* Lo stesso blocco nello stesso posto non si incolla due volte: ⌘-clic
        sulla casella e poi ⌘V, per abitudine, sono due incolla, e il secondo
        metteva una copia di fianco alla prima — due blocchi uguali larghi
@@ -5757,7 +5903,7 @@ function autoRow(){
    così il markup resta leggibile e le icone stanno tutte nella mappa ICON */
 const KEYS=[
   ["Griglia",[
-    [["1","…","8"],"Scegli l'attività con cui dipingere"],
+    [["1","…","9"],"Scegli l'attività con cui dipingere"],
     [["E"],"Cancella un tratto: al rilascio torna il pennello di prima"],
     [["Trascina"],"Prendi un blocco per il corpo e portalo dove vuoi"],
     [["⌥/Alt","Trascina"],"Dipinge anche sopra a un blocco: lo affianca"],

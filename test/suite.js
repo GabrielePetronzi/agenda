@@ -1692,6 +1692,75 @@
     if(copiati!==2)return "Ctrl+C ha copiato "+copiati+" blocchi invece di 2";
     return incollati===2?true:"Ctrl-clic sulla casella vuota ha incollato "+incollati+" blocchi invece di 2";});
 
+  /* ---------- NASPI e piano di studi ---------- */
+  t("la NASPI si mette da sola, come ripasso e lavoro",function(){
+    pulisci();apri();
+    state.brush=null;state.act="NAS";
+    var chi=brushNow();
+    if(chi!==NASPIID)return "senza materia il pennello e' "+chi;
+    placeRun(G[0],H0,{i:chi,a:"NAS",len:4},0);
+    var r=runAt(G[0],H0,0);
+    var m=map()[NASPIID];
+    state.act="LEZ";
+    if(!r)return "il blocco non c'e'";
+    if(!m||m.kind!=="g")return "la NASPI non e' una voce di servizio";
+    return daSola("NAS")?true:"la NASPI non si spunta da sola quando l'ora passa";});
+  t("cambiando piano cambiano materie, CFU e periodi, e i blocchi restano separati",function(){
+    pulisci();apri();
+    var vecchio=state.piano||"LM18";
+    placeRun(G[0],H0,{i:it[0].id,a:"SCH",len:2},0);
+    var primaLM=Object.keys(state.cells).length;
+    state.piano="SDE";applicaPiano();state.year=1;state.ctx="1";apri();
+    var corsi=allCourses();
+    var sde=corsi.some(function(o){return /Pedagogia generale/i.test(o.name);});
+    var tot=pianoCfu().tot,ini=CTX["1"].start;
+    /* i blocchi del piano vecchio non si vedono qui */
+    var G2=[];document.querySelectorAll("td.c").forEach(function(x){
+      if(G2.indexOf(x.dataset.date)<0)G2.push(x.dataset.date);});
+    var visibili=G2.reduce(function(a,d){return a+runsOf(d).length;},0);
+    placeRun(G2[0],H0,{i:"c:"+corsi[0].id.slice(2),a:"LET",len:2},0);
+    var chiaveSde=Object.keys(state.cells).some(function(k){return k.indexOf("SDE.")===0;});
+    /* e tornando indietro si ritrova tutto */
+    state.piano=vecchio;applicaPiano();state.year=1;state.ctx="1";apri();
+    var dopo=runAt(G[0],H0,0);
+    var rimasteLM=Object.keys(state.cells).filter(function(k){return k.indexOf("SDE.")!==0;}).length;
+    if(!sde)return "nel piano SDE non c'e' Pedagogia generale";
+    if(tot!==180)return "i CFU del piano SDE sono "+tot;
+    if(ini!=="2026-09-14")return "il primo semestre SDE parte il "+ini;
+    if(visibili!==0)return "nel piano SDE si vedono "+visibili+" blocchi del piano vecchio";
+    if(!chiaveSde)return "le mezz'ore SDE non portano il nome del piano";
+    if(!dopo||dopo.i!==it[0].id)return "tornando al piano vecchio il blocco non c'e' piu'";
+    return eq(rimasteLM,primaLM,"mezz'ore del piano vecchio ");});
+
+  /* Le mezz'ore del secondo piano hanno cinque pezzi nella chiave, come il
+     formato antico: la migrazione le scambiava per antiche e le riscriveva
+     in una data inventata — sparivano al primo ricaricamento. */
+  t("le mezz'ore del secondo piano sopravvivono a salva e ricarica",function(){
+    pulisci();apri();
+    var vecchio=state.piano||"LM18";
+    state.piano="SDE";applicaPiano();state.year=1;state.ctx="1";apri();
+    var G2=[];document.querySelectorAll("td.c").forEach(function(x){
+      if(G2.indexOf(x.dataset.date)<0)G2.push(x.dataset.date);});
+    var o=allCourses()[0];
+    placeRun(G2[0],H0+2,{i:o.id,a:"LEZ",len:2,n:"prova"},0);
+    var chiave=ck(G2[0],H0+2);
+    var p=payload();state.cells={};adopt(JSON.parse(p));apri();
+    var r=runAt(G2[0],H0+2,0);
+    var ok=!!r&&r.i===o.id&&r.n==="prova";
+    state.piano=vecchio;applicaPiano();state.year=1;state.ctx="1";apri();
+    return ok?true:"dopo il ricaricamento la chiave "+chiave+" e' "+JSON.stringify(state.cells[chiave]);});
+  t("cambiando piano gli appunti si svuotano",function(){
+    pulisci();apri();
+    var vecchio=state.piano||"LM18";
+    state.blockClip=[{dd:0,ds:0,len:2,i:it[0].id,a:"SCH"}];state.clip={data:{},label:"x",hours:0};
+    /* lo stesso gesto del pulsante nel menu */
+    var seg=document.getElementById("segPiano");
+    var altro=[].filter.call(seg.querySelectorAll("button"),function(b){return b.getAttribute("aria-pressed")!=="true";})[0];
+    altro.click();
+    var vuoti=!state.blockClip&&!state.clip;
+    state.piano=vecchio;applicaPiano();state.year=1;state.ctx="1";apri();
+    return vuoti?true:"gli appunti sono rimasti pieni";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }

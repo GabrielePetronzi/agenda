@@ -17,7 +17,10 @@
     var x=seme*1103515245+12345;
     return function(){x=(x*1103515245+12345)&0x7fffffff;return x/0x7fffffff;};
   }
-  var it=items().filter(function(o){return o.kind!=="g";});
+  /* le materie del piano attivo, lette al momento: dopo un cambio di piano
+     quelle di prima non esistono piu' qui, e un blocco loro non si disegna */
+  var it=[];
+  function materie(){return items().filter(function(o){return o.kind==="c";});}
   var ACT=["LEZ","LET","SCH","ESE","LAB","PRO","RIP","LAV"];
   function giorni(){
     var g=[];document.querySelectorAll("td.c").forEach(function(x){
@@ -27,7 +30,7 @@
   function pulito(){
     state.cells={};state.exams=[];state.over={};state.custom=[];state.pass={};
     state.colors={};state.clip=null;state.pomRun=null;state.pomLog=null;
-    state.log={};state.brush=null;state.erase=false;
+    state.log={};state.brush=null;state.erase=false;state.piano="LM18";applicaPiano();
     selRuns={};setDayRange(8,24);
     state.anchor[state.ctx]=iso(monday(new Date()));
     state.span=7;applySpan();render();histInit();commit();
@@ -38,13 +41,23 @@
     return k;
   }
   /* ---- quello che deve valere sempre, comunque tu abbia usato l'app ---- */
+  /* le mezz'ore dell'altro piano restano salvate e non si vedono: non sono
+     orfane. Orfana e' una mezz'ora che non appartiene a nessun piano. */
+  function tuttiGliId(){
+    var m=map(),t={};
+    Object.keys(m).forEach(function(k){t[k]=1;});
+    Object.keys(PIANI).forEach(function(p){
+      Object.keys(PIANI[p].corsi).forEach(function(y){
+        PIANI[p].corsi[y].forEach(function(c){t["c:"+c.c]=1;});});});
+    return t;
+  }
   function controlla(dove){
-    var m=map(),errori=[];
+    var m=tuttiGliId(),errori=[];
     Object.keys(state.cells).forEach(function(k){
       var arr=state.cells[k]||[];
       if(arr.filter(Boolean).length>MAXLANE)
         errori.push("piu' di "+MAXLANE+" blocchi in "+k);
-      var sl=+k.split(".")[3];
+      var q=k.split("."),sl=+q[q.length-1];
       if(!(sl>=0&&sl<=47))errori.push("mezz'ora allo slot "+sl);
       arr.forEach(function(v){
         if(!v)return;
@@ -54,6 +67,9 @@
     });
     (state.exams||[]).forEach(function(x){
       if(x.mid&&!m[x.mid])errori.push("scadenza agganciata alla materia sparita "+x.mid);
+      /* e sulla griglia devono comparire solo quelle del piano attivo */
+      if(x.mid&&!map()[x.mid]&&examsOn(x.d).indexOf(x)>=0)
+        errori.push("una scadenza dell'altro piano compare sulla griglia");
       if(!/^\d{4}-\d{2}-\d{2}$/.test(x.d||""))errori.push("scadenza con data \""+x.d+"\"");
     });
     Object.keys(state.pass||{}).forEach(function(id){
@@ -94,7 +110,7 @@
        conta, quelle ore sono sparite senza che nessuno se ne accorga. */
     var primo=HOURS[0],ultimo=HOURS[HOURS.length-1],fuori=0;
     Object.keys(state.cells).forEach(function(k){
-      var sl=+k.split(".")[3];
+      var q=k.split("."),sl=+q[q.length-1];
       if((state.cells[k]||[]).filter(Boolean).length&&(sl<primo||sl>ultimo))fuori++;
     });
     if(fuori){
@@ -110,7 +126,9 @@
   function domPulito(dove){
     var t=document.body.innerText||"";
     ["NaN","undefined","Infinity","[object Object]"].forEach(function(b){
-      if(t.indexOf(b)>=0)problemi.push("seme "+dove+": a schermo si legge \""+b+"\"");});
+      var i=t.indexOf(b);
+      if(i>=0)problemi.push("seme "+dove+": a schermo si legge \""+b+"\" — …"+
+        t.slice(Math.max(0,i-70),i+30).replace(/\s+/g," ")+"…");});
     document.querySelectorAll("#semBody svg path").forEach(function(e){
       if(/NaN|Infinity/.test(e.getAttribute("d")||""))
         problemi.push("seme "+dove+": un grafico ha un tratto rotto");});
@@ -121,7 +139,8 @@
     ["dipingo un blocco",function(r,g){
       var d=g[Math.floor(r()*g.length)],st=HOURS[Math.floor(r()*HOURS.length)];
       var len=1+Math.floor(r()*6);
-      placeRun(d,st,{i:it[Math.floor(r()*it.length)].id,
+      var mm=materie();
+      placeRun(d,st,{i:mm[Math.floor(r()*mm.length)].id,
         a:ACT[Math.floor(r()*ACT.length)],len:len},null);
       save();drawDay(d);}],
     ["sposto un blocco",function(r,g){
@@ -180,7 +199,7 @@
       var prima=JSON.stringify(state.cells);
       /* un gesto qualunque, poi annulla: si deve tornare identici */
       var g=giorni(),d=g[0];
-      placeRun(d,HOURS[2],{i:it[0].id,a:"LEZ",len:2},null);commit();
+      placeRun(d,HOURS[2],{i:materie()[0].id,a:"LEZ",len:2},null);commit();
       undo();render();
       if(JSON.stringify(state.cells)!==prima)
         problemi.push("annulla non riporta il piano com'era");}],
@@ -201,13 +220,13 @@
       if(!v.length)return;
       delVoce(v[Math.floor(r()*v.length)].id);save();render();}],
     ["metto o tolgo una data d'esame",function(r){
-      var o=it[Math.floor(r()*it.length)];
+      var mm=materie(),o=mm[Math.floor(r()*mm.length)];
       if(r()<.3)setDataEsame(o.id,"","");
       else setDataEsame(o.id,"202"+(6+Math.floor(r()*2))+"-0"+(1+Math.floor(r()*9))+
         "-"+(10+Math.floor(r()*18)),r()<.5?"09:30":"");
       save();render();}],
     ["segno un esame superato",function(r){
-      var o=it[Math.floor(r()*it.length)];
+      var mm=materie(),o=mm[Math.floor(r()*mm.length)];
       if(r()<.4)delete state.pass[o.id];else state.pass[o.id]=1;
       save();cfuBar();picklist();}],
     ["cambio le ore mostrate",function(r){
@@ -222,8 +241,7 @@
       applySpan();render();
       if(autoRow())redrawGrid();}],
     ["cambio settimana",function(r){
-      state.anchor[state.ctx]=iso(addDays(parse(state.anchor[state.ctx]),
-        (r()<.5?7:-7)*(1+Math.floor(r()*3))));
+      state.anchor[state.ctx]=iso(addDays(anchorDate(),(r()<.5?7:-7)*(1+Math.floor(r()*3))));
       applySpan();render();}],
     ["cambio vista giorno/settimana",function(r){
       state.span=[1,3,7][Math.floor(r()*3)];applySpan();render();}],
@@ -245,7 +263,7 @@
       var q=["intel","reti","zzz",""][Math.floor(r()*4)];
       state.q=q;picklist();state.q="";picklist();}],
     ["cambio colore a una materia",function(r){
-      var o=it[Math.floor(r()*it.length)];
+      var mm=materie(),o=mm[Math.floor(r()*mm.length)];
       if(r()<.3)delete state.colors[o.id];
       else state.colors[o.id]="#"+Math.floor(r()*0xffffff).toString(16).padStart(6,"0");
       save();render();}],
@@ -257,6 +275,11 @@
       clearSel();render();}],
     ["lascio che l'app metta le lezioni da sola",function(){
       if(typeof autoLessons==="function")autoLessons();}],
+    ["cambio piano di studi",function(r){
+      var ids=Object.keys(PIANI),id=ids[Math.floor(r()*ids.length)];
+      if(state.pomRun)pomStop(true);
+      state.piano=id;state.year=1;state.ctx="1";state.brush=null;state.anchor={};selRuns={};
+      applicaPiano();save();render();}],
     ["recupero gli arretrati",function(){
       if(typeof spostaArretrati==="function")spostaArretrati();render();}]
   ];
@@ -277,7 +300,8 @@
     var g=giorni(),d=g[0],st=HOURS[4],nota="cap. 7 \"il lemma\" — perché";
     if(g.length<4||st==null)return problemi.push("seme "+seme+" fedelta': non riesco a preparare la prova");
     state.cells={};
-    placeRun(d,st,{i:it[0].id,a:"SCH",len:4,n:nota},0);
+    var it0=materie()[0];
+    placeRun(d,st,{i:it0.id,a:"SCH",len:4,n:nota},0);
     setDone(d,st,0,true);
     var r=runAt(d,st,0);
     if(!r||!r.done)return problemi.push("seme "+seme+" fedelta': la spunta non si mette");
