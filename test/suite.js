@@ -19,7 +19,10 @@
   function apri(){
     setDayRange(0,24);
     state.anchor[state.ctx]=iso(monday(new Date()));
-    applySpan();
+    /* applySpan non ridisegna: senza render() la griglia resta quella di
+       prima e G legge date che non sono piu' a schermo — bastava un cambio
+       di piano, che rimette l'ancora all'inizio del semestre, per vederlo */
+    applySpan();render();
     G=[];document.querySelectorAll("td.c").forEach(function(x){
       if(G.indexOf(x.dataset.date)<0)G.push(x.dataset.date);});
     H0=+document.querySelector("td.c").dataset.h;
@@ -266,7 +269,11 @@
   state.pomRun=null;
 
   /* ---------- CFU ---------- */
-  pulisci();apri();
+  /* Questi controlli sono scritti sulla TABELLA C del manifesto di
+     informatica: obbligatorie, a scelta, le due lingue che valgono una volta
+     sola. Il piano di casa adesso e' un altro, quindi per la durata di questa
+     sezione si passa all'archivio e alla fine si torna. */
+  cambiaPiano("LM18");it=items();pulisci();apri();
   t("la classificazione del manifesto è quella giusta",function(){
     var c=items().filter(function(o){return o.kind==="c";});
     var ob=c.filter(function(o){return o.ob;}).length;
@@ -303,6 +310,7 @@
     COURSES[1]=salva;COURSES[2]=salva2;
     return (P.due===false&&P.tot===27)?true:"due="+P.due+" tot="+P.tot+" (attesi false e 27)";});
 
+  cambiaPiano("SDE");it=items();pulisci();apri();
   /* ---------- elenco materie ---------- */
   pulisci();apri();
   t("la percentuale conta le ore messe in piano",function(){
@@ -397,17 +405,22 @@
       return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
     }
     var col=items().map(function(o){return {n:o.short,c:o.color};});
-    var peggio=null,dmin=1e9;
-    for(var i=0;i<col.length;i++)for(var j=i+1;j<col.length;j++){
-      var a=lab(col[i].c),b=lab(col[j].c),
-          d=Math.sqrt(Math.pow(a[0]-b[0],2)+Math.pow(a[1]-b[1],2)+Math.pow(a[2]-b[2],2));
-      if(d<dmin){dmin=d;peggio=col[i].n+" "+col[i].c+" e "+col[j].n+" "+col[j].c;}
-    }
     var fioca=col.filter(function(o){return contrasto(o.c)<4.5;});
     if(fioca.length)return "la scritta nera non regge su "+fioca[0].n+" "+fioca[0].c;
-    /* ventiquattro con un po' di margine sotto il ventisei che la tavolozza
-       garantisce: sotto venti due blocchi vicini si leggono uguali */
-    if(dmin<24)return "troppo vicine ("+dmin.toFixed(1)+"): "+peggio;
+    /* Due materie di anni diversi non stanno mai nella stessa settimana:
+       la distanza si pretende dentro l'anno (22) e, di piu', dentro il
+       semestre (24); le voci di servizio devono stare lontane da tutte. */
+    var perAnno={},dmin=1e9,peggio=null;
+    allCourses().forEach(function(o){(perAnno[o.year]=perAnno[o.year]||[]).push(o);});
+    var servizio=items().filter(function(o){return o.kind==="g";});
+    Object.keys(perAnno).forEach(function(y){
+      var g=perAnno[y].concat(servizio);
+      for(var i=0;i<g.length;i++)for(var j=i+1;j<g.length;j++){
+        var A=lab(g[i].color||autoColor(g[i].id)),B=lab(g[j].color||autoColor(g[j].id));
+        var d=Math.sqrt(Math.pow(A[0]-B[0],2)+Math.pow(A[1]-B[1],2)+Math.pow(A[2]-B[2],2));
+        if(d<dmin){dmin=d;peggio=y+"º anno: "+g[i].short+" "+(g[i].color||"")+" e "+g[j].short+" "+(g[j].color||"");}
+      }});
+    if(dmin<22)return "troppo vicine ("+dmin.toFixed(1)+"): "+peggio;
     /* Chi divide il semestre finisce nella stessa settimana, e li' due colori
        simili si scambiano di posto davvero: fra compagne di semestre si
        pretende molto di piu' che fra due materie di anni diversi. */
@@ -422,7 +435,7 @@
         var d=Math.sqrt(Math.pow(A[0]-B[0],2)+Math.pow(A[1]-B[1],2)+Math.pow(A[2]-B[2],2));
         if(d<pmin){pmin=d;pp=k+": "+g[i].short+" e "+g[j].short;}
       }});
-    return (pp===null||pmin>=38)?true:
+    return (pp===null||pmin>=24)?true:
       "nello stesso semestre stanno a "+pmin.toFixed(1)+" ("+pp+")";});
 
 
@@ -543,6 +556,7 @@
   t("il monte ore è venticinque ore per CFU",function(){
     return (targetH(6)===150&&targetH(9)===225&&targetH(0)===0)?true:
       "6→"+targetH(6)+" 9→"+targetH(9)+" 0→"+targetH(0);});
+  cambiaPiano("LM18");it=items();   /* controllo scritto sul manifesto di informatica */
   t("i CFU a scelta oltre il richiesto non contano",function(){
     pulisci();apri();
     /* tre materie a scelta superate con le ore: 18 CFU, il tetto è 18 */
@@ -557,6 +571,7 @@
     });
     var f=cfuFatti();
     return (f.sc===18&&f.sc<=f.piano.sce)?true:"a scelta contati "+f.sc+" su "+f.piano.sce;});
+  cambiaPiano("SDE");it=items();
   t("le ore senza il superato non bastano",function(){
     var o=items().filter(function(x){return x.kind==="c"&&!x.ob;})[0];
     delete state.pass[o.id];
@@ -1134,7 +1149,9 @@
     sv.ts=Date.now();
     allineaSeServe();
     var v=copieLeggi();
-    return (v.length&&v[0].n===6)?true:
+    /* la copia di quello che c'era deve esserci; puo' non essere l'ultima,
+       perche' un salvataggio vecchio che viene migrato ne lascia un'altra */
+    return v.some(function(c){return c.n===6;})?true:
       "copie tenute: "+JSON.stringify(v.map(function(c){return c.n;}))+" (attesa una da 6)";});
   t("senza token il gist resta una rete: la funzione c'è ed è innocua a vuoto",function(){
     pulisci();apri();
@@ -1254,6 +1271,7 @@
     var altro=runAt(oggi,ORA,1);
     state.pomRun=null;
     return eq(!!(altro&&altro.done),false,"ha spuntato il ripasso: ");});
+  cambiaPiano("LM18");it=items();   /* controllo scritto sul manifesto di informatica */
   t("le due lingue insieme valgono tre CFU, non sei",function(){
     pulisci();apri();
     var m=map(),ids=["c:1010779","c:1007808"];
@@ -1268,6 +1286,7 @@
     });
     var f=cfuFatti();
     return eq(f.tot,3,"CFU contati ");});
+  cambiaPiano("SDE");it=items();
   t("un blocco a cavallo di due giorni non esiste: si ferma a fine giornata",function(){
     pulisci();apri();
     var ultimo=HOURS[HOURS.length-1];
@@ -1705,61 +1724,56 @@
     if(!r)return "il blocco non c'e'";
     if(!m||m.kind!=="g")return "la NASPI non e' una voce di servizio";
     return daSola("NAS")?true:"la NASPI non si spunta da sola quando l'ora passa";});
-  t("cambiando piano cambiano materie, CFU e periodi, e i blocchi restano separati",function(){
+  t("il piano e' Scienze dell'Educazione, dal 21 settembre, e informatica sta in archivio",function(){
     pulisci();apri();
-    var vecchio=state.piano||"LM18";
-    placeRun(G[0],H0,{i:it[0].id,a:"SCH",len:2},0);
-    var primaLM=Object.keys(state.cells).length;
-    state.piano="SDE";applicaPiano();state.year=1;state.ctx="1";apri();
-    var corsi=allCourses();
-    var sde=corsi.some(function(o){return /Pedagogia generale/i.test(o.name);});
+    var sde=allCourses().some(function(o){return /Pedagogia generale/i.test(o.name);});
     var tot=pianoCfu().tot,ini=CTX["1"].start;
-    /* i blocchi del piano vecchio non si vedono qui */
-    var G2=[];document.querySelectorAll("td.c").forEach(function(x){
-      if(G2.indexOf(x.dataset.date)<0)G2.push(x.dataset.date);});
-    var visibili=G2.reduce(function(a,d){return a+runsOf(d).length;},0);
-    placeRun(G2[0],H0,{i:"c:"+corsi[0].id.slice(2),a:"LET",len:2},0);
-    var chiaveSde=Object.keys(state.cells).some(function(k){return k.indexOf("SDE.")===0;});
-    /* e tornando indietro si ritrova tutto */
-    state.piano=vecchio;applicaPiano();state.year=1;state.ctx="1";apri();
-    var dopo=runAt(G[0],H0,0);
-    var rimasteLM=Object.keys(state.cells).filter(function(k){return k.indexOf("SDE.")!==0;}).length;
-    if(!sde)return "nel piano SDE non c'e' Pedagogia generale";
-    if(tot!==180)return "i CFU del piano SDE sono "+tot;
-    if(ini!=="2026-09-14")return "il primo semestre SDE parte il "+ini;
-    if(visibili!==0)return "nel piano SDE si vedono "+visibili+" blocchi del piano vecchio";
-    if(!chiaveSde)return "le mezz'ore SDE non portano il nome del piano";
-    if(!dopo||dopo.i!==it[0].id)return "tornando al piano vecchio il blocco non c'e' piu'";
-    return eq(rimasteLM,primaLM,"mezz'ore del piano vecchio ");});
-
-  /* Le mezz'ore del secondo piano hanno cinque pezzi nella chiave, come il
-     formato antico: la migrazione le scambiava per antiche e le riscriveva
-     in una data inventata — sparivano al primo ricaricamento. */
-  t("le mezz'ore del secondo piano sopravvivono a salva e ricarica",function(){
-    pulisci();apri();
-    var vecchio=state.piano||"LM18";
-    state.piano="SDE";applicaPiano();state.year=1;state.ctx="1";apri();
-    var G2=[];document.querySelectorAll("td.c").forEach(function(x){
-      if(G2.indexOf(x.dataset.date)<0)G2.push(x.dataset.date);});
-    var o=allCourses()[0];
-    placeRun(G2[0],H0+2,{i:o.id,a:"LEZ",len:2,n:"prova"},0);
-    var chiave=ck(G2[0],H0+2);
-    var p=payload();state.cells={};adopt(JSON.parse(p));apri();
-    var r=runAt(G2[0],H0+2,0);
-    var ok=!!r&&r.i===o.id&&r.n==="prova";
-    state.piano=vecchio;applicaPiano();state.year=1;state.ctx="1";apri();
-    return ok?true:"dopo il ricaricamento la chiave "+chiave+" e' "+JSON.stringify(state.cells[chiave]);});
-  t("cambiando piano gli appunti si svuotano",function(){
-    pulisci();apri();
-    var vecchio=state.piano||"LM18";
-    state.blockClip=[{dd:0,ds:0,len:2,i:it[0].id,a:"SCH"}];state.clip={data:{},label:"x",hours:0};
-    /* lo stesso gesto del pulsante nel menu */
     var seg=document.getElementById("segPiano");
-    var altro=[].filter.call(seg.querySelectorAll("button"),function(b){return b.getAttribute("aria-pressed")!=="true";})[0];
-    altro.click();
+    if(!sde)return "nel piano non c'e' Pedagogia generale";
+    if(tot!==180)return "i CFU del piano sono "+tot;
+    if(ini!=="2026-09-21")return "il primo semestre parte il "+ini;
+    if(seg&&!seg.hidden)return "il selettore del piano e' visibile, ma il piano e' uno solo";
+    return eq(anni().length,3,"anni di corso ");});
+  t("la settimana dal 14 al 20 settembre viene tolta da tutti i piani, una volta",function(){
+    pulisci();apri();
+    var d=JSON.parse(payload());d.v=5;delete d.piano;
+    d.cells={};
+    d.cells["1.1.2026-09-16.20"]=[{i:WORKID,a:"LAV"}];
+    d.cells["1.1.2026-09-20.20"]=[{i:"c:1009070",a:"SCH"}];
+    d.cells["SDE.1.1.2026-09-15.20"]=[{i:it[0].id,a:"LEZ"}];
+    d.cells["1.1.2026-09-21.20"]=[{i:WORKID,a:"LAV"}];      /* il lunedi' dopo resta */
+    adopt(d);apri();
+    var rimaste=Object.keys(state.cells);
+    var sett=rimaste.filter(function(k){var q=k.split(".");var g=q[q.length-2];return g>="2026-09-14"&&g<="2026-09-20";});
+    if(sett.length)return "sono rimaste: "+sett.join(", ");
+    return rimaste.length===1&&rimaste[0]==="1.1.2026-09-21.20"?true:"del 21 e' rimasto: "+rimaste.join(", ");});
+  t("le mezz'ore di informatica restano da parte, sotto il loro nome",function(){
+    pulisci();apri();
+    /* un salvataggio di prima: mezz'ore senza prefisso, di una materia di informatica e di lavoro */
+    /* date fuori dalla settimana 14-20 settembre, che la migrazione toglie */
+    var g0=iso(addDays(parse(G[0]),28)),g1=iso(addDays(parse(G[1]),28));
+    var k1="1.1."+g0+"."+H0,k2="1.1."+g1+"."+H0;
+    var d=JSON.parse(payload());d.v=5;delete d.piano;
+    d.cells={};d.cells[k1]=[{i:"c:1009070",a:"SCH"}];d.cells[k2]=[{i:WORKID,a:"LAV"}];
+    adopt(d);apri();
+    var inf=state.cells["LM18."+k1],lav=state.cells[k2];
+    var vis=runsOf(g0).length;
+    if(!inf)return "la mezz'ora di informatica non e' finita in archivio: "+Object.keys(state.cells).join(",");
+    if(!lav)return "la mezz'ora di lavoro si e' spostata";
+    if(vis!==0)return "la materia di informatica si vede nel piano nuovo";
+    return eq(state.piano,"SDE","piano ");});
+  t("cambiando piano gli appunti si svuotano e tornando si ritrova tutto",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"SCH",len:2},0);
+    state.blockClip=[{dd:0,ds:0,len:2,i:it[0].id,a:"SCH"}];state.clip={data:{},label:"x",hours:0};
+    cambiaPiano("LM18");
     var vuoti=!state.blockClip&&!state.clip;
-    state.piano=vecchio;applicaPiano();state.year=1;state.ctx="1";apri();
-    return vuoti?true:"gli appunti sono rimasti pieni";});
+    var qui=Object.keys(state.cells).filter(function(k){return k.indexOf("LM18.")===0;}).length;
+    cambiaPiano("SDE");apri();
+    var dopo=runAt(G[0],H0,0);
+    if(!vuoti)return "gli appunti sono rimasti pieni";
+    if(qui)return "in informatica ci sono "+qui+" mezz'ore che non c'erano";
+    return (dopo&&dopo.i===it[0].id)?true:"tornando al piano il blocco non c'e' piu'";});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");

@@ -30,7 +30,7 @@
   function pulito(){
     state.cells={};state.exams=[];state.over={};state.custom=[];state.pass={};
     state.colors={};state.clip=null;state.pomRun=null;state.pomLog=null;
-    state.log={};state.brush=null;state.erase=false;state.piano="LM18";applicaPiano();
+    state.log={};state.brush=null;state.erase=false;state.piano="SDE";applicaPiano();
     selRuns={};setDayRange(8,24);
     state.anchor[state.ctx]=iso(monday(new Date()));
     state.span=7;applySpan();render();histInit();commit();
@@ -276,7 +276,10 @@
     ["lascio che l'app metta le lezioni da sola",function(){
       if(typeof autoLessons==="function")autoLessons();}],
     ["cambio piano di studi",function(r){
-      var ids=Object.keys(PIANI),id=ids[Math.floor(r()*ids.length)];
+      /* solo i piani che il menu offre: uno nascosto, al ricaricamento,
+         viene rimesso al piano di casa apposta */
+      var ids=Object.keys(PIANI).filter(function(p){return !PIANI[p].nascosto;});
+      var id=ids[Math.floor(r()*ids.length)];
       if(state.pomRun)pomStop(true);
       state.piano=id;state.year=1;state.ctx="1";state.brush=null;state.anchor={};selRuns={};
       applicaPiano();save();render();}],

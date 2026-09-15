@@ -1472,7 +1472,8 @@ const ATRAMA={
      (somigliavano ai cerchi che allora aveva il laboratorio). */
   RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",.30),
   LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>"),
-  NAS:trama(12,8,"<path d='M1 4h4M7 4h4'/>")
+  /* piccoli euro, come l'icona: i trattini di prima non dicevano niente */
+  NAS:trama(13,13,"<path d='M10 4.3a3.6 3.6 0 1 0 0 4.4'/><path d='M2.6 5.6h5.2M2.6 7.4h5.2'/>")
 };
 /* Quanto è grande una tile, e se è una figura o un tessuto. Serve a scalarla:
    una figura tagliata a metà non è un simbolo, mentre righe e quadretti
@@ -1480,7 +1481,7 @@ const ATRAMA={
    corti, vanno ingrandite fino a riempirle una volta sola; i tessuti si
    ripetono e basta. */
 const TRDIM={LEZ:[16,14,1],SCH:[22,16,1],RIP:[15,15,1],PRO:[22,11,0],
-  LAB:[13,13,0],LET:[20,6,0],ESE:[7,7,0],LAV:[8,8,0],NAS:[12,8,0]};
+  LAB:[13,13,0],LET:[20,6,0],ESE:[7,7,0],LAV:[8,8,0],NAS:[13,13,1]};
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
   /* La pastiglia della legenda è 17px e la tile del blocco è alta 11: ce ne
@@ -1498,7 +1499,7 @@ const ATRAMALEG={
   PRO:trama(22,11,"<path d='M0 5.5h22M0 .6h22M0 10.4h22M5.5 0v5.5M16.5 0v5.5M11 5.5v5.5M.6 5.5v5.5M21.4 5.5v5.5'/>",1),
   RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",1),
   LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>",1),
-  NAS:trama(12,8,"<path d='M1 4h4M7 4h4'/>",1)};
+  NAS:trama(13,13,"<path d='M10 4.3a3.6 3.6 0 1 0 0 4.4'/><path d='M2.6 5.6h5.2M2.6 7.4h5.2'/>",1)};
 
 /* I CFU del titolo. Questo numero va scritto, non dedotto: l'elenco contiene
    più insegnamenti a scelta di quanti ne servano, quindi la somma del piano
@@ -1591,7 +1592,9 @@ function anni(){return Object.keys(COURSES).map(Number).sort((a,b)=>a-b);}
    ritrova tutto. */
 const PIANI={
   LM18:{
-    nome:"Scienze Informatiche (LM-18)",cfu:120,
+    /* archivio: non si sceglie piu', ma i blocchi che ci stavano restano
+       salvati sotto il suo nome */
+    nome:"Scienze Informatiche (LM-18)",cfu:120,nascosto:true,
     ctx:{
       "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-21"},
       "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"},
@@ -1637,7 +1640,7 @@ const PIANI={
        CFU mostra solo il totale, 180, e non separa scelta da obbligo. */
     nome:"Scienze dell'Educazione",cfu:180,
     ctx:{
-      "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-14"},
+      "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-21"},
       "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-08"},
       "S":{label:"Sessione Esami",       name:"Sessione d'esame", start:"2026-12-07"}
     },
@@ -1692,7 +1695,19 @@ const PIANI={
   }
 };
 let COURSES={};
-function pianoAttivo(){return PIANI[state.piano]||PIANI.LM18;}
+/* il piano di casa: le sue mezz'ore hanno la chiave senza prefisso */
+const PIANO_BASE="SDE";
+function pianoAttivo(){return PIANI[state.piano]||PIANI[PIANO_BASE];}
+function cambiaPiano(id){
+  if(!PIANI[id]||(state.piano||PIANO_BASE)===id)return;
+  if(state.pomRun)pomStop(true);   /* era agganciato a mezz'ore del piano vecchio */
+  state.piano=id;state.year=1;state.ctx="1";state.brush=null;state.anchor={};
+  selRuns={};editId=null;
+  /* gli appunti erano di materie dell'altro piano: incollarli qui metterebbe
+     in griglia blocchi invisibili, con le ore che contano */
+  state.blockClip=null;state.clip=null;
+  applicaPiano();save("Piano: "+PIANI[id].nome);commit();render();
+}
 function applicaPiano(){
   const P=pianoAttivo();
   COURSES=P.corsi;CTX=P.ctx;CFU_TITOLO=P.cfu;
@@ -1722,9 +1737,9 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="15 set 2026 · a";
+const VERSIONE="15 set 2026 · b";
 const KEY="piano-6272-v5";
-let state={v:5,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
+let state={v:6,theme:"dark",piano:"SDE",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
            pomConf:null,pomRun:null,pomLog:null,log:{},dayFrom:8,dayTo:24,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
@@ -2180,7 +2195,7 @@ let pieghePresenti=false;
 function adopt(d){
   if(d.collapsed!==undefined)pieghePresenti=true;
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
-  if(!PIANI[state.piano])state.piano="LM18";
+  if(!PIANI[state.piano]||PIANI[state.piano].nascosto)state.piano=PIANO_BASE;
   applicaPiano();
   setDayRange(state.dayFrom==null?DAY_FROM:state.dayFrom,
               state.dayTo==null?DAY_TO:state.dayTo);
@@ -2278,7 +2293,33 @@ function migrate(d){
     state.cells=arr;moved++;
   }
 
-  state.v=5;
+  /* v6: il piano di casa e' Scienze dell'Educazione. Le mezz'ore salvate
+     senza prefisso che appartengono a materie di informatica vanno sotto
+     "LM18.", da parte; quelle salvate con "SDE." davanti (una versione durata
+     un giorno) tornano senza. Ripasso libero, lavoro e NASPI restano dove
+     sono: non sono di nessun piano. */
+  if(!d.v||d.v<6){
+    const lm={};
+    (PIANI.LM18.corsi[1]||[]).concat(PIANI.LM18.corsi[2]||[]).forEach(c=>lm["c:"+c.c]=1);
+    const out={};
+    Object.keys(state.cells).forEach(k=>{
+      const arr=state.cells[k];
+      /* La settimana dal 14 al 20 settembre 2026 se ne va da tutti i piani:
+         era la settimana di prova, e l'hai chiesto tu. E' l'unico posto in cui
+         il programma cancella delle mezz'ore da solo, e lo fa una volta sola,
+         passando a questa versione del salvataggio. */
+      const q=k.split("."),giorno=q[q.length-2];
+      if(giorno>="2026-09-14"&&giorno<="2026-09-20")return;
+      let nk=k;
+      if(k.indexOf("SDE.")===0)nk=k.slice(4);
+      else if(k.indexOf("LM18.")!==0&&(arr||[]).some(v=>v&&lm[v.i]))nk="LM18."+k;
+      out[nk]=arr;
+    });
+    state.cells=out;
+    if(!PIANI[d.piano]||PIANI[d.piano].nascosto){state.piano=PIANO_BASE;state.year=1;state.ctx="1";state.anchor={};}
+    moved++;
+  }
+  state.v=6;
   if(moved)save();
 }
 
@@ -2333,6 +2374,58 @@ const MATCOL={
   /* Lingua e competenze */
   "c:1010779":"#B67A15",
   "c:1007808":"#FC6C78",
+  /* Scienze dell'Educazione · 1º anno · 1º semestre */
+  "c:16764":"#B8791F",   /* Storia dell'educazione */
+  "c:C8772":"#E15674",   /* Sociologia generale e fondamenti della ricer */
+  "c:03079":"#0D96F0",   /* Psicologia dello sviluppo */
+  "c:26338":"#3AC883",   /* Idoneità lingua inglese B — 1 */
+  /* Scienze dell'Educazione · 1º anno · 2º semestre */
+  "c:13220":"#24F4FF",   /* Pedagogia generale e sociale */
+  "c:C8773":"#F39CFB",   /* Antropologia culturale e sociale */
+  /* Scienze dell'Educazione · 2º anno · 1º semestre */
+  "c:94162":"#BBEAA0",   /* Elementi di didattica innovativa per la scuo */
+  "c:00870":"#F39CFB",   /* Psicologia sociale */
+  "c:C8783":"#15F8CF",   /* Educazione inclusiva nella scuola e nel terr */
+  "c:C8782":"#2DA0FB",   /* Pedagogia dell'inclusione e della marginalit */
+  "c:73378":"#F09E4E",   /* Genere e culture della scienza */
+  "c:C8780":"#FA6C88",   /* Geografia del mondo contemporaneo */
+  "c:C8779":"#35CAFE",   /* Storia del mondo contemporaneo nel XIX e XX  */
+  "c:B8521":"#159A51",   /* Storia, patrimonio, cittadinanza */
+  "c:16692":"#24F4FF",   /* Laboratorio di informatica */
+  "c:C8775":"#BD6F87",   /* Laboratorio propedeutico all'attività di tir */
+  /* Scienze dell'Educazione · 2º anno · 2º semestre */
+  "c:15579":"#FCCEFF",   /* Pedagogia interculturale */
+  "c:61359":"#FEDA6B",   /* Psicologia dei gruppi e di comunità */
+  "c:02517":"#D76445",   /* Sociologia dell'educazione */
+  "c:C8776":"#7285B9",   /* Sociologia delle differenze e delle disuguag */
+  "c:99505":"#8579DE",   /* Compiti di sviluppo psicologici in adolescen */
+  "c:42972":"#D7589D",   /* Diritto dei servizi sociali */
+  "c:94411":"#78901E",   /* Citizenship education and active participati */
+  "c:94410":"#A87E4E",   /* History and culture of European cities */
+  "c:94414":"#479573",   /* Gender studies in education */
+  "c:94413":"#3C929C",   /* Intercultural pedagogy */
+  /* Scienze dell'Educazione · 3º anno · 1º semestre */
+  "c:C8876":"#78901E",   /* Agency e mondi digitali */
+  "c:94109":"#FD98F2",   /* Ambienti digitali, musei e educazione al pat */
+  "c:B3448":"#15F8CF",   /* Metodologie dell'osservazione e della rifles */
+  "c:03084":"#1089EB",   /* Psicologia clinica */
+  "c:94244":"#C07425",   /* Psicologia del lavoro e dell'orientamento */
+  "c:15349":"#ED6088",   /* Tirocinio */
+  "c:C8875":"#37E5FF",   /* Laboratorio di formazione professionale per  */
+  "c:27281":"#62C570",   /* Seminari */
+  "c:17268":"#C0B2F8",   /* Prova finale */
+  /* Scienze dell'Educazione · 3º anno · 2º semestre */
+  "c:31675":"#B87093",   /* Progettazione e valutazione degli interventi */
+  "c:C8786":"#3C9485",   /* Educazione al genere, all'affettività e alla */
+  "c:C8788":"#F9DA84",   /* Media capabilities e educazione nei territor */
+  "c:94110":"#F47561",   /* Antropologia ed etnografia dei servizi socio */
+  "c:C8789":"#428DBF",   /* Sociologia delle istituzioni di welfare, del */
+  /* Scienze dell'Educazione: le tinte sono scelte anno per anno — chi e' in
+     anni diversi non finisce mai nella stessa settimana, quindi due anni
+     possono anche ripetersi un colore. Dentro l'anno stanno il piu' lontano
+     possibile, e dentro il semestre di piu': primo anno 58, secondo 26,
+     terzo 30. Il secondo anno ha dieci materie a semestre e la gamma dei
+     colori leggibili con la scritta nera non basta per di piu'. */
   /* voci di servizio: ripasso senza materia e lavoro, neutre di proposito */
   "_gen":"#B2B7BF",
   "_lav":"#A1A781",
@@ -2489,7 +2582,7 @@ const map=()=>{const m={};items().forEach(o=>m[o.id]=o);return m;};
    anno di corso, periodo. Chi legge la chiave la legge dalla fine — l'ultimo
    pezzo e' la mezz'ora, il penultimo il giorno — cosi' non importa quanti
    pezzi ci siano davanti. */
-const PRE=()=>(state.piano&&state.piano!=="LM18"?state.piano+".":"")+state.year+"."+state.ctx+".";
+const PRE=()=>(state.piano&&state.piano!==PIANO_BASE?state.piano+".":"")+state.year+"."+state.ctx+".";
 const ck=(dateIso,h)=>PRE()+dateIso+"."+h;
 const actOf=k=>ACTS.find(a=>a.k===k)||ACTS[0];
 const rgb=h=>{const n=parseInt(h.slice(1),16);return [n>>16,(n>>8)&255,n&255];};
@@ -2544,19 +2637,13 @@ function controls(){
   const sp0=document.getElementById("segPiano");
   if(sp0){
     sp0.innerHTML="";
-    Object.keys(PIANI).forEach(id=>{
+    const offerti=Object.keys(PIANI).filter(id=>!PIANI[id].nascosto);
+    const lbl=sp0.previousElementSibling;
+    sp0.hidden=offerti.length<2;if(lbl&&lbl.classList.contains("mmlbl"))lbl.hidden=sp0.hidden;
+    offerti.forEach(id=>{
       const b=document.createElement("button");
-      b.textContent=PIANI[id].nome;b.setAttribute("aria-pressed",(state.piano||"LM18")===id);
-      b.onclick=()=>{
-        if((state.piano||"LM18")===id)return;
-        if(state.pomRun)pomStop(true);   /* era agganciato a mezz'ore del piano vecchio */
-        state.piano=id;state.year=1;state.ctx="1";state.brush=null;state.anchor={};
-        selRuns={};editId=null;
-        /* gli appunti erano di materie dell'altro piano: incollarli qui
-           metterebbe in griglia blocchi invisibili, con le ore che contano */
-        state.blockClip=null;state.clip=null;
-        applicaPiano();save("Piano: "+PIANI[id].nome);commit();chiudiMenu();render();
-      };
+      b.textContent=PIANI[id].nome;b.setAttribute("aria-pressed",(state.piano||PIANO_BASE)===id);
+      b.onclick=()=>{cambiaPiano(id);chiudiMenu();};
       sp0.appendChild(b);
     });
   }
