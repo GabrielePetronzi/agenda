@@ -1493,13 +1493,15 @@ const ATRAMALEG={
     "<path d='M4.9 5h5M4.9 7.4h7'/>"+
     "<path d='M5.1 10.4 3.7 13.6M11.9 10.4l1.4 3.2M8.5 10.4v3.2'/>",1),
   LET:trama(20,6,"<path d='M0 3h20'/>",1),
-  SCH:trama(22,16,"<path d='M2 8h4.5M6.5 4v8M6.5 4h5M6.5 12h5'/>",1),
+  /* le figure stanno in una tile 17x17, una sola e centrata: la NASPI a 13
+     mostrava un euro e mezzo, con il mezzo tagliato dal bordo */
+  SCH:trama(17,17,"<path d='M3 8.5h4.5M7.5 4.5v8M7.5 4.5h5M7.5 12.5h5'/>",1),
   ESE:trama(7,7,"<path d='M0 .5h7M.5 0v7'/>",1),
   LAB:punti(13,13,PUNTI,1),
   PRO:trama(22,11,"<path d='M0 5.5h22M0 .6h22M0 10.4h22M5.5 0v5.5M16.5 0v5.5M11 5.5v5.5M.6 5.5v5.5M21.4 5.5v5.5'/>",1),
-  RIP:trama(15,15,"<path d='M11.5 5.2A4.6 4.6 0 1 0 12 9.4'/><path d='M12.4 2.6v2.8h-2.8'/>",1),
+  RIP:trama(17,17,"<path d='M12.5 6.2A4.6 4.6 0 1 0 13 10.4'/><path d='M13.4 3.6v2.8h-2.8'/>",1),
   LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>",1),
-  NAS:trama(13,13,"<path d='M10 4.3a3.6 3.6 0 1 0 0 4.4'/><path d='M2.6 5.6h5.2M2.6 7.4h5.2'/>",1)};
+  NAS:trama(17,17,"<path d='M12.2 6.3a3.8 3.8 0 1 0 0 4.6'/><path d='M4.6 7.6h5.4M4.6 9.5h5.4'/>",1)};
 
 /* I CFU del titolo. Questo numero va scritto, non dedotto: l'elenco contiene
    più insegnamenti a scelta di quanti ne servano, quindi la somma del piano
@@ -1737,7 +1739,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="15 set 2026 · c";
+const VERSIONE="15 set 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:6,theme:"dark",piano:"SDE",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
