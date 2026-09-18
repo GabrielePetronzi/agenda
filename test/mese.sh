@@ -1,7 +1,7 @@
 #!/bin/bash
-# Un mese di uno studente a tempo pieno, con l'orologio che avanza un minuto
+# Tre mesi di uno studente a tempo pieno, con l'orologio che avanza un minuto
 # alla volta (test/mese.js). Serve un budget di tempo virtuale largo: sono
-# quarantamila minuti simulati.
+# centotrentamila minuti simulati.
 #   ./test/mese.sh
 set -u
 QUI="$(cd "$(dirname "$0")/.." && pwd)"
@@ -15,7 +15,7 @@ s=io.open(os.path.join(qui,"test","mese.js"),encoding="utf-8").read()
 io.open(os.path.join(tmp,"m.html"),"w",encoding="utf-8").write(
   base.replace("</body>","<script>setTimeout(function(){\n"+s+"\n},2200);</script>\n</body>",1))
 PY
-"$CHROME" --headless --disable-gpu --no-sandbox --virtual-time-budget=120000 --window-size=1440,900 \
+"$CHROME" --headless --disable-gpu --no-sandbox --virtual-time-budget=600000 --window-size=1440,900 \
   --dump-dom "file://$TMP/m.html" 2>/dev/null | python3 -c "
 import sys,re,html
 d=sys.stdin.read();m=re.search(r'<pre id=\"MIS\">(.*?)</pre>',d,re.S)

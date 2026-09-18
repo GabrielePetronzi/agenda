@@ -1811,6 +1811,34 @@
     }finally{window.Date=Vero;notify=vero;}
     return mandati.length===0?true:"mandato: "+mandati.join(" | ");});
 
+  /* Un blocco e' disegnato dentro la sua prima casella e sporge sotto: chi
+     tocca un blocco da due ore alle 10:30 aveva come bersaglio la casella
+     delle 9:00. Cancella toglieva la mezz'ora sbagliata. */
+  t("cancella toglie la mezz'ora che tocchi, non la prima del blocco",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"LEZ",len:4},0);render();
+    var bl=document.querySelector('.blk[data-date="'+G[0]+'"]');
+    var terza=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+(H0+6)+'"]').getBoundingClientRect();
+    var rb=bl.getBoundingClientRect();
+    if(!(terza.top>=rb.top&&terza.bottom<=rb.bottom+1))return "il blocco non copre la terza casella: non si puo' provare";
+    state.erase=true;state.brush=it[0].id;lastTap={sig:null,t:0};
+    bl.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,cancelable:true,pointerId:1,
+      clientX:rb.left+rb.width/2,clientY:terza.top+terza.height/2,buttons:1,isPrimary:true}));
+    window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
+    state.erase=false;
+    var c=[H0+4,H0+5,H0+6,H0+7].map(function(sl){return at(ck(G[0],sl))[0]?"■":"□";}).join("");
+    return c==="■■□■"?true:"dopo il tocco alle 10:30 il blocco e' "+c+" (atteso ■■□■)";});
+  t("prendendo un blocco per il centro, il centro resta sotto il dito",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"LEZ",len:4},0);render();
+    var bl=document.querySelector('.blk[data-date="'+G[0]+'"]');
+    var terza=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+(H0+6)+'"]').getBoundingClientRect();
+    var rb=bl.getBoundingClientRect();lastTap={sig:null,t:0};
+    bl.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,cancelable:true,pointerId:1,
+      clientX:rb.left+rb.width/2,clientY:terza.top+terza.height/2,buttons:1,isPrimary:true}));
+    var off=armMove?armMove.off:null;armMove=null;
+    return eq(off,2,"presa a due mezz'ore dall'inizio: ");});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }

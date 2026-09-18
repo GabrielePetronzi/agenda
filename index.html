@@ -1727,7 +1727,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="18 set 2026 · c";
+const VERSIONE="18 set 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5252,7 +5252,7 @@ function wire(t){
       if(r)setDone(r.date,r.start,r.lane,!r.done);
       return;
     }
-    const td=e.target.closest("td.c");if(!td)return;
+    const td=cellaSotto(e.target,e.clientY);if(!td)return;
     e.preventDefault();
     const lane=laneFromEvent(e,td);
 
@@ -5416,6 +5416,18 @@ window.addEventListener("pointercancel",()=>{if(sd)sdEnd(false);});
 
 /* la cella della colonna di un giorno che sta all'altezza del puntatore:
    serve alla maniglia, che deve seguire solo la verticale */
+/* La casella sotto il puntatore. Un blocco e' disegnato dentro la sua prima
+   casella e da li' sporge sulle righe sotto: chi tocca un blocco da un'ora e
+   mezza alle 10:30 ha come bersaglio la casella delle 9:00, quella che
+   contiene il disegno. Cancella, dipingi e la nota agivano sulla mezz'ora
+   sbagliata — "impreciso", giustamente. Qui la casella si prende dalla
+   posizione verticale del dito, che non mente. */
+function cellaSotto(el,y){
+  const td=el&&el.closest&&el.closest("td.c");
+  if(!td)return null;
+  if(!(el.closest&&el.closest(".blk")))return td;
+  return slotAtY(td.dataset.date,y)||td;
+}
 function slotAtY(dateIso,y){
   const tds=document.querySelectorAll('td.c[data-date="'+dateIso+'"]');
   let best=null,bd=Infinity;
@@ -5455,7 +5467,7 @@ window.addEventListener("pointermove",e=>{
   }
   if(!painting&&!drag)return;
   const el=document.elementFromPoint(e.clientX,e.clientY);
-  const td=el&&el.closest&&el.closest("td.c");
+  const td=cellaSotto(el,e.clientY);
   if(!td)return;
   if(drag){
     const maxStart=HOURS[HOURS.length-1]-drag.run.len+1;
