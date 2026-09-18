@@ -250,7 +250,7 @@
       var g=slotDiOggi(a);
       pomStart(a,g?[{date:g.date,start:g.start,lane:g.lane}]:null);
       var quante=1+Math.floor(r()*4);
-      for(var i=0;i<quante;i++)pomAdvance(true);
+      for(var i=0;i<quante;i++){if(state.pomRun)state.pomRun.ends=Date.now()-1;pomAdvance(true);}
       if(r()<.6)pomStop();}],
     ["guardo i grafici",function(){state.semOpen=true;semSummary();}],
     ["salvo e ricarico",function(){

@@ -1727,7 +1727,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="18 set 2026 · a";
+const VERSIONE="18 set 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3530,9 +3530,16 @@ function pomAdvance(auto){
     const rest=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
     const min=auto?c.s:(c.s*60000-rest)/60000;
     logAdd(r.act,min,linkedIds(r));
-    r.min=(r.min||0)+min;
+    /* Prima si spunta, poi si mette via la fase. maturato() somma al totale
+       il tempo trascorso nella fase in corso: se la fase viene sommata prima,
+       a fine sessione i suoi minuti contano due volte — e con l'orologio
+       arrivato davvero alla fine (rest=0) quarantacinque minuti ne valevano
+       novanta: un blocco da un'ora e mezza si chiudeva dopo tre quarti d'ora.
+       Il banco di prova non lo vedeva perche' chiamava la fine sessione con
+       l'orologio ancora all'inizio. */
     let k=spuntaMaturato(r);
     if(auto)k+=chiudiCoda(r);
+    r.min=(r.min||0)+min;
     if(k)afterEdit(hrs(k)+" segnate come fatte");
     if(auto){
       const t=pomToday();
@@ -3551,8 +3558,8 @@ function pomAdvance(auto){
     const restP=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
     const minP=auto?durP:(durP*60000-restP)/60000;
     logAdd(r.act,minP,linkedIds(r));
+    const kp=spuntaMaturato(r);          /* stessa regola: prima si spunta */
     r.min=(r.min||0)+minP;
-    const kp=spuntaMaturato(r);
     if(kp)afterEdit(hrs(kp)+" segnate come fatte");
     if(auto)pomToday().min+=durP;
     /* Finita la fascia, il timer si ferma: dopo tre ore di mattina si mangia,

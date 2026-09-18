@@ -76,6 +76,10 @@
     return eq(Object.keys(state.collapsed).length,PANELS-1,"settimane piegate: ");});
 
   /* ---------- pomodoro ---------- */
+  /* "Fine fase" con l'orologio arrivato davvero alla fine. Chiamare
+     fine() a orologio fermo all'inizio della fase provava un caso
+     che nella vita non esiste, e non vedeva i minuti contati due volte. */
+  function fine(){if(state.pomRun)state.pomRun.ends=Date.now()-1;pomAdvance(true);}
   pulisci();apri();
   /* Due ancore diverse, e la differenza conta.
      ORA e' la mezz'ora in cui siamo adesso: serve solo ai tre controlli che
@@ -105,14 +109,14 @@
     state.log={};state.pomLog=null;
     var g=slotDiOggi("ESE");
     pomStart("ESE",[{date:g.date,start:g.start,lane:g.lane}]);
-    pomAdvance(true);
+    fine();
     var q=runAt(oggi,ORA,0);return eq(!!(q&&q.done),true,"spuntato: ");});
   var somma=function(){var s=0;Object.keys(state.log||{}).forEach(function(k){
     Object.keys(state.log[k]).forEach(function(f){s+=state.log[k][f];});});return s;};
   t("la sessione finisce nel registro",function(){
     return eq(somma(),pomConf("ESE").s,"minuti ");});
   t("anche la pausa finisce nel registro",function(){
-    pomAdvance(true);
+    fine();
     return eq(somma(),pomConf("ESE").s+pomConf("ESE").b,"minuti ");});
   t("i minuti di oggi contano anche la pausa",function(){
     return eq(pomToday().min,pomConf("ESE").s+pomConf("ESE").b,"minuti di oggi ");});
@@ -124,7 +128,7 @@
     var g=slotDiOggi("ESE");
     pomStart("ESE",[{date:g.date,start:g.start,lane:g.lane}]);
     state.pomRun.ends=Date.now()-60000;          /* scaduta un minuto fa */
-    if(state.pomRun.paused==null&&Date.now()>=state.pomRun.ends)pomAdvance(true);
+    if(state.pomRun.paused==null&&Date.now()>=state.pomRun.ends)fine();
     var q=runAt(oggi,MATT,0);
     state.pomRun=null;
     return eq(!!(q&&q.done),true,"spuntato: ");});
@@ -138,11 +142,11 @@
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
     var conta=function(){var n=0;for(var i=0;i<3;i++){
       var v=at(ck(oggi,MATT+i))[0];if(v&&v.done)n++;}return n;};
-    pomAdvance(true);                       /* fine sessione: 45 min */
+    fine();                       /* fine sessione: 45 min */
     var dopoSess=conta();
-    pomAdvance(true);                       /* fine pausa: +15 = 60 min */
+    fine();                       /* fine pausa: +15 = 60 min */
     var dopoPausa=conta();
-    pomAdvance(true);                       /* seconda sessione: +45 */
+    fine();                       /* seconda sessione: +45 */
     var dopoSecondo=conta();
     state.pomRun=null;state.pomConf={};
     return (dopoSess===1&&dopoPausa===2&&dopoSecondo===3)?true:
@@ -162,7 +166,7 @@
     placeRun(oggi,A,{i:it[0].id,a:"SCH",len:3},0);
     placeRun(oggi,B,{i:it[0].id,a:"SCH",len:3},0);
     pomStart("SCH",[{date:oggi,start:A,lane:0}]);
-    for(var i=0;i<6;i++)pomAdvance(true);
+    for(var i=0;i<6;i++)fine();
     var c=function(a,b){var k=0;for(var j=a;j<b;j++){
       var v=at(ck(oggi,j))[0];if(v&&v.done)k++;}return k;};
     var uno=c(A,A+3),due=c(B,B+3),fermo=state.pomRun===null;
@@ -184,7 +188,7 @@
     placeRun(oggi,A,{i:it[0].id,a:"SCH",len:3},0);
     placeRun(oggi,B,{i:it[0].id,a:"SCH",len:3},0);
     pomStart("SCH",[{date:oggi,start:A,lane:0}]);
-    pomAdvance(true);pomAdvance(true);        /* 45 + 12 minuti */
+    fine();fine();        /* 45 + 12 minuti */
     var dove=(state.pomRun&&state.pomRun.linked||[]).map(function(x){return x.start;});
     var primo=0;for(var i=0;i<3;i++){var v=at(ck(oggi,A+i))[0];if(v&&v.done)primo++;}
     var secondo=0;for(var j=0;j<3;j++){var w=at(ck(oggi,B+j))[0];if(w&&w.done)secondo++;}
@@ -204,7 +208,7 @@
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
     var conta=function(){var k=0;for(var i=0;i<6;i++){
       var v=at(ck(oggi,MATT+i))[0];if(v&&v.done)k++;}return k;};
-    pomAdvance(true);pomAdvance(true);                    /* 45 + 12 = 57 */
+    fine();fine();                    /* 45 + 12 = 57 */
     var a57=conta();
     var c=pomConf("SCH");
     state.pomRun.ends=Date.now()+(c.s-3)*60000;           /* tre minuti dentro */
@@ -221,7 +225,7 @@
     placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:2},0);
     var g=slotDiOggi("SCH");
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
-    pomAdvance(true);                       /* fine della sessione da 45 */
+    fine();                       /* fine della sessione da 45 */
     var k=0;for(var i=0;i<2;i++){var v=at(ck(oggi,MATT+i))[0];if(v&&v.done)k++;}
     var infase=state.pomRun&&state.pomRun.phase;
     state.pomRun=null;state.pomConf={};
@@ -233,9 +237,9 @@
     placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:2},0);
     var g=slotDiOggi("SCH");
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
-    pomAdvance(true);                       /* sessione: chiude il blocco */
+    fine();                       /* sessione: chiude il blocco */
     var pausa=state.pomRun&&state.pomRun.phase==="break";
-    pomAdvance(true);                       /* fine pausa: niente più, si ferma */
+    fine();                       /* fine pausa: niente più, si ferma */
     var fermo=state.pomRun===null;
     state.pomConf={};
     return (pausa&&fermo)?true:"la pausa è partita: "+pausa+", timer fermo: "+fermo;});
@@ -246,7 +250,7 @@
     placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:2},0);
     var g=slotDiOggi("SCH");
     pomStart("SCH",[{date:g.date,start:g.start,lane:g.lane}]);
-    pomAdvance(true);pomAdvance(true);
+    fine();fine();
     var m=0;Object.keys(state.log).forEach(function(k2){
       Object.keys(state.log[k2]).forEach(function(f){m+=state.log[k2][f];});});
     state.pomConf={};
