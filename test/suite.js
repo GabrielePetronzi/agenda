@@ -287,24 +287,26 @@
     items().filter(function(o){return o.kind==="c"&&o.ob;}).forEach(function(o){
       if(o.alt){if(v[o.alt])return;v[o.alt]=1;}s+=o.cfu;});
     return eq(s,102);});
-  t("superato senza le ore non porta CFU",function(){
+  t("superato porta i CFU anche senza le ore previste",function(){
     state.pass={};state.pass["c:1009070"]=1;
     var f=cfuFatti();
-    return (f.tot===0&&f.attesa===1)?true:"CFU="+f.tot+" in attesa="+f.attesa;});
-  t("superato con le ore porta i CFU",function(){
+    return (f.tot===6&&!f.attesa)?true:"CFU="+f.tot+" in attesa="+f.attesa;});
+  t("le ore oltre le previste fanno andare la percentuale oltre il cento",function(){
     var id="c:1009070",serve=targetH(6)*PERQ,messe=0;
-    for(var w=0;w<60&&messe<serve;w++)for(var d=0;d<7&&messe<serve;d++){
+    for(var w=0;w<60&&messe<serve+8;w++)for(var d=0;d<7&&messe<serve+8;d++){
       var day=iso(addDays(parse(G[0]),w*7+d));
-      for(var j=0;j<HOURS.length-1&&messe<serve;j+=2){var sl=HOURS[j];
+      for(var j=0;j<HOURS.length-1&&messe<serve+8;j+=2){var sl=HOURS[j];
         placeRun(day,sl,{i:id,a:"LET",len:2,done:1},0);messe+=2;}}
-    var f=cfuFatti();
-    return (f.tot===6&&f.attesa===0)?true:"CFU="+f.tot+" in attesa="+f.attesa+
-      " ore="+(oreFatte(id)/PERQ);});
+    picklist();
+    var riga=[].filter.call(document.querySelectorAll(".picklist .prow"),function(r){
+      return /Big data/.test(r.textContent);})[0];
+    var pct=riga?riga.querySelector(".ph").childNodes[0].textContent:"";
+    state.pass={};
+    return (parseInt(pct,10)>100)?true:"la percentuale dice "+pct+" con "+(oreFatte(id)/PERQ)+" h su "+targetH(6);});
   t("le due lingue contano una volta sola",function(){
-    state.pass["c:1010779"]=1;state.pass["c:1007808"]=1;
-    var a=cfuFatti();
-    /* nessuna delle due ha le ore: devono restare in attesa, ma una sola */
-    return eq(a.attesa,1,"in attesa ");});
+    state.pass={};state.pass["c:1010779"]=1;state.pass["c:1007808"]=1;
+    var a=cfuFatti();state.pass={};
+    return eq(a.tot,3,"CFU delle lingue ");});
   t("un piano senza materie a scelta fa una barra sola",function(){
     var salva=COURSES[1],salva2=COURSES[2];
     COURSES[1]=[{c:"9001",n:"Pedagogia",k:"Pedagogia",p:1,u:12},
@@ -561,7 +563,7 @@
       "6→"+targetH(6)+" 9→"+targetH(9)+" 0→"+targetH(0);});
   t("i CFU a scelta oltre il richiesto non contano",function(){
     pulisci();apri();
-    /* tre materie a scelta superate con le ore: 18 CFU, il tetto è 18 */
+    /* tre materie a scelta superate: 18 CFU, il tetto è 18 */
     var sc=items().filter(function(o){return o.kind==="c"&&!o.ob;});
     sc.forEach(function(o,idx){
       state.pass[o.id]=1;

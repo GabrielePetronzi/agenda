@@ -137,18 +137,16 @@
     out.push(A.short+": "+Math.round(oreA)+" h su "+tg+" richieste, esame superato → "+(cfuOk(A)?A.cfu+" CFU":"niente")+
       " · "+B.short+": "+Math.round(oreB)+" h, superato → "+(cfuOk(B)?B.cfu+" CFU":"in attesa delle ore")+
       " · "+C.short+": "+Math.round(oreC)+" h, non superato → "+(cfuOk(C)?"CFU?!":"niente"));
-    out.push(D.short+": "+Math.round(oreD)+" h su "+targetH(D.cfu)+", superato → "+(cfuOk(D)?"CFU?!":"in attesa delle ore"));
+    out.push(D.short+": "+Math.round(oreD)+" h su "+targetH(D.cfu)+", superato → "+(cfuOk(D)?D.cfu+" CFU (le ore sono una stima, non una condizione)":"NIENTE?!"));
     out.push("CFU conseguiti: "+(cfu.ob+cfu.sc)+" · in attesa: "+cfu.attesa);
     if(lezFatte!==lezioni)g("non tutte le lezioni si sono spuntate da sole");
-    if(oreA<tg)g(A.short+" doveva arrivare alle ore richieste ("+Math.round(oreA)+"/"+tg+")");
-    if(!cfuOk(A))g("esame superato con le ore fatte, ma niente CFU");
-    if(oreB<tg&&cfuOk(B))g("CFU dati a "+B.short+" senza le ore");
-    if(oreB>=tg&&!cfuOk(B))g(B.short+" ha le ore e l'esame ma niente CFU");
+    if(!cfuOk(A))g("esame superato, ma niente CFU");
+    if(!cfuOk(B))g(B.short+" superato ma niente CFU");
     if(cfuOk(C))g("CFU dati a un esame non superato");
-    if(cfuOk(D))g("CFU dati a "+D.short+" con "+Math.round(oreD)+" ore su "+targetH(D.cfu));
-    var attesi=(cfuOk(A)?A.cfu:0)+(cfuOk(B)?B.cfu:0);
+    if(!cfuOk(D))g(D.short+" superato con poche ore: i CFU devono arrivare lo stesso");
+    var attesi=A.cfu+B.cfu+D.cfu;
     if(cfu.ob+cfu.sc!==attesi)g("CFU conseguiti "+(cfu.ob+cfu.sc)+" invece di "+attesi);
-    if(cfu.attesa!==1)g("in attesa "+cfu.attesa+" invece di 1 ("+D.short+")");
+    if(cfu.attesa)g("qualcosa risulta in attesa delle ore, che non esiste piu'");
     /* tornando al semestre le sue mezz'ore ci sono ancora */
     state.ctx="1";var semDopo=0;for(var q3=0;q3<SESSIONE;q3++)runsOf(giorno(q3)).forEach(function(x){semDopo+=x.len;});
     if(!semDopo)g("tornando al semestre le sue mezz'ore non ci sono piu'");

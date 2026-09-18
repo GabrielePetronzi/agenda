@@ -1534,11 +1534,12 @@ function oreFatte(id){
 /* Un esame porta i suoi CFU quando tutt'e due le cose sono vere: le ore
    previste fatte e l'esame superato. Superato da solo non basta, e le ore da
    sole nemmeno. */
-function cfuOk(o){
-  if(!(state.pass||{})[o.id])return false;
-  const tgt=targetH(o.cfu);
-  return !tgt||oreFatte(o.id)/PERQ>=tgt;
-}
+/* I CFU li porta l'esame superato, e basta: lo dici tu con "Superato". Le ore
+   previste sono una stima per organizzarsi, non una condizione — e se ne fai
+   di piu' la percentuale va oltre il cento, che e' la verita'. Prima i CFU
+   aspettavano anche le ore, e un esame dato bene dopo meno studio del previsto
+   restava "in attesa" per sempre. */
+function cfuOk(o){return !!(state.pass||{})[o.id];}
 /* Le materie "in sessione" non ci sono piu': erano un secondo filtro sopra ai
    grafici, e i grafici gia' guardano solo le materie che hai messo negli slot
    — che e' la stessa domanda, fatta ai fatti invece che a una dichiarazione.
@@ -1551,7 +1552,6 @@ function cfuFatti(){
     if(!p[id])return;
     const o=m[id];if(!o||o.kind!=="c")return;
     if(o.alt){if(visti[o.alt])return;visti[o.alt]=1;}
-    if(!cfuOk(o)){attesa++;return;}     /* superato ma le ore non ci sono */
     n++;
     if(o.ob||!P.due)ob+=o.cfu||0;else sc+=o.cfu||0;
   });
@@ -1727,7 +1727,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="18 set 2026 · d";
+const VERSIONE="18 set 2026 · e";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2767,11 +2767,7 @@ function picklist(){
       /* dal manifesto: quelle senza ob sono a scelta, e vale la pena saperlo
          guardando l'elenco, non aprendo l'editor */
       (o.kind==="c"&&!o.ob&&distingue?'<em class="opz">a scelta</em>':"")+
-      /* Superato ma senza le ore non porta CFU: dirlo, se no è di nuovo un
-         numero che non si muove e non si sa perché. */
-      (fatta?(cfuOk(o)?'<em style="color:var(--done)">superato · '+o.cfu+' CFU</em>'
-        :'<em style="color:var(--warn)">superato · mancano '+
-          ore(Math.max(0,targetH(o.cfu)*PERQ-oreFatte(o.id)))+' h</em>'):"")+
+      (fatta?'<em style="color:var(--done)">superato · '+o.cfu+' CFU</em>':"")+
       (note[o.id]?'<em style="color:var(--action)">'+note[o.id]+" in nota</em>":"")+
       /* La data d'esame sta qui, attaccata alla materia: e' la prima cosa che
          si cerca dopo aver aggiunto una materia, e mandarla a cercare in un
@@ -2890,7 +2886,7 @@ function cfuBar(){
   box.innerHTML=
     '<span class="n"><b>'+f.tot+'</b><u>su '+P.tot+" CFU · "+f.n+
       (f.n===1?" esame":" esami")+
-      (f.attesa?" · "+f.attesa+" senza le ore":"")+'</u></span>'+
+      '</u></span>'+
     '<span class="cfb">'+pezzo(f.ob,P.obb,"ob")+(P.due?pezzo(f.sc,P.sce,"sc"):"")+"</span>"+
     (P.due?'<span class="leg"><u>obbligatori '+f.ob+"/"+P.obb+"</u>"+
       '<u class="sc">a scelta '+f.sc+"/"+P.sce+"</u></span>":"");
