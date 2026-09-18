@@ -1584,9 +1584,7 @@ function anni(){return Object.keys(COURSES).map(Number).sort((a,b)=>a-b);}
    ritrova tutto. */
 const PIANI={
   LM18:{
-    /* archivio: non si sceglie piu', ma i blocchi che ci stavano restano
-       salvati sotto il suo nome */
-    nome:"Scienze Informatiche (LM-18)",cfu:120,nascosto:true,
+    nome:"Scienze Informatiche (LM-18)",cfu:120,
     ctx:{
       "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-21"},
       "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"},
@@ -1729,9 +1727,9 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="15 set 2026 · e";
+const VERSIONE="18 set 2026 · a";
 const KEY="piano-6272-v5";
-let state={v:6,theme:"dark",piano:"SDE",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
+let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
            pomConf:null,pomRun:null,pomLog:null,log:{},dayFrom:8,dayTo:24,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
@@ -2319,7 +2317,14 @@ function migrate(d){
     if(!PIANI[d.piano]||PIANI[d.piano].nascosto){state.piano=PIANO_BASE;state.year=1;state.ctx="1";state.anchor={};}
     moved++;
   }
-  state.v=6;
+  /* v7: si torna a Scienze Informatiche. Tutt'e due i piani restano dentro
+     e si scelgono dal menu; le mezz'ore di ciascuno stanno sotto il suo nome
+     e non si perdono cambiando. Questo passaggio sposta solo il piano
+     aperto, una volta. */
+  if(!d.v||d.v<7){
+    state.piano="LM18";state.year=1;state.ctx="1";state.anchor={};moved++;
+  }
+  state.v=7;
   if(moved)save();
 }
 

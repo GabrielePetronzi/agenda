@@ -273,7 +273,7 @@
      informatica: obbligatorie, a scelta, le due lingue che valgono una volta
      sola. Il piano di casa adesso e' un altro, quindi per la durata di questa
      sezione si passa all'archivio e alla fine si torna. */
-  cambiaPiano("LM18");it=items();pulisci();apri();
+  pulisci();apri();
   t("la classificazione del manifesto è quella giusta",function(){
     var c=items().filter(function(o){return o.kind==="c";});
     var ob=c.filter(function(o){return o.ob;}).length;
@@ -310,7 +310,6 @@
     COURSES[1]=salva;COURSES[2]=salva2;
     return (P.due===false&&P.tot===27)?true:"due="+P.due+" tot="+P.tot+" (attesi false e 27)";});
 
-  cambiaPiano("SDE");it=items();pulisci();apri();
   /* ---------- elenco materie ---------- */
   pulisci();apri();
   t("la percentuale conta le ore messe in piano",function(){
@@ -556,7 +555,6 @@
   t("il monte ore è venticinque ore per CFU",function(){
     return (targetH(6)===150&&targetH(9)===225&&targetH(0)===0)?true:
       "6→"+targetH(6)+" 9→"+targetH(9)+" 0→"+targetH(0);});
-  cambiaPiano("LM18");it=items();   /* controllo scritto sul manifesto di informatica */
   t("i CFU a scelta oltre il richiesto non contano",function(){
     pulisci();apri();
     /* tre materie a scelta superate con le ore: 18 CFU, il tetto è 18 */
@@ -571,7 +569,6 @@
     });
     var f=cfuFatti();
     return (f.sc===18&&f.sc<=f.piano.sce)?true:"a scelta contati "+f.sc+" su "+f.piano.sce;});
-  cambiaPiano("SDE");it=items();
   t("le ore senza il superato non bastano",function(){
     var o=items().filter(function(x){return x.kind==="c"&&!x.ob;})[0];
     delete state.pass[o.id];
@@ -1273,7 +1270,6 @@
     var altro=runAt(oggi,ORA,1);
     state.pomRun=null;
     return eq(!!(altro&&altro.done),false,"ha spuntato il ripasso: ");});
-  cambiaPiano("LM18");it=items();   /* controllo scritto sul manifesto di informatica */
   t("le due lingue insieme valgono tre CFU, non sei",function(){
     pulisci();apri();
     var m=map(),ids=["c:1010779","c:1007808"];
@@ -1288,7 +1284,6 @@
     });
     var f=cfuFatti();
     return eq(f.tot,3,"CFU contati ");});
-  cambiaPiano("SDE");it=items();
   t("un blocco a cavallo di due giorni non esiste: si ferma a fine giornata",function(){
     pulisci();apri();
     var ultimo=HOURS[HOURS.length-1];
@@ -1697,16 +1692,17 @@
     if(!r)return "il blocco non c'e'";
     if(!m||m.kind!=="g")return "la NASPI non e' una voce di servizio";
     return daSola("NAS")?true:"la NASPI non si spunta da sola quando l'ora passa";});
-  t("il piano e' Scienze dell'Educazione, dal 21 settembre, e informatica sta in archivio",function(){
+  t("il piano aperto e' Scienze Informatiche, dal 21 settembre, e l'altro si sceglie dal menu",function(){
     pulisci();apri();
-    var sde=allCourses().some(function(o){return /Pedagogia generale/i.test(o.name);});
+    var inf=allCourses().some(function(o){return /Big data/i.test(o.name);});
     var tot=pianoCfu().tot,ini=CTX["1"].start;
     var seg=document.getElementById("segPiano");
-    if(!sde)return "nel piano non c'e' Pedagogia generale";
-    if(tot!==180)return "i CFU del piano sono "+tot;
+    if(state.piano!=="LM18")return "il piano aperto e' "+state.piano;
+    if(!inf)return "nel piano non c'e' Big data";
+    if(tot!==120)return "i CFU del piano sono "+tot;
     if(ini!=="2026-09-21")return "il primo semestre parte il "+ini;
-    if(seg&&!seg.hidden)return "il selettore del piano e' visibile, ma il piano e' uno solo";
-    return eq(anni().length,3,"anni di corso ");});
+    if(!seg||seg.hidden)return "il selettore del piano non si vede";
+    return eq(seg.querySelectorAll("button").length,2,"piani nel menu ");});
   t("la settimana dal 14 al 20 settembre viene tolta da tutti i piani, una volta",function(){
     pulisci();apri();
     var d=JSON.parse(payload());d.v=5;delete d.piano;
@@ -1731,21 +1727,21 @@
     adopt(d);apri();
     var inf=state.cells["LM18."+k1],lav=state.cells[k2];
     var vis=runsOf(g0).length;
-    if(!inf)return "la mezz'ora di informatica non e' finita in archivio: "+Object.keys(state.cells).join(",");
+    if(!inf)return "la mezz'ora di informatica non sta sotto il suo nome: "+Object.keys(state.cells).join(",");
     if(!lav)return "la mezz'ora di lavoro si e' spostata";
-    if(vis!==0)return "la materia di informatica si vede nel piano nuovo";
-    return eq(state.piano,"SDE","piano ");});
+    if(vis!==1)return "aperto informatica, la sua mezz'ora non si vede ("+vis+")";
+    return eq(state.piano,"LM18","piano ");});
   t("cambiando piano gli appunti si svuotano e tornando si ritrova tutto",function(){
     pulisci();apri();
     placeRun(G[0],H0,{i:it[0].id,a:"SCH",len:2},0);
     state.blockClip=[{dd:0,ds:0,len:2,i:it[0].id,a:"SCH"}];state.clip={data:{},label:"x",hours:0};
-    cambiaPiano("LM18");
+    cambiaPiano("SDE");
     var vuoti=!state.blockClip&&!state.clip;
-    var qui=Object.keys(state.cells).filter(function(k){return k.indexOf("LM18.")===0;}).length;
-    cambiaPiano("SDE");apri();
+    var qui=Object.keys(state.cells).filter(function(k){return k.indexOf("LM18.")!==0;}).length;
+    cambiaPiano("LM18");apri();
     var dopo=runAt(G[0],H0,0);
     if(!vuoti)return "gli appunti sono rimasti pieni";
-    if(qui)return "in informatica ci sono "+qui+" mezz'ore che non c'erano";
+    if(qui)return "in scienze dell'educazione ci sono "+qui+" mezz'ore che non c'erano";
     return (dopo&&dopo.i===it[0].id)?true:"tornando al piano il blocco non c'e' piu'";});
 
   /* "Svuota settimana", confermato, e i blocchi tornavano: la guardia contro
