@@ -1788,7 +1788,30 @@
       try{var r=x.poi();if(r===true)ok++;else{ko++;T.push("KO · "+x.nome+" · "+r);}}
       catch(e){ko++;T.push("KO · "+x.nome+" · eccezione: "+e.message);}
     });
-    document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
+    /* Un blocco gia' cominciato non ha un promemoria: mentre lo fai, ogni
+     mezz'ora spuntata spezza il resto in un blocco nuovo che "comincia"
+     adesso, e l'avviso "fra 1 minuti" arrivava a ogni mezz'ora di ogni
+     lezione. Trovato simulando un mese intero (test/mese.js). */
+  t("la parte che resta di un blocco cominciato non fa scattare un promemoria",function(){
+    pulisci();apri();
+    /* orologio fermo alle 9:30 di oggi: la lezione 9-11 ha la prima mezz'ora
+       gia' spuntata da sola, il resto "comincia" adesso */
+    var Vero=Date,fisso=new Vero();fisso.setHours(9,30,0,0);
+    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+    var mandati=[],vero=notify;
+    try{
+      window.Date=F;notify=function(t2,b2){mandati.push(t2+" "+b2);};
+      avvisati.clear();
+      var d=iso(new Date());
+      placeRun(d,18,{i:it[0].id,a:"LEZ",len:4},0);
+      var a0=at(ck(d,18)).slice();a0[0].done=1;setAt(ck(d,18),a0);
+      promemoria();
+    }finally{window.Date=Vero;notify=vero;}
+    return mandati.length===0?true:"mandato: "+mandati.join(" | ");});
+
+  document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
   if(rinviati.length)setTimeout(verdetto,400);else verdetto();

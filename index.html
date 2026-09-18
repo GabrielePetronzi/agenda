@@ -1727,7 +1727,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="18 set 2026 · b";
+const VERSIONE="18 set 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3269,6 +3269,13 @@ function promemoria(){
   const adesso=n.getHours()*60+n.getMinutes();
   runsOf(oggi).forEach(r=>{
     if(r.v.done||r.v.a==="LAV"||r.v.a==="NAS")return;
+    /* Un blocco gia' cominciato non ha un promemoria: mentre lo fai, ogni
+       mezz'ora spuntata spezza il resto in un blocco nuovo che "comincia"
+       adesso, e l'avviso "fra 1 minuti" arrivava a ogni mezz'ora di ogni
+       lezione — quattrocento in un mese. Il pezzo di prima, stessa materia e
+       stessa attivita' sulla stessa corsia, dice che e' una continuazione. */
+    const prima=at(ck(oggi,r.start-1))[r.lane];
+    if(prima&&prima.i===r.v.i&&prima.a===r.v.a)return;
     const manca=r.start*(60/PERQ)-adesso;
     if(manca<0||manca>PREAVVISO)return;
     const k=oggi+"."+r.start+"."+r.lane;
