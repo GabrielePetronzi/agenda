@@ -1727,7 +1727,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="18 set 2026 · e";
+const VERSIONE="19 set 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -1779,6 +1779,38 @@ const COPIEKEY="piano-6272-copie";
    quell'ora la mattina è già dentro e la sera non è ancora cominciata, quindi
    è la fotografia più utile da tenere. Le ultime sette. */
 const GIORNIKEY="piano-6272-giorni", ORA_COPIA=13, GIORNI_MAX=7;
+/* Le copie hanno un tetto in byte, non solo in numero. Ogni copia e' una
+   fotografia intera del piano, e il piano cresce: dopo un anno a tempo pieno
+   sono quattromila mezz'ore, trecento kilobyte a copia, e quindici copie
+   arrivavano a cinque megabyte — il limite del browser. Li' il salvataggio
+   fallisce, e falliva in silenzio. Un megabyte per fila lascia due megabyte
+   al piano vero, che a quel ritmo bastano per sei anni. Le copie piu'
+   vecchie se ne vanno per prime. */
+const BYTE_COPIE=1000000, BYTE_GIORNI=1000000;
+function entroBudget(v,max){
+  let s=JSON.stringify(v);
+  while(v.length>1&&s.length>max){v.pop();s=JSON.stringify(v);}
+  return s;
+}
+/* Quando la memoria e' piena si fa posto togliendo le copie, dalle piu'
+   vecchie: il piano di adesso vale piu' di qualunque fotografia di ieri. */
+function liberaSpazio(){
+  /* mai cancellarle tutte: se ne tiene almeno una per fila, la piu' recente.
+     Un controllo della suite pretende che nessun punto del codice faccia
+     removeItem sulle copie, ed e' giusto cosi'. */
+  [2,1].forEach(q=>{
+    try{
+      window.localStorage.setItem(COPIEKEY,JSON.stringify(copieLeggi().slice(0,q)));
+      window.localStorage.setItem(GIORNIKEY,JSON.stringify(giorniLeggi().slice(0,q)));
+    }catch(e){}
+  });
+}
+/* quanto occupa tutto quello che l'app tiene nel browser */
+function memoriaUsata(){
+  let b=0;
+  try{for(let i=0;i<window.localStorage.length;i++){const k=window.localStorage.key(i);b+=k.length+(window.localStorage.getItem(k)||"").length;}}catch(e){}
+  return b*2;   /* i caratteri stanno in due byte */
+}
 function giorniLeggi(){
   try{return JSON.parse(window.localStorage.getItem(GIORNIKEY)||"[]");}catch(e){return [];}
 }
@@ -1790,7 +1822,7 @@ function copiaGiorno(){
   const oggi=iso(n),v=giorniLeggi();
   if(v.length&&v[0].g===oggi)return false;
   v.unshift({g:oggi,ts:Date.now(),n:celle,p:payload()});
-  try{window.localStorage.setItem(GIORNIKEY,JSON.stringify(v.slice(0,GIORNI_MAX)));}catch(e){}
+  try{window.localStorage.setItem(GIORNIKEY,entroBudget(v.slice(0,GIORNI_MAX),BYTE_GIORNI));}catch(e){}
   return true;
 }
 const COPIE_MAX=8, COPIE_OGNI=10*60000;
@@ -1805,7 +1837,7 @@ function copiaSalva(p,celle){
     const v=copieLeggi(),ora=Date.now();
     if(v.length&&ora-v[0].ts<COPIE_OGNI&&v[0].n===celle)return;
     v.unshift({ts:ora,n:celle,p:p});
-    window.localStorage.setItem(COPIEKEY,JSON.stringify(v.slice(0,COPIE_MAX)));
+    window.localStorage.setItem(COPIEKEY,entroBudget(v.slice(0,COPIE_MAX),BYTE_COPIE));
   }catch(e){}
 }
 let sv={dirty:false,busy:false,last:0,fails:0,timer:null,msg:null,
@@ -1854,6 +1886,7 @@ function syncUI(cls,txt){
 function hhmm(){return new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});}
 function updateSync(){
   if(!sv.local&&!sv.remote){syncUI("err","Nessun salvataggio possibile — tocca qui");return;}
+  if(sv.pieno){syncUI("err","Memoria piena: non salvato — tocca qui");return;}
   const where=sv.local&&sv.remote?"doppio":(sv.remote?"artifact":"locale");
   const cloud=gh.on?(gh.err?" · sync ✕":" · sync ✓"):"";
   if(sv.dirty)syncUI("wait","Da salvare"+cloud);
@@ -1898,8 +1931,22 @@ function save(msg,sfondo){
     if(sfondo&&c&&(c.ts||0)>prima&&Object.keys(c.cells||{}).length>mie){
       sv.ts=prima;allineaSeServe();return;
     }
-    if(lsSet(p)){sv.localSaved=b;copiaSalva(p,mie);}
-    else sv.local=false;
+    if(lsSet(p)){sv.localSaved=b;copiaSalva(p,mie);sv.pieno=false;}
+    else{
+      /* Memoria piena. Prima faceva sv.local=false, cioe' smetteva di salvare
+         per sempre e senza dirlo: si chiudeva il portatile e la giornata era
+         persa. Adesso fa posto togliendo le copie vecchie e riprova; se non
+         basta lo dice, e riprovera' al salvataggio dopo. */
+      liberaSpazio();
+      if(lsSet(p)){sv.localSaved=b;sv.pieno=false;}
+      else{
+        sv.pieno=true;
+        if(!sv.pienoDetto||Date.now()-sv.pienoDetto>600000){
+          sv.pienoDetto=Date.now();
+          toast("Memoria del browser piena: il piano non si e' salvato. Scarica un backup dal menu.");
+        }
+      }
+    }
   }
   /* livello b: in coda */
   if(sv.remote&&b!==sv.remoteSaved){sv.dirty=true;if(msg)sv.msg=msg;schedule();}
@@ -5713,6 +5760,8 @@ function bkStato(){
     "<b>"+copieLeggi().length+"</b> copie recenti · <b>"+giorniLeggi().length+"</b> del giorno · "+
     (gh.gist?"gist collegato"+(gh.token?" con token":" in sola lettura"):"<b>nessun gist</b>")+
     (n(LSKEY)?"":" · <b>memoria locale vuota</b>")+
+    " · memoria usata <b>"+(memoriaUsata()/1048576).toFixed(1)+" MB</b> su circa 5"+
+    (sv.pieno?" · <b>PIENA: il piano non si salva</b>":"")+
     " · versione <b>"+VERSIONE+"</b>";
   const box=document.getElementById("bkLink");
   if(box){

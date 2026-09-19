@@ -1841,6 +1841,44 @@
     var off=armMove?armMove.off:null;armMove=null;
     return eq(off,2,"presa a due mezz'ore dall'inizio: ");});
 
+  /* Dopo un anno a tempo pieno le copie di sicurezza arrivavano a cinque
+     megabyte, il limite del browser, e il salvataggio si spegneva per
+     sempre in silenzio. Trovato con test/anno.js. */
+  t("le copie di sicurezza stanno dentro un tetto in byte",function(){
+    pulisci();apri();
+    try{localStorage.removeItem(COPIEKEY);}catch(e){}
+    /* un piano grosso: quattromila mezz'ore */
+    for(var w=0;w<30;w++)for(var d=0;d<7;d++)for(var j=0;j<HOURS.length;j+=2)
+      placeRun(iso(addDays(parse(G[0]),w*7+d)),HOURS[j],{i:it[(w+d)%it.length].id,a:"LET",len:2,n:"nota"},0);
+    var p=payload();
+    for(var k=0;k<10;k++){sv.ts=Date.now()+k*20*60000;copiaSalva(p,k+1);}
+    var L=(localStorage.getItem(COPIEKEY)||"").length;
+    var quante=copieLeggi().length;
+    state.cells={};
+    return (L<=BYTE_COPIE&&quante>=1)?true:"le copie occupano "+L+" caratteri ("+quante+" copie), il tetto e' "+BYTE_COPIE;});
+  t("a memoria piena si fa posto e si riprova, e se non basta lo si dice",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"SCH",len:2},0);
+    var vero=Storage.prototype.setItem,detti=[],vt=toast;toast=function(m){detti.push(m);};
+    var pieno=true;
+    /* la memoria rifiuta tutto finche' le copie non sono state ridotte */
+    Storage.prototype.setItem=function(k,v){
+      if(pieno&&k===LSKEY)throw new Error("QuotaExceededError");
+      if(k===COPIEKEY&&JSON.parse(v).length<=2)pieno=false;   /* fatto posto */
+      return vero.call(this,k,v);};
+    try{
+      sv.localSaved=null;sv.pieno=false;
+      save("prova");
+      var salvato=!sv.pieno&&JSON.parse(localStorage.getItem(LSKEY)).cells[ck(G[0],H0)];
+      /* e se davvero non c'e' verso */
+      pieno=true;Storage.prototype.setItem=function(k,v){if(k===LSKEY)throw new Error("QuotaExceededError");return vero.call(this,k,v);};
+      sv.localSaved=null;sv.pienoDetto=0;
+      placeRun(G[1],H0,{i:it[0].id,a:"SCH",len:2},0);save("prova");
+      var detto=sv.pieno&&detti.some(function(m){return /piena/i.test(m);});
+    }finally{Storage.prototype.setItem=vero;toast=vt;sv.pieno=false;}
+    if(!salvato)return "dopo aver fatto posto il salvataggio non e' andato";
+    return detto?true:"a memoria davvero piena nessuno l'ha detto (pieno="+sv.pieno+", toast="+detti.join("|")+")";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
