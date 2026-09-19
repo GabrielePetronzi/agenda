@@ -1727,7 +1727,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="19 set 2026 · a";
+const VERSIONE="19 set 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5280,8 +5280,9 @@ function laneFromEvent(e,td){
 }
 function wire(t){
   t.addEventListener("pointerdown",e=>{
-    /* maniglia: allunga o accorcia */
-    if(e.target.classList&&e.target.classList.contains("rsz")){
+    /* maniglia: allunga o accorcia — ma non con Cancella acceso: li' il
+       bordo di sotto e' una mezz'ora da togliere come le altre */
+    if(e.target.classList&&e.target.classList.contains("rsz")&&!state.erase){
       const bl=e.target.closest(".blk");
       const r=runAt(bl.dataset.date,+bl.dataset.start,+bl.dataset.lane);
       if(r){e.preventDefault();e.stopPropagation();rz=r;}
@@ -5483,11 +5484,11 @@ function slotAtY(dateIso,y){
 }
 window.addEventListener("pointermove",e=>{
   if(rz){
-    const el=document.elementFromPoint(e.clientX,e.clientY);
-    let td=el&&el.closest&&el.closest("td.c");
-    /* il blocco resta nel suo giorno: se il dito esce dalla colonna, o dalla
-       griglia, si prende comunque lo slot all'altezza a cui è arrivato */
-    if(!td||td.dataset.date!==rz.date)td=slotAtY(rz.date,e.clientY);
+    /* Solo l'altezza del dito, sempre. Chiedere all'elemento sotto il
+       puntatore dava il blocco stesso, che vive nella sua prima casella: ogni
+       posizione sopra il blocco valeva "prima casella", e accorciarlo da
+       quattro mezz'ore a tre lo faceva saltare a una. */
+    const td=slotAtY(rz.date,e.clientY);
     if(!td)return;
     let nl=(+td.dataset.h)-rz.start+1;
     nl=Math.max(1,Math.min(HOURS[HOURS.length-1]-rz.start+1,nl));

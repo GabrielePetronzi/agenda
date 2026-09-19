@@ -1879,6 +1879,32 @@
     if(!salvato)return "dopo aver fatto posto il salvataggio non e' andato";
     return detto?true:"a memoria davvero piena nessuno l'ha detto (pieno="+sv.pieno+", toast="+detti.join("|")+")";});
 
+  /* Accorciare un blocco dalla maniglia: ogni posizione del dito sopra il
+     blocco valeva "prima casella", e da quattro mezz'ore saltava a una. */
+  t("accorciare dalla maniglia segue il dito, non salta a una mezz'ora",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"LEZ",len:4},0);render();
+    var bl=document.querySelector('.blk[data-date="'+G[0]+'"]'),rz0=bl.querySelector(".rsz");
+    var terza=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+(H0+6)+'"]').getBoundingClientRect();
+    var r=rz0.getBoundingClientRect();lastTap={sig:null,t:0};
+    rz0.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,cancelable:true,pointerId:1,clientX:r.left+5,clientY:r.top+2,buttons:1,isPrimary:true}));
+    /* il dito sale fino a meta' della terza mezz'ora: il blocco deve diventare da tre */
+    window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:1,clientX:r.left+5,clientY:terza.top+terza.height/2,buttons:1,isPrimary:true}));
+    window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
+    var q=runAt(G[0],H0+4,0);
+    return (q&&q.len===3)?true:"il blocco e' lungo "+(q?q.len:"—")+" invece di 3";});
+  t("con Cancella acceso il bordo di sotto e' una mezz'ora da togliere, non una maniglia",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"LEZ",len:4},0);render();
+    var bl=document.querySelector('.blk[data-date="'+G[0]+'"]'),rz0=bl.querySelector(".rsz");
+    var r=rz0.getBoundingClientRect();lastTap={sig:null,t:0};
+    state.erase=true;state.brush=it[0].id;
+    rz0.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,cancelable:true,pointerId:1,clientX:r.left+5,clientY:r.top+2,buttons:1,isPrimary:true}));
+    window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
+    state.erase=false;
+    var c=[H0+4,H0+5,H0+6,H0+7].map(function(sl){return at(ck(G[0],sl))[0]?"■":"□";}).join("");
+    return c==="■■■□"?true:"dopo il tocco sul bordo di sotto il blocco e' "+c+" (atteso ■■■□)";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
