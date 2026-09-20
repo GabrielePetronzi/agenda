@@ -1953,6 +1953,18 @@
     if(!ok)return "segnata "+(segnata?segnata.dataset.h:"nessuna")+" invece di "+(H0+7)+" · etichetta: \""+fl+"\" vicino al puntatore: "+vicino;
     return pulito?true:"spento Cancella, il segno e' rimasto";});
 
+  t("con Cancella acceso i blocchi non hanno il fumetto del browser",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"LEZ",len:4},0);render();
+    var con=document.querySelector('.blk[data-date="'+G[0]+'"]').title;
+    document.getElementById("eraseBtn").click();
+    var senza=document.querySelector('.blk[data-date="'+G[0]+'"]').title;
+    document.getElementById("eraseBtn").click();
+    var di_nuovo=document.querySelector('.blk[data-date="'+G[0]+'"]').title;
+    if(!con)return "senza Cancella il fumetto manca";
+    if(senza)return "con Cancella il fumetto c'e' ancora: "+senza;
+    return di_nuovo?true:"spento Cancella il fumetto non torna";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }

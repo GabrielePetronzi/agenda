@@ -1743,7 +1743,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="20 set 2026 · c";
+const VERSIONE="20 set 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4989,7 +4989,9 @@ function drawDay(dateIso,scope){
         "<em>"+(striscia?testa
                 :'<span class="l1">'+testa+"</span>"+nota+'<span class="tr"></span>')+
         "</em>"+'<span class="rsz"></span>';
-      bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
+      /* con Cancella acceso il fumetto del browser starebbe sotto l'etichetta
+         rossa e direbbe un'altra cosa: l'intero blocco invece della mezz'ora */
+      if(!state.erase)bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
         (r.v.n?" ("+r.v.n+")":"")+(r.v.done?" · fatto":"");
       td.setAttribute("aria-label",
         (td.dataset.lab||"")+" — "+o.name+", "+a.n+", fino alle "+
