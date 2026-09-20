@@ -517,6 +517,14 @@ body.erasing td.c{cursor:cell}
 td.c.mira{position:relative}
 td.c.mira::after{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;
   box-shadow:inset 0 0 0 2px var(--warn);background:rgba(224,115,106,.22);border-radius:3px}
+/* l'etichetta attaccata al puntatore: l'ora della mezz'ora che stai per
+   togliere, dove hai gia' gli occhi. La fascetta in cima obbligava a
+   guardare su e giu'. */
+.miralbl{position:fixed;z-index:96;pointer-events:none;display:none;
+  padding:4px 8px;border-radius:5px;background:var(--warn);color:#fff;
+  font-family:"DM Mono",monospace;font-size:11px;white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.miralbl.on{display:block}
 tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
 
 /* blocchi */
@@ -1735,7 +1743,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="20 set 2026 · b";
+const VERSIONE="20 set 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5472,24 +5480,29 @@ window.addEventListener("pointercancel",()=>{if(sd)sdEnd(false);});
    e la fascetta in cima dice quale: senza, sopra a un blocco da tre ore non
    si capiva su quale delle sei si stesse per cliccare. */
 let mirata=null;
-function mira(el,y){
+function miraLbl(){
+  let l=document.getElementById("miraLbl");
+  if(!l){l=document.createElement("div");l.id="miraLbl";l.className="miralbl";document.body.appendChild(l);}
+  return l;
+}
+function mira(el,y,x){
   const td=state.erase?cellaSotto(el,y):null;
+  const l=miraLbl();
+  if(td&&x!=null){l.style.left=(x+14)+"px";l.style.top=(y+16)+"px";}
   if(td===mirata)return;
   if(mirata)mirata.classList.remove("mira");
   mirata=td;
   if(mirata)mirata.classList.add("mira");
-  const fl=document.getElementById("modeflag");
-  if(fl&&state.erase){
-    if(td){
-      const r=anyRunAt(td.dataset.date,+td.dataset.h),m=map();
-      fl.textContent="Cancella · "+slotTime(+td.dataset.h)+"–"+slotTime(+td.dataset.h+1)+
-        (r&&m[r.i]?" · "+m[r.i].short+", "+actOf(r.a).n.toLowerCase():" · vuota")+" · Esc per uscire";
-    }else fl.textContent="Cancella — tocca le mezz'ore da togliere · Esc per uscire";
-  }
+  if(td){
+    const r=anyRunAt(td.dataset.date,+td.dataset.h),m=map();
+    l.textContent=slotTime(+td.dataset.h)+"–"+slotTime(+td.dataset.h+1)+
+      (r&&m[r.i]?" · "+m[r.i].short:"");
+    l.classList.add("on");
+  }else l.classList.remove("on");
 }
 window.addEventListener("pointermove",e=>{
   if(!state.erase){if(mirata)mira(null,0);return;}
-  mira(document.elementFromPoint(e.clientX,e.clientY),e.clientY);
+  mira(document.elementFromPoint(e.clientX,e.clientY),e.clientY,e.clientX);
 });
 window.addEventListener("pointerleave",()=>mira(null,0));
 /* la cella della colonna di un giorno che sta all'altezza del puntatore:

@@ -1935,18 +1935,22 @@
 
   /* Con Cancella acceso, sopra a un blocco da tre ore si deve vedere quale
      delle sei mezz'ore si sta per togliere. */
-  t("con Cancella acceso il puntatore segna la mezz'ora sotto di se'",function(){
+  t("con Cancella acceso l'ora della mezz'ora sta attaccata al puntatore",function(){
     pulisci();apri();clearSel();
     placeRun(G[0],H0+4,{i:it[0].id,a:"LEZ",len:6},0);render();
     state.erase=true;gridModes();modeFlag();
     var bl=document.querySelector('.blk[data-date="'+G[0]+'"]'),rb=bl.getBoundingClientRect();
     var c=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+(H0+7)+'"]').getBoundingClientRect();
     window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:1,clientX:rb.left+rb.width/2,clientY:c.top+c.height/2,isPrimary:true}));
-    var segnata=document.querySelector("td.c.mira"),fl=document.getElementById("modeflag").textContent;
-    var ok=segnata&&segnata.dataset.date===G[0]&&+segnata.dataset.h===H0+7&&fl.indexOf(slotTime(H0+7))>=0;
+    var segnata=document.querySelector("td.c.mira"),lbl=document.getElementById("miraLbl");
+    var fl=lbl?lbl.textContent:"";
+    var vicino=lbl&&lbl.classList.contains("on")&&Math.abs(parseFloat(lbl.style.left)-(rb.left+rb.width/2))<40&&
+      Math.abs(parseFloat(lbl.style.top)-(c.top+c.height/2))<40;
+    var ok=segnata&&segnata.dataset.date===G[0]&&+segnata.dataset.h===H0+7&&fl.indexOf(slotTime(H0+7))>=0&&vicino;
     state.erase=false;gridModes();
-    var pulito=!document.querySelector("td.c.mira");
-    if(!ok)return "segnata "+(segnata?segnata.dataset.h:"nessuna")+" invece di "+(H0+7)+" · fascetta: "+fl;
+    window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:1,clientX:rb.left+rb.width/2,clientY:c.top+c.height/2,isPrimary:true}));
+    var pulito=!document.querySelector("td.c.mira")&&!(lbl&&lbl.classList.contains("on"));
+    if(!ok)return "segnata "+(segnata?segnata.dataset.h:"nessuna")+" invece di "+(H0+7)+" · etichetta: \""+fl+"\" vicino al puntatore: "+vicino;
     return pulito?true:"spento Cancella, il segno e' rimasto";});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
