@@ -1905,6 +1905,34 @@
     var c=[H0+4,H0+5,H0+6,H0+7].map(function(sl){return at(ck(G[0],sl))[0]?"■":"□";}).join("");
     return c==="■■■□"?true:"dopo il tocco sul bordo di sotto il blocco e' "+c+" (atteso ■■■□)";});
 
+  /* Cancella resta acceso: la seconda mezz'ora in mezzo a un blocco si toglie
+     col secondo tocco, senza riaccendere niente. Prima si spegneva al primo
+     rilascio e il secondo tocco selezionava. */
+  t("con Cancella acceso si tolgono piu' mezz'ore una dopo l'altra",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"LEZ",len:6},0);render();
+    document.getElementById("eraseBtn").click();
+    function tocca(sl){
+      var bl=[].filter.call(document.querySelectorAll('.blk[data-date="'+G[0]+'"]'),function(b){
+        var s=+b.dataset.start,r=runAt(G[0],s,0);return r&&sl>=s&&sl<s+r.len;})[0];
+      var c=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+sl+'"]').getBoundingClientRect();
+      var rb=bl.getBoundingClientRect();lastTap={sig:null,t:0};
+      var el=document.elementFromPoint(rb.left+rb.width/2,c.top+c.height/2)||bl;
+      el.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,cancelable:true,pointerId:1,clientX:rb.left+rb.width/2,clientY:c.top+c.height/2,buttons:1,isPrimary:true}));
+      window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
+    }
+    tocca(H0+6);var accesoDopo=state.erase;tocca(H0+8);
+    var c=[H0+4,H0+5,H0+6,H0+7,H0+8,H0+9].map(function(sl){return at(ck(G[0],sl))[0]?"■":"□";}).join("");
+    var sel=Object.keys(selRuns).length;
+    state.erase=false;gridModes();
+    if(!accesoDopo)return "dopo il primo tocco Cancella si e' spento";
+    if(sel)return "il secondo tocco ha selezionato invece di cancellare";
+    return c==="■■□■□■"?true:"il blocco e' "+c+" (atteso ■■□■□■)";});
+  t("Esc spegne Cancella",function(){
+    state.erase=true;
+    window.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));
+    return state.erase===false?true:"Cancella e' ancora acceso";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }

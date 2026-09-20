@@ -1727,7 +1727,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="19 set 2026 · b";
+const VERSIONE="20 set 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2225,7 +2225,8 @@ window.addEventListener("keydown",e=>{
   if(k==="?"){e.preventDefault();ksList();
     document.getElementById("ksModal").classList.add("open");return;}
 
-  if(e.key==="Escape"){if(pomPick)pomAskBlock(false);clearSel();}
+  if(e.key==="Escape"){if(pomPick)pomAskBlock(false);clearSel();
+    if(state.erase){state.erase=false;save();tools();status();modeFlag();pomPanel();panels();}}
   else if((e.key==="Delete"||e.key==="Backspace")&&Object.keys(selRuns).length){
     e.preventDefault();deleteSel();
   }
@@ -3104,7 +3105,7 @@ function gridModes(){
   const er=document.getElementById("eraseBtn");
   if(!er)return;
   er.className="btn"+(state.erase?" warnon":"");
-  er.title=state.erase?"Tocca o trascina per svuotare: si spegne quando rilasci"
+  er.title=state.erase?"Tocca o trascina per svuotare · spegni con Cancella, E o Esc"
                       :"Cancella un tratto di slot, per una volta sola";
   /* la griglia cambia carattere secondo quello che sta per succedere */
   document.body.classList.toggle("paint",!state.erase&&!!state.brush);
@@ -3116,14 +3117,14 @@ function modeFlag(){
   if(pomPick){el.className="modeflag on";el.style.background="var(--action)";
     el.textContent="Tocca il blocco su cui avviare il pomodoro";}
   else if(state.erase){el.className="modeflag on";el.style.background="var(--warn)";
-    el.textContent="Cancella un tratto — si spegne quando rilasci";}
+    el.textContent="Cancella — tocca le mezz'ore da togliere · Esc per uscire";}
   else{el.className="modeflag";el.style.background="";}
 }
 function status(){
   const m=map(),el=document.getElementById("status");
   const clip=state.clip?'<span style="color:var(--tx3)"> — appunti: '+state.clip.label+" ("+hrs(state.clip.hours)+")</span>":"";
-  if(state.erase){el.innerHTML="<b>CANCELLA</b> · tocca o trascina per svuotare, "+
-    "poi torna il pennello di prima"+clip;return;}
+  if(state.erase){el.innerHTML="<b>CANCELLA</b> · tocca o trascina le mezz'ore da togliere · "+
+    "Cancella, E o Esc per uscire"+clip;return;}
   if(!state.brush||!m[state.brush]){
     el.innerHTML=state.act==="RIP"
       ? "<b>RIPASSO LIBERO</b> · senza materia, in grigio"+clip
@@ -5577,14 +5578,12 @@ function selezionaSolo(r){
     commit();reportOverwrite();
     if(overflowWarn){toast("Massimo "+MAXLANE+" blocchi affiancati");overflowWarn=false;}
     refreshMetrics();
-    /* La cancellazione dura un tratto solo: al rilascio si spegne da sé.
-       Materia e attività non le ha mai toccate — accendere Cancella non le
-       cambia, e sceglierne una ne fa uscire — quindi torna esattamente il
-       pennello di prima senza bisogno di metterlo da parte. */
-    if(cancellava){
-      state.erase=false;
-      tools();status();modeFlag();
-    }
+    /* Cancella resta acceso finche' non lo spegni: col pulsante, con E o con
+       Esc. Prima si spegneva da solo al rilascio, "un tratto solo", e da
+       quando un clic seleziona il blocco il secondo tocco — quello sulla
+       mezz'ora dopo — non cancellava piu': selezionava. Sembrava che le
+       mezz'ore in mezzo a un blocco non si potessero togliere. Materia e
+       attivita' non le tocca, quindi spegnendolo torna il pennello di prima. */
   }
 }));
 
@@ -6068,7 +6067,7 @@ function autoRow(){
 const KEYS=[
   ["Griglia",[
     [["1","…","9"],"Scegli l'attività con cui dipingere"],
-    [["E"],"Cancella un tratto: al rilascio torna il pennello di prima"],
+    [["E"],"Accende e spegne Cancella; anche Esc lo spegne"],
     [["Trascina"],"Prendi un blocco per il corpo e portalo dove vuoi"],
     [["⌥/Alt","Trascina"],"Dipinge anche sopra a un blocco: lo affianca"],
     [["Spazio"],"Dipinge la casella che ha il fuoco"],
