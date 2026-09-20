@@ -1686,6 +1686,21 @@
     return incollati===2?true:"Ctrl-clic sulla casella vuota ha incollato "+incollati+" blocchi invece di 2";});
 
   /* ---------- NASPI e piano di studi ---------- */
+  t("il Master PAI si mette da solo, come lavoro e NASPI, e ha il tasto 0",function(){
+    pulisci();apri();
+    state.brush=null;state.act="PAI";
+    var chi=brushNow();
+    if(chi!==PAIID)return "senza materia il pennello e' "+chi;
+    placeRun(G[0],H0,{i:chi,a:"PAI",len:4},0);render();
+    var r=runAt(G[0],H0,0),m=map()[PAIID];
+    window.dispatchEvent(new KeyboardEvent("keydown",{key:"0",bubbles:true}));
+    var tasto=state.act;
+    state.act="LEZ";
+    if(!r)return "il blocco non c'e'";
+    if(!m||m.kind!=="g")return "il Master PAI non e' una voce di servizio";
+    if(!daSola("PAI"))return "non si spunta da solo quando l'ora passa";
+    if(!document.querySelector('.blk[data-date="'+G[0]+'"]'))return "non si disegna";
+    return eq(tasto,"PAI","col tasto 0 l'attivita' e' ");});
   t("la NASPI si mette da sola, come ripasso e lavoro",function(){
     pulisci();apri();
     state.brush=null;state.act="NAS";
