@@ -1965,6 +1965,26 @@
     if(senza)return "con Cancella il fumetto c'e' ancora: "+senza;
     return di_nuovo?true:"spento Cancella il fumetto non torna";});
 
+  /* Il campo "quante settimane" era bianco su bianco: lo stile del vecchio
+     modulo era sparito. Si pretende contrasto fra scritta e fondo, e che
+     nessun campo in tutta la pagina abbia il fondo trasparente del browser. */
+  t("i campi numerici e di testo hanno sempre un fondo e una scritta leggibili",function(){
+    document.getElementById("rpModal").classList.add("open");
+    var brutti=[];
+    [].forEach.call(document.querySelectorAll('input[type=number],input[type=text],input[type=date],input[type=time],input[type=search]'),function(el){
+      var cs=getComputedStyle(el);
+      if(cs.display==="none"||!el.offsetParent)return;
+      var bg=cs.backgroundColor,fg=cs.color;
+      var rgb=function(c){var m=/rgba?\(([^)]+)\)/.exec(c);if(!m)return null;var p=m[1].split(",").map(parseFloat);return p.length===4&&p[3]===0?null:p;};
+      var b=rgb(bg),f=rgb(fg);
+      if(!b){brutti.push((el.id||el.className)+": fondo trasparente");return;}
+      var lum=function(p){var l=p.slice(0,3).map(function(u){u/=255;return u<=.03928?u/12.92:Math.pow((u+.055)/1.055,2.4);});return .2126*l[0]+.7152*l[1]+.0722*l[2];};
+      var c=(Math.max(lum(b),lum(f))+.05)/(Math.min(lum(b),lum(f))+.05);
+      if(c<3)brutti.push((el.id||el.className)+": contrasto "+c.toFixed(1));
+    });
+    document.getElementById("rpModal").classList.remove("open");
+    return brutti.length?brutti.join(" · "):true;});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }

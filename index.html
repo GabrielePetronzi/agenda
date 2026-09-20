@@ -1208,9 +1208,14 @@ td.tot b{color:var(--tx2);font-weight:500}
   <div class="sheet">
     <div class="mhead"><b id="rpTitle">Ripeti settimana</b><button id="rpClose">✕</button></div>
     <p id="rpInfo" style="font-size:13px;color:var(--tx2);line-height:1.55;margin:0 0 12px"></p>
-    <div class="adder" style="margin:0">
-      <input id="rpN" type="number" min="1" max="30" value="3" class="cfu" aria-label="Quante settimane">
-      <span style="align-self:center;font-size:13px;color:var(--tx2)">settimane successive</span>
+    <!-- lo stile .adder non c'e' piu' da quando "aggiungi una materia" usa
+         .vform: il campo era rimasto senza fondo, bianco su bianco -->
+    <div class="vform" style="margin:0">
+      <div class="vrow" style="align-items:center">
+        <label class="vf stretta"><span>quante</span>
+          <input id="rpN" type="number" min="1" max="30" value="3" class="cfu" aria-label="Quante settimane"></label>
+        <span style="font-size:13px;color:var(--tx2);padding-top:14px">settimane successive</span>
+      </div>
     </div>
     <div class="mfoot"><span></span><button id="rpGo">Ripeti</button></div>
   </div>
@@ -1743,7 +1748,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="20 set 2026 · d";
+const VERSIONE="20 set 2026 · e";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
