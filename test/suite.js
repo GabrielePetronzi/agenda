@@ -1933,6 +1933,22 @@
     window.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));
     return state.erase===false?true:"Cancella e' ancora acceso";});
 
+  /* Con Cancella acceso, sopra a un blocco da tre ore si deve vedere quale
+     delle sei mezz'ore si sta per togliere. */
+  t("con Cancella acceso il puntatore segna la mezz'ora sotto di se'",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"LEZ",len:6},0);render();
+    state.erase=true;gridModes();modeFlag();
+    var bl=document.querySelector('.blk[data-date="'+G[0]+'"]'),rb=bl.getBoundingClientRect();
+    var c=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+(H0+7)+'"]').getBoundingClientRect();
+    window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:1,clientX:rb.left+rb.width/2,clientY:c.top+c.height/2,isPrimary:true}));
+    var segnata=document.querySelector("td.c.mira"),fl=document.getElementById("modeflag").textContent;
+    var ok=segnata&&segnata.dataset.date===G[0]&&+segnata.dataset.h===H0+7&&fl.indexOf(slotTime(H0+7))>=0;
+    state.erase=false;gridModes();
+    var pulito=!document.querySelector("td.c.mira");
+    if(!ok)return "segnata "+(segnata?segnata.dataset.h:"nessuna")+" invece di "+(H0+7)+" · fascetta: "+fl;
+    return pulito?true:"spento Cancella, il segno e' rimasto";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }

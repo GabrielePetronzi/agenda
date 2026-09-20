@@ -509,6 +509,14 @@ td.c:empty:hover::after{content:attr(data-t);position:absolute;left:6px;top:1px;
   pointer-events:none;letter-spacing:.02em}
 body.paint td.c:empty:hover::after{content:"+ " attr(data-t);color:var(--action)}
 body.erasing td.c:hover{background-image:linear-gradient(rgba(224,115,106,.16),rgba(224,115,106,.16))}
+/* Con Cancella acceso, la mezz'ora sotto il puntatore si vede: un bordo
+   rosso sopra a tutto, blocco compreso. L'hover della casella non bastava,
+   perche' sopra a un blocco il puntatore sta sul blocco, che vive nella prima
+   casella e copre quelle sotto. La classe la mette il puntatore. */
+body.erasing td.c{cursor:cell}
+td.c.mira{position:relative}
+td.c.mira::after{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;
+  box-shadow:inset 0 0 0 2px var(--warn);background:rgba(224,115,106,.22);border-radius:3px}
 tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
 
 /* blocchi */
@@ -1727,7 +1735,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="20 set 2026 · a";
+const VERSIONE="20 set 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3110,6 +3118,7 @@ function gridModes(){
   /* la griglia cambia carattere secondo quello che sta per succedere */
   document.body.classList.toggle("paint",!state.erase&&!!state.brush);
   document.body.classList.toggle("erasing",!!state.erase);
+  if(!state.erase&&typeof mira==="function"&&mirata)mira(null,0);
 }
 
 function modeFlag(){
@@ -5459,6 +5468,30 @@ window.addEventListener("touchmove",e=>{if(sd)e.preventDefault();},{passive:fals
 window.addEventListener("pointerup",()=>{if(sd)sdEnd(true);});
 window.addEventListener("pointercancel",()=>{if(sd)sdEnd(false);});
 
+/* Con Cancella acceso il puntatore segna la mezz'ora che sta per togliere,
+   e la fascetta in cima dice quale: senza, sopra a un blocco da tre ore non
+   si capiva su quale delle sei si stesse per cliccare. */
+let mirata=null;
+function mira(el,y){
+  const td=state.erase?cellaSotto(el,y):null;
+  if(td===mirata)return;
+  if(mirata)mirata.classList.remove("mira");
+  mirata=td;
+  if(mirata)mirata.classList.add("mira");
+  const fl=document.getElementById("modeflag");
+  if(fl&&state.erase){
+    if(td){
+      const r=anyRunAt(td.dataset.date,+td.dataset.h),m=map();
+      fl.textContent="Cancella · "+slotTime(+td.dataset.h)+"–"+slotTime(+td.dataset.h+1)+
+        (r&&m[r.i]?" · "+m[r.i].short+", "+actOf(r.a).n.toLowerCase():" · vuota")+" · Esc per uscire";
+    }else fl.textContent="Cancella — tocca le mezz'ore da togliere · Esc per uscire";
+  }
+}
+window.addEventListener("pointermove",e=>{
+  if(!state.erase){if(mirata)mira(null,0);return;}
+  mira(document.elementFromPoint(e.clientX,e.clientY),e.clientY);
+});
+window.addEventListener("pointerleave",()=>mira(null,0));
 /* la cella della colonna di un giorno che sta all'altezza del puntatore:
    serve alla maniglia, che deve seguire solo la verticale */
 /* La casella sotto il puntatore. Un blocco e' disegnato dentro la sua prima
