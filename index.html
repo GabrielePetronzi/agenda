@@ -1768,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="22 set 2026 · c";
+const VERSIONE="22 set 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4029,6 +4029,12 @@ function oraAdesso(){
 }
 function inRitardo(dateIso,r){
   if(r.v.done||daSola(r.v.a))return false;
+  /* Un blocco su cui il timer sta girando adesso non e' in ritardo: lo stai
+     facendo. Il "!" rosso di fianco alla barra che dice "spunta 20:30 di
+     oggi" erano due cose che si contraddicevano. */
+  const p=state.pomRun;
+  if(p&&(p.linked||[]).some(b=>b.date===dateIso&&b.lane===r.lane&&
+      b.start>=r.start&&b.start<r.start+r.len))return false;
   const oggi=iso(new Date());
   if(dateIso>oggi)return false;
   return dateIso<oggi||r.start+r.len<=oraAdesso();

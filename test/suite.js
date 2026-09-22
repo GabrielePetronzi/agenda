@@ -2119,6 +2119,32 @@
     return senza.some(function(m){return /nessun blocco/.test(m);})?true:
       "senza blocco non lo dice: "+senza.join(" | ");});
 
+  t("il blocco su cui gira il timer non e' segnato in ritardo",function(){
+    pulisci();apri();
+    var Vero=Date,fisso=new Vero();fisso.setHours(23,0,0,0);
+    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+    var esito;
+    try{
+      window.Date=F;
+      var d=iso(new Date());
+      placeRun(d,41,{i:it[0].id,a:"LET",len:2},0);     /* 20:30-21:30, e sono le 23 */
+      var r=runAt(d,41,0);
+      var prima=inRitardo(d,{start:r.start,len:r.len,lane:0,v:at(ck(d,41))[0]});
+      pomStart("LET",[{date:d,start:41,lane:0}]);
+      var dopo=inRitardo(d,{start:r.start,len:r.len,lane:0,v:at(ck(d,41))[0]});
+      /* e la fascetta del debito non lo conta piu' */
+      var arr=arretrati().filter(function(b){return b.date===d&&b.start===41;}).length;
+      pomStop(true);
+      var tornato=inRitardo(d,{start:r.start,len:r.len,lane:0,v:at(ck(d,41))[0]});
+      if(!prima)esito="senza timer non risultava in ritardo: la prova non vale";
+      else if(dopo)esito="col timer sopra risulta ancora in ritardo";
+      else if(arr)esito="compare ancora fra gli arretrati";
+      else esito=tornato?true:"fermato il timer non torna in ritardo";
+    }finally{window.Date=Vero;}
+    return esito;});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
