@@ -1768,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="22 set 2026 · b";
+const VERSIONE="22 set 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3518,7 +3518,15 @@ function slotDiOggi(act){
   const rs=runsOf(d).filter(r=>r.v.a===act&&!r.v.done)
     .sort((a,b)=>a.start-b.start||a.lane-b.lane);
   if(!rs.length)return null;
+  /* Prima quello che copre adesso. Se non c'e', quello cominciato piu' di
+     recente: se sono le dieci di sera e in giornata ci sono due letture non
+     spuntate, una del pomeriggio e una delle nove, stai recuperando quella
+     delle nove — prima prendeva la prima della giornata, e i minuti andavano
+     su un blocco che non stavi facendo. Se non ce n'e' nessuno cominciato,
+     il prossimo che viene. */
+  const passati=rs.filter(x=>x.start<=ora);
   const r=rs.find(x=>ora>=x.start&&ora<x.start+x.len)||
+          passati[passati.length-1]||
           rs.find(x=>x.start>=ora)||rs[0];
   return {date:d,start:r.start,lane:r.lane,len:r.len};
 }
@@ -3661,6 +3669,18 @@ function pomAdvance(auto){
     if(auto)k+=chiudiCoda(r);
     r.min=(r.min||0)+min;
     if(k)afterEdit(hrs(k)+" segnate come fatte");
+    /* Se la sessione non ha spuntato niente va detto perche': il silenzio
+       sembra un difetto. Le ragioni sono due: non c'e' un blocco agganciato,
+       oppure i minuti fatti non bastano ancora a completare una mezz'ora. */
+    else if(auto){
+      const ag=(r.linked||[]).filter(b=>at(ck(b.date,b.start))[b.lane]);
+      if(!ag.length)toast("Sessione finita · nessun blocco agganciato: niente da spuntare");
+      else{
+        const manca=Math.max(1,Math.round((60/PERQ)-(maturato(r)-(r.spesi||0)*(60/PERQ))));
+        toast("Sessione finita · "+manca+" min ancora per la prossima mezz'ora di "+
+          slotTime(ag[0].start));
+      }
+    }
     if(auto){
       const t=pomToday();
       t.n++;t.min+=c.s;t.byAct[r.act]=(t.byAct[r.act]||0)+1;

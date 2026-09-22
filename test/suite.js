@@ -2069,6 +2069,56 @@
     if(minuti!==12)return "i minuti gia' fatti sono diventati "+minuti;
     return stesso?true:"il conto e' ripartito da capo";});
 
+  /* Due letture non spuntate nello stesso giorno, una del pomeriggio e una
+     appena finita: il timer deve prendere quella che stai recuperando, non la
+     prima della giornata. Prima prendeva la prima, e i minuti andavano su un
+     blocco che non stavi facendo — con blocchi lunghi non spuntava nemmeno
+     quello, e sembrava che la spunta automatica fosse rotta. */
+  t("il timer prende il blocco cominciato piu' di recente, non il primo del giorno",function(){
+    pulisci();apri();
+    var Vero=Date,fisso=new Vero();fisso.setHours(22,0,0,0);
+    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+    var esito;
+    try{
+      window.Date=F;
+      var d=iso(new Date());
+      placeRun(d,30,{i:it[1].id,a:"LET",len:2},0);     /* 15:00, un'ora */
+      placeRun(d,42,{i:it[0].id,a:"LET",len:1},0);     /* 21:00, mezz'ora */
+      var g=slotDiOggi("LET");
+      esito=(g&&g.start===42)?true:"sceglie "+(g?slotTime(g.start):"niente")+" invece delle 21:00";
+      if(esito===true){
+        state.pomConf={LET:{s:27,b:8,l:20,n:3}};
+        pomStart("LET",[{date:d,start:g.start,lane:g.lane}]);
+        fine();
+        var fatto=(at(ck(d,42))[0]||{}).done,altro=(at(ck(d,30))[0]||{}).done;
+        pomStop(true);state.pomConf={};
+        if(!fatto)esito="il blocco delle 21 non si e' spuntato";
+        else if(altro)esito="si e' spuntato anche quello delle 15";
+      }
+    }finally{window.Date=Vero;}
+    return esito;});
+  t("una sessione che non spunta niente dice perche'",function(){
+    pulisci();apri();
+    var detti=[],vt=toast;toast=function(m){detti.push(m);};
+    try{
+      state.pomConf={LET:{s:27,b:8,l:20,n:3}};
+      placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:4},0);   /* due ore: 27 minuti non bastano */
+      pomStart("LET",[{date:oggi,start:MATT,lane:0}]);
+      fine();
+      var conBlocco=detti.slice();detti=[];
+      pomStop(true);
+      pomStart("LET",null);
+      fine();
+      var senza=detti.slice();
+      pomStop(true);state.pomConf={};
+    }finally{toast=vt;}
+    if(!conBlocco.some(function(m){return /min ancora/.test(m);}))
+      return "col blocco agganciato non dice quanto manca: "+conBlocco.join(" | ");
+    return senza.some(function(m){return /nessun blocco/.test(m);})?true:
+      "senza blocco non lo dice: "+senza.join(" | ");});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
