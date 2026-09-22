@@ -883,6 +883,9 @@ td.tot b{color:var(--tx2);font-weight:500}
 .pombar .pmeta b{display:block;font-size:12px;font-weight:500;letter-spacing:.01em;color:var(--tx)}
 .pombar .pmeta i{display:block;font-style:normal;font-family:"DM Mono",monospace;
   font-size:9.5px;color:var(--tx3);margin-top:3px}
+/* il timer senza blocco: si deve vedere, e' il motivo per cui a fine sessione
+   non si spunterebbe niente */
+.pombar .pmeta u.nolink{text-decoration:none;color:var(--warn);font-weight:500}
 .pombar .pbtn{display:flex;gap:6px;flex:0 0 auto}
 .pombar .pbtn button{display:inline-flex;align-items:center;gap:6px;
   background:var(--raised);border:1px solid var(--line);color:var(--tx2);
@@ -915,7 +918,9 @@ td.tot b{color:var(--tx2);font-weight:500}
 .pmnote .warn,.pmnote.warn{color:var(--warn)}
 .pmnote .warn b{color:var(--warn)}
 @media (max-width:600px){
-  .pombar .pmeta i{display:none}
+  /* a finestra stretta resta la riga che dice dove va il tempo: e' quella
+     che spiega perche' un blocco non si spunta */
+  .pombar .pmeta i{display:block}
   .pombar .pt{font-size:21px;min-width:62px}
   .pombar .pin{gap:10px}
   .pmhead{display:none}
@@ -1763,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="22 set 2026 · a";
+const VERSIONE="22 set 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3482,6 +3487,15 @@ function pomFromCell(dateIso,slot,lane){
   askNotify();
   state.act=r.a;
   pomAskBlock(false);
+  const giro=state.pomRun;
+  if(giro&&giro.act===r.a&&!(giro.linked||[]).length){
+    /* il timer sta gia' girando su questa attivita' e non e' agganciato a
+       niente: si attacca qui, senza buttare via i minuti gia' fatti */
+    giro.linked=[{date:r.date,start:r.start,lane:r.lane}];
+    save();pomRender();redrawLinked();tools();status();
+    toast("Agganciato a "+slotTime(r.start)+"–"+slotTime(r.start+r.len));
+    return true;
+  }
   pomStart(r.a,[{date:r.date,start:r.start,lane:r.lane}]);
   tools();status();
   return true;
@@ -3777,6 +3791,14 @@ function pomRender(onlyTime){
   const t=pomToday();
   const eti=r.phase==="work"?actOf(r.act).n
     :(r.phase==="long"?"Pausa lunga":"Pausa");
+  /* A quale blocco sta andando il tempo. Senza questa riga un timer partito
+     con l'attivita' sbagliata nella colonna girava senza agganciarsi a
+     niente, l'avviso spariva dopo tre secondi e a fine sessione non si
+     spuntava nulla: sembrava che la spunta automatica non funzionasse. */
+  const ag=(r.linked||[]).filter(b=>at(ck(b.date,b.start))[b.lane]);
+  const dove=ag.length
+    ? (ag.length===1?slotTime(ag[0].start)+" di oggi":ag.length+" blocchi")
+    : null;
   const prima=bar.classList.contains("on");
   bar.className="pombar on "+r.phase+(r.paused!=null?" pause":"");
   bar.innerHTML=
@@ -3784,8 +3806,9 @@ function pomRender(onlyTime){
     '<div class="pin">'+
       '<span class="pico">'+icon(r.phase==="work"?r.act:"CUP",16)+"</span>"+
       '<span class="pt">'+mmss(left)+"</span>"+
-      '<span class="pmeta"><b>'+eti+"</b><i>ciclo "+r.cycle+" di "+c.n+
-        " · oggi "+t.n+(t.n===1?" sessione":" sessioni")+"</i></span>"+
+      '<span class="pmeta"><b>'+eti+"</b><i>"+
+        (dove?"spunta "+dove:"<u class=\"nolink\">nessun blocco agganciato</u>")+
+        " · ciclo "+r.cycle+" di "+c.n+"</i></span>"+
       '<span class="pbtn">'+
         '<button data-p="pause" title="'+(r.paused!=null?"Riprendi":"Metti in pausa")+'">'+
           (r.paused!=null?icon("PLY",12)+"<span>Riprendi</span>"
@@ -3794,6 +3817,8 @@ function pomRender(onlyTime){
           icon("RIP",12)+"<span>Riavvia</span></button>"+
         '<button data-p="skip" title="Passa alla fase successiva">'+
           icon("SKP",12)+"<span>Salta</span></button>"+
+        (dove?"":'<button data-p="attacca" title="Scegli il blocco che questa sessione deve spuntare">'+
+          icon("POM",12)+"<span>Aggancia</span></button>")+
         '<button data-p="stop" title="Chiudi il pomodoro">'+icon("XX",12)+"</button>"+
       "</span>"+
     "</div>";
@@ -3803,6 +3828,7 @@ function pomRender(onlyTime){
       if(k==="pause")pomPause();
       else if(k==="restart")pomRestart();
       else if(k==="skip")pomAdvance(false);
+      else if(k==="attacca")pomAskBlock(true);
       else pomStop();
     };
   });
@@ -3865,8 +3891,11 @@ function pomPanel(){
     pomStart(act,ag);
     if(preso)toast("Agganciato a "+slotTime(preso.start)+"–"+
       slotTime(preso.start+preso.len)+" di oggi");
-    else if(!ag.length)toast("Nessuno slot di "+actOf(act).n.toLowerCase()+
-      " oggi: il timer gira senza agganciarsi");
+    else if(!ag.length){
+      toast("Nessuno slot di "+actOf(act).n.toLowerCase()+
+        " oggi: tocca un blocco per agganciarlo");
+      pomAskBlock(true);       /* resta armato: il prossimo tocco lo aggancia */
+    }
   };
   box.appendChild(go);
   box.appendChild(pick);

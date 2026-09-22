@@ -2037,6 +2037,38 @@
     var bl=document.querySelector('.blk[data-date="'+G[0]+'"]');
     return (bl&&pomConf("VID").s>0)?true:"non si disegna in griglia";});
 
+  /* Un timer partito con l'attivita' sbagliata nella colonna girava senza
+     agganciarsi a niente, e l'avviso spariva: sembrava che la spunta
+     automatica non funzionasse. La barra lo deve dire, e si deve poter
+     agganciare a cose fatte, senza perdere i minuti. */
+  t("la barra del pomodoro dice quale blocco spuntera'",function(){
+    pulisci();apri();
+    placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:2},0);render();
+    pomStart("LET",[{date:oggi,start:MATT,lane:0}]);pomRender();
+    var con=document.getElementById("pombar").textContent;
+    pomStop(true);
+    pomStart("LET",null);pomRender();
+    var senza=document.getElementById("pombar").textContent;
+    var bottone=!!document.querySelector('#pombar [data-p="attacca"]');
+    pomStop(true);
+    if(con.indexOf(slotTime(MATT))<0)return "agganciato, la barra non dice a cosa: "+con;
+    if(senza.indexOf("nessun blocco")<0)return "senza blocco la barra non lo dice: "+senza;
+    return bottone?true:"manca il pulsante per agganciare";});
+  t("toccando un blocco, il timer che gira gli si aggancia senza perdere i minuti",function(){
+    pulisci();apri();
+    placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:2},0);render();
+    pomStart("LET",null);
+    state.pomRun.min=12;                      /* dodici minuti gia' fatti */
+    var ends=state.pomRun.ends;
+    pomAskBlock(true);
+    pomFromCell(oggi,MATT,0);
+    var r=state.pomRun,ag=r&&(r.linked||[])[0];
+    var minuti=r?r.min:null,stesso=r&&r.ends===ends;
+    pomStop(true);
+    if(!ag||ag.start!==MATT)return "non si e' agganciato";
+    if(minuti!==12)return "i minuti gia' fatti sono diventati "+minuti;
+    return stesso?true:"il conto e' ripartito da capo";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
