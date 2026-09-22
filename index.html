@@ -1768,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="22 set 2026 · f";
+const VERSIONE="22 set 2026 · g";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3836,8 +3836,14 @@ function pomRender(onlyTime){
     return;
   }
   const t=pomToday();
-  const eti=r.phase==="work"?actOf(r.act).n
-    :(r.phase==="long"?"Pausa lunga":"Pausa");
+  /* Due "pause" diverse si chiamavano uguale: la pausa del metodo, in cui il
+     tempo scorre e le mezz'ore maturano, e il timer messo in pausa a mano, in
+     cui non scorre niente. Nella barra si leggeva "Pausa" e il pulsante
+     diceva "Riprendi": impossibile capire che il conto era fermo, e che
+     quindi nessuna mezz'ora sarebbe mai scattata. */
+  const fermo=r.paused!=null;
+  const eti=(fermo?"FERMO · ":"")+(r.phase==="work"?actOf(r.act).n
+    :(r.phase==="long"?"Pausa lunga":"Pausa"));
   /* A quale blocco sta andando il tempo. Senza questa riga un timer partito
      con l'attivita' sbagliata nella colonna girava senza agganciarsi a
      niente, l'avviso spariva dopo tre secondi e a fine sessione non si
@@ -3846,6 +3852,9 @@ function pomRender(onlyTime){
   const dove=ag.length
     ? (ag.length===1?slotTime(ag[0].start)+" di oggi":ag.length+" blocchi")
     : null;
+  const nota=fermo
+    ? '<u class="nolink">in pausa: il tempo non scorre</u>'
+    : (dove?"spunta "+dove:'<u class="nolink">nessun blocco agganciato</u>');
   const prima=bar.classList.contains("on");
   bar.className="pombar on "+r.phase+(r.paused!=null?" pause":"");
   bar.innerHTML=
@@ -3853,8 +3862,7 @@ function pomRender(onlyTime){
     '<div class="pin">'+
       '<span class="pico">'+icon(r.phase==="work"?r.act:"CUP",16)+"</span>"+
       '<span class="pt">'+mmss(left)+"</span>"+
-      '<span class="pmeta"><b>'+eti+"</b><i>"+
-        (dove?"spunta "+dove:"<u class=\"nolink\">nessun blocco agganciato</u>")+
+      '<span class="pmeta"><b>'+eti+"</b><i>"+nota+
         " · ciclo "+r.cycle+" di "+c.n+"</i></span>"+
       '<span class="pbtn">'+
         '<button data-p="pause" title="'+(r.paused!=null?"Riprendi":"Metti in pausa")+'">'+

@@ -2163,6 +2163,25 @@
     if(dopo30!=="■□□")return "al minuto trenta il blocco e' "+dopo30;
     return dopoSess==="■□□"?true:"a fine sessione e' diventato "+dopoSess+" (atteso ■□□)";});
 
+  /* In pausa a mano il tempo non scorre e nessuna mezz'ora scattera' mai: la
+     barra deve dirlo, perche' la parola "Pausa" da sola e' anche il nome
+     della pausa del metodo, in cui invece il tempo scorre. */
+  t("il timer messo in pausa a mano lo dice, e si distingue dalla pausa del metodo",function(){
+    pulisci();apri();
+    placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:2},0);render();
+    pomStart("LET",[{date:oggi,start:MATT,lane:0}]);
+    pomPause();                       /* messo in pausa a mano */
+    pomRender();
+    var fermo=document.getElementById("pombar").textContent;
+    pomPause();                       /* ripreso */
+    pomRender();
+    var vivo=document.getElementById("pombar").textContent;
+    pomStop(true);
+    if(fermo.indexOf("FERMO")<0||fermo.indexOf("il tempo non scorre")<0)
+      return "in pausa la barra dice: "+fermo;
+    return (vivo.indexOf("FERMO")<0&&vivo.indexOf("spunta")>=0)?true:
+      "ripreso, la barra dice ancora: "+vivo;});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
