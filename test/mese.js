@@ -111,8 +111,11 @@
           if(inRitardo(d,x))g(d+" "+x.v.a+" segnato in ritardo, ma si spunta da solo");
         }else{
           var late=inRitardo(d,x);
+          /* un blocco agganciato al timer non e' in ritardo: lo stai facendo */
+          var sotto=state.pomRun&&(state.pomRun.linked||[]).some(function(b2){
+            return b2.date===d&&b2.lane===x.lane&&b2.start>=x.start&&b2.start<x.start+x.len;});
           if(late&&adesso<fine)g(d+" "+slotTime(x.start)+" in ritardo prima della fine");
-          if(!x.v.done&&!late&&adesso>fine+1)g(d+" "+slotTime(x.start)+" non fatto dopo la fine ma non in ritardo");
+          if(!x.v.done&&!late&&!sotto&&adesso>fine+1)g(d+" "+slotTime(x.start)+" non fatto dopo la fine ma non in ritardo");
         }
       });
       if(h===0&&mm===0&&n>0){var pt=pomToday();if(pt.min)g(d+" a mezzanotte i minuti di oggi non sono ripartiti da zero");}

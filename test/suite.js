@@ -2017,7 +2017,7 @@
     var v=at(ck(oggi,MATT))[0],fatto=!!(v&&v.done);
     pomStop(true);state.pomConf={};
     return fatto?true:"a fine sessione il blocco e' ancora da fare";});
-  t("e un blocco lungo non si chiude per una sessione sola",function(){
+  t("e un blocco lungo non si chiude tutto per una sessione sola",function(){
     pulisci();apri();
     state.pomConf={LET:{s:27,b:8,l:20,n:3}};
     placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:4},0);   /* due ore */
@@ -2025,7 +2025,8 @@
     fine();
     var k=0;for(var i=0;i<4;i++){var v=at(ck(oggi,MATT+i))[0];if(v&&v.done)k++;}
     pomStop(true);state.pomConf={};
-    return k===0?true:"dopo ventisette minuti risultano fatte "+k+" mezz'ore su quattro";});
+    /* una mezz'ora si', le altre tre no: la sessione vale quello che vale */
+    return k===1?true:"dopo ventisette minuti risultano fatte "+k+" mezz'ore su quattro";});
   t("la videolezione c'e', con icona, motivo e durata sue",function(){
     var v=ACTS.filter(function(a){return a.k==="VID";})[0];
     if(!v)return "non c'e' nell'elenco delle attivita'";
@@ -2099,26 +2100,25 @@
       }
     }finally{window.Date=Vero;}
     return esito;});
-  t("una sessione che non spunta niente dice perche'",function(){
+  t("una sessione finita vale almeno una mezz'ora del blocco",function(){
+    pulisci();apri();
+    state.pomConf={LET:{s:27,b:8,l:20,n:3}};
+    placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:4},0);   /* due ore di lettura */
+    pomStart("LET",[{date:oggi,start:MATT,lane:0}]);
+    fine();                                            /* ventisette minuti */
+    var q=[0,1,2,3].map(function(i2){var v=at(ck(oggi,MATT+i2))[0];return v&&v.done?"■":"□";}).join("");
+    pomStop(true);state.pomConf={};
+    return q==="■□□□"?true:"dopo una sessione il blocco e' "+q+" (attesa una mezz'ora sola)";});
+  t("senza blocco agganciato lo dice invece di spuntare a caso",function(){
     pulisci();apri();
     var detti=[],vt=toast;toast=function(m){detti.push(m);};
     try{
       state.pomConf={LET:{s:27,b:8,l:20,n:3}};
-      placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:4},0);   /* due ore: 27 minuti non bastano */
-      pomStart("LET",[{date:oggi,start:MATT,lane:0}]);
-      fine();
-      var conBlocco=detti.slice();detti=[];
-      pomStop(true);
-      pomStart("LET",null);
-      fine();
-      var senza=detti.slice();
+      pomStart("LET",null);fine();
       pomStop(true);state.pomConf={};
     }finally{toast=vt;}
-    if(!conBlocco.some(function(m){return /min ancora/.test(m);}))
-      return "col blocco agganciato non dice quanto manca: "+conBlocco.join(" | ");
-    return senza.some(function(m){return /nessun blocco/.test(m);})?true:
-      "senza blocco non lo dice: "+senza.join(" | ");});
-
+    return detti.some(function(m){return /nessun blocco/.test(m);})?true:
+      "non lo dice: "+detti.join(" | ");});
   t("il blocco su cui gira il timer non e' segnato in ritardo",function(){
     pulisci();apri();
     var Vero=Date,fisso=new Vero();fisso.setHours(23,0,0,0);

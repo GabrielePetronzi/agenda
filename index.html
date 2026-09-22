@@ -1768,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="22 set 2026 · d";
+const VERSIONE="22 set 2026 · e";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3650,6 +3650,27 @@ function chiudiCoda(r){
   if(chiuse)r.spesi=(r.spesi||0)+chiuse;
   return chiuse;
 }
+/* Una sessione finita vale almeno una mezz'ora del blocco agganciato. La
+   lettura ha sessioni da ventisette minuti: senza questa regola, finita la
+   sessione non si spuntava niente — la mezz'ora scattava tre minuti dopo,
+   dentro la pausa, e chi guardava subito vedeva il blocco ancora rosso. Vale
+   una mezz'ora sola, non tutto il blocco: un blocco da tre ore con sessioni
+   da quarantacinque minuti continua a spuntarsi un pezzo per volta, come hai
+   chiesto tempo fa. I minuti regalati restano segnati come spesi, cosi' la
+   mezz'ora dopo non arriva in anticipo. */
+function spuntaUnaSola(r){
+  if(!r||!r.linked||!r.linked.length)return 0;
+  for(const b of r.linked){
+    const base=at(ck(b.date,b.start))[b.lane];
+    if(!base)continue;
+    for(let sl=b.start;;sl++){
+      const key=ck(b.date,sl),arr=at(key).slice(),v=arr[b.lane];
+      if(!v||v.i!==base.i||v.a!==base.a)break;
+      if(!v.done){v.done=1;setAt(key,arr);r.spesi=(r.spesi||0)+1;return 1;}
+    }
+  }
+  return 0;
+}
 function pomAdvance(auto){
   const r=state.pomRun;if(!r)return;
   const c=pomConf(r.act);
@@ -3666,6 +3687,7 @@ function pomAdvance(auto){
        Il banco di prova non lo vedeva perche' chiamava la fine sessione con
        l'orologio ancora all'inizio. */
     let k=spuntaMaturato(r);
+    if(auto&&!k)k+=spuntaUnaSola(r);
     if(auto)k+=chiudiCoda(r);
     r.min=(r.min||0)+min;
     if(k)afterEdit(hrs(k)+" segnate come fatte");
@@ -3675,11 +3697,7 @@ function pomAdvance(auto){
     else if(auto){
       const ag=(r.linked||[]).filter(b=>at(ck(b.date,b.start))[b.lane]);
       if(!ag.length)toast("Sessione finita · nessun blocco agganciato: niente da spuntare");
-      else{
-        const manca=Math.max(1,Math.round((60/PERQ)-(maturato(r)-(r.spesi||0)*(60/PERQ))));
-        toast("Sessione finita · "+manca+" min ancora per la prossima mezz'ora di "+
-          slotTime(ag[0].start));
-      }
+      else toast("Sessione finita · il blocco delle "+slotTime(ag[0].start)+" è già tutto fatto");
     }
     if(auto){
       const t=pomToday();
