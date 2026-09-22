@@ -1339,6 +1339,8 @@ const ICON={
      stessa cosa */
   LEZ:'<rect x="2" y="2.2" width="12" height="8" rx="1"/><path d="M4.4 4.8h5M4.4 7.2h7"/>'+
       '<path d="M4.6 10.2 3.2 13.4M11.4 10.2l1.4 3.2M8 10.2v3.2"/>',
+  /* uno schermo col triangolo: la lezione registrata */
+  VID:'<rect x="1.8" y="2.6" width="12.4" height="8.6" rx="1.2"/><path d="M6.6 5.6l3.4 2-3.4 2z"/><path d="M5.4 13.4h5.2"/>',
   LET:'<path d="M2 4c2-1.1 4-1.1 6 0 2-1.1 4-1.1 6 0v8c-2-1.1-4-1.1-6 0-2-1.1-4-1.1-6 0z"/><path d="M8 4v8"/>',
   SCH:'<circle cx="3.6" cy="8" r="1.7"/><circle cx="12.4" cy="4.4" r="1.7"/><circle cx="12.4" cy="11.6" r="1.7"/><path d="M5.2 7.3l5.6-2.1M5.2 8.7l5.6 2.1"/>',
   ESE:'<path d="M11.4 2.4l2.2 2.2L6 12.2l-3 .8.8-3z"/><path d="M10 3.8l2.2 2.2"/>',
@@ -1432,7 +1434,7 @@ function icon(k,size){
    laboratorio. Un motivo si riconosce anche quando il blocco è alto ventotto
    pixel e la scritta non ci sta — che è il caso in cui prima non si capiva
    niente. La lezione è l'unica liscia: è la pagina ancora da riempire. */
-const AFASE={LEZ:"Acquisizione",LET:"Acquisizione",SCH:"Rielaborazione",
+const AFASE={LEZ:"Acquisizione",VID:"Acquisizione",LET:"Acquisizione",SCH:"Rielaborazione",
              ESE:"Applicazione",LAB:"Applicazione",PRO:"Applicazione",
              RIP:"Ricordo",LAV:"fuori dal metodo",NAS:"fuori dal metodo",PAI:"fuori dal metodo"};
 function trama(w,h,d,op){
@@ -1470,6 +1472,9 @@ const ATRAMA={
   LEZ:trama(16,14,"<rect x='2' y='1.6' width='12' height='8' rx='1.2'/>"+
     "<path d='M4.4 4.2h5M4.4 6.6h7'/>"+
     "<path d='M4.6 9.6 3.2 12.8M11.4 9.6l1.4 3.2M8 9.6v3.2'/>"),
+  /* schermi col triangolo, piccoli: la stessa cosa dell'icona */
+  VID:trama(16,12,"<rect x='1.6' y='1.6' width='10.4' height='7.2' rx='1'/>"+
+    "<path d='M5.6 3.9l2.8 1.6-2.8 1.6z'/><path d='M4.6 10.4h4.4'/>"),
   LET:trama(20,6,"<path d='M0 3h20'/>"),                            /* righe di quaderno */
   /* la ramificazione, rada. Il nodo coi tre rami corti era troppo fitto:
      a quella scala diventava uno scarabocchio invece di una struttura. */
@@ -1494,7 +1499,7 @@ const ATRAMA={
    tagliati restano righe e quadretti. Le figure, nelle fasce basse dei blocchi
    corti, vanno ingrandite fino a riempirle una volta sola; i tessuti si
    ripetono e basta. */
-const TRDIM={LEZ:[16,14,1],SCH:[22,16,1],RIP:[15,15,1],PRO:[22,11,0],
+const TRDIM={LEZ:[16,14,1],VID:[16,12,1],SCH:[22,16,1],RIP:[15,15,1],PRO:[22,11,0],
   LAB:[13,13,0],LET:[20,6,0],ESE:[7,7,0],LAV:[8,8,0],NAS:[13,13,1],PAI:[14,13,1]};
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
@@ -1506,6 +1511,8 @@ const ATRAMALEG={
   LEZ:trama(17,17,"<rect x='2.5' y='2.4' width='12' height='8' rx='1.2'/>"+
     "<path d='M4.9 5h5M4.9 7.4h7'/>"+
     "<path d='M5.1 10.4 3.7 13.6M11.9 10.4l1.4 3.2M8.5 10.4v3.2'/>",1),
+  VID:trama(17,17,"<rect x='2.4' y='3.4' width='11' height='7.6' rx='1'/>"+
+    "<path d='M6.6 5.8l3 1.8-3 1.8z'/><path d='M5.4 12.8h5.2'/>",1),
   LET:trama(20,6,"<path d='M0 3h20'/>",1),
   /* le figure stanno in una tile 17x17, una sola e centrata: la NASPI a 13
      mostrava un euro e mezzo, con il mezzo tagliato dal bordo */
@@ -1587,6 +1594,7 @@ function cfuFatti(){
 const BLKINK="#14161B";
 const ACTS=[
   {k:"LEZ",n:"Lezione"},
+  {k:"VID",n:"Videolezione"},
   {k:"LET",n:"Lettura"},
   {k:"SCH",n:"Schema"},
   {k:"ESE",n:"Esercizi"},
@@ -1755,7 +1763,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="21 set 2026 · a";
+const VERSIONE="22 set 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2240,7 +2248,9 @@ window.addEventListener("keydown",e=>{
   const k=e.key;
   /* da 1 a 7: l'attività con cui dipingere */
   if(k>="1"&&k<="9"&&ACTS[+k-1]){e.preventDefault();pickAct(ACTS[+k-1].k);return;}
-  if(k==="0"&&ACTS[9]){e.preventDefault();pickAct(ACTS[9].k);return;}
+  /* il tasto 0 e' del Master PAI: le attivita' sono undici e le cifre dieci,
+     e la NASPI si sceglie col pulsante */
+  if(k==="0"&&ACTS.some(x=>x.k==="PAI")){e.preventDefault();pickAct("PAI");return;}
   if(k==="e"||k==="E"){e.preventDefault();document.getElementById("eraseBtn").click();return;}
   if(k==="o"||k==="O"){e.preventDefault();document.getElementById("wToday").click();return;}
   /* con il fuoco su una casella le frecce servono a muoversi lì dentro;
@@ -3375,6 +3385,7 @@ setInterval(()=>{nowLine();autoLessons();promemoria();copiaGiorno();},60000);
    ============================================================ */
 const POM_DEF={
   LEZ:{s:45,b:8,n:2,l:20},
+  VID:{s:30,b:8,n:3,l:20},
   LET:{s:27,b:8,n:3,l:20},
   SCH:{s:45,b:12,n:2,l:20},
   ESE:{s:30,b:8,n:3,l:20},
@@ -3590,6 +3601,14 @@ function restaNellaFascia(act,f){
 function chiudiCoda(r){
   if(!r||!r.linked||!r.linked.length)return 0;
   const c=pomConf(r.act);let chiuse=0;
+  /* I minuti girati che non sono ancora diventati una mezz'ora spuntata. Il
+     conto di prima li ignorava: guardava solo quante mezz'ore restavano da
+     spuntare. Con sessioni da ventisette minuti su un blocco da mezz'ora
+     faceva trenta contro ventisette e non chiudeva niente — finita la
+     sessione il blocco restava da fare, e chi fermava li' il timer se lo
+     ritrovava da fare per sempre. Quello che resta davvero da fare sono tre
+     minuti, e per tre minuti non si fa un'altra sessione. */
+  const avanzo=Math.max(0,maturato(r)-(r.spesi||0)*(60/PERQ));
   r.linked.forEach(b=>{
     const base=at(ck(b.date,b.start))[b.lane];
     if(!base)return;
@@ -3599,7 +3618,7 @@ function chiudiCoda(r){
       if(!v||v.i!==base.i||v.a!==base.a)break;
       if(!v.done)resta++;
     }
-    if(!resta||resta*(60/PERQ)>=c.s)return;   /* niente, o troppo per un avanzo */
+    if(!resta||resta*(60/PERQ)-avanzo>=c.s)return;   /* niente, o troppo per un avanzo */
     for(let sl=b.start;;sl++){
       const key=ck(b.date,sl),arr=at(key).slice(),v=arr[b.lane];
       if(!v||v.i!==base.i||v.a!==base.a)break;
@@ -4874,7 +4893,11 @@ function motivi(root){
       const d=Math.abs(h/(k*th)-mira);
       if(d<dist){dist=d;righe=k;}
     }
-    let s=Math.max(.7,h/(righe*th));
+    /* Il minimo di sette decimi serve a non stampare macchie; ma non puo'
+       far uscire la figura dalla fascia: su una fascia alta dieci pixel una
+       tile alta ventidue scalata a sette decimi ne misura quindici e si
+       taglia. Se non ci sta nemmeno cosi', piu' sotto cede all'icona. */
+    let s=Math.min(Math.max(.7,h/(righe*th)),h/th);
     /* stretta: una sola, centrata, e non più larga della fascia */
     const una=w<tw*s*1.9;
     if(una)s=Math.min(s,w/tw);
@@ -6133,7 +6156,7 @@ function autoRow(){
    così il markup resta leggibile e le icone stanno tutte nella mappa ICON */
 const KEYS=[
   ["Griglia",[
-    [["1","…","9","0"],"Scegli l'attività con cui dipingere"],
+    [["1","…","9","0"],"Scegli l'attività con cui dipingere (le prime dieci)"],
     [["E"],"Accende e spegne Cancella; anche Esc lo spegne"],
     [["Trascina"],"Prendi un blocco per il corpo e portalo dove vuoi"],
     [["⌥/Alt","Trascina"],"Dipinge anche sopra a un blocco: lo affianca"],

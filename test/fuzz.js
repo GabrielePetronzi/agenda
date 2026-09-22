@@ -21,7 +21,7 @@
      quelle di prima non esistono piu' qui, e un blocco loro non si disegna */
   var it=[];
   function materie(){return items().filter(function(o){return o.kind==="c";});}
-  var ACT=["LEZ","LET","SCH","ESE","LAB","PRO","RIP","LAV","NAS","PAI"];
+  var ACT=["LEZ","VID","LET","SCH","ESE","LAB","PRO","RIP","LAV","NAS","PAI"];
   function giorni(){
     var g=[];document.querySelectorAll("td.c").forEach(function(x){
       if(g.indexOf(x.dataset.date)<0)g.push(x.dataset.date);});

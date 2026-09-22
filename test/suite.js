@@ -372,6 +372,9 @@
         {i:it[i%6].id,a:a.k,len:(i%3)+1},Math.floor(i/G.length));});
     render();
     var mal=[];
+    /* la fascia va misurata a riga assestata: motivi() sceglie la scala dopo
+       il disegno, e senza questo si legge quella del giro prima */
+    sfoltisci();
     [].forEach.call(document.querySelectorAll(".blk[data-att]"),function(b){
       var f=b.querySelector("em > span.tr");if(!f)return;
       var r=f.getBoundingClientRect();if(r.height<1)return;   /* ripiego: c'e' l'icona */
@@ -1999,6 +2002,40 @@
     });
     document.getElementById("rpModal").classList.remove("open");
     return brutti.length?brutti.join(" · "):true;});
+
+  /* Ventisette minuti di lettura su un blocco da mezz'ora: a fine sessione il
+     blocco deve chiudersi. Il conto della coda guardava le mezz'ore rimaste
+     senza sottrarre i minuti gia' girati — trenta contro ventisette — e non
+     chiudeva: chi fermava li' il timer si ritrovava il blocco da fare per
+     sempre. */
+  t("una sessione piu' corta della mezz'ora chiude lo stesso il blocco",function(){
+    pulisci();apri();
+    state.pomConf={LET:{s:27,b:8,l:20,n:3}};
+    placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:1},0);
+    pomStart("LET",[{date:oggi,start:MATT,lane:0}]);
+    fine();                                  /* fine dei 27 minuti */
+    var v=at(ck(oggi,MATT))[0],fatto=!!(v&&v.done);
+    pomStop(true);state.pomConf={};
+    return fatto?true:"a fine sessione il blocco e' ancora da fare";});
+  t("e un blocco lungo non si chiude per una sessione sola",function(){
+    pulisci();apri();
+    state.pomConf={LET:{s:27,b:8,l:20,n:3}};
+    placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:4},0);   /* due ore */
+    pomStart("LET",[{date:oggi,start:MATT,lane:0}]);
+    fine();
+    var k=0;for(var i=0;i<4;i++){var v=at(ck(oggi,MATT+i))[0];if(v&&v.done)k++;}
+    pomStop(true);state.pomConf={};
+    return k===0?true:"dopo ventisette minuti risultano fatte "+k+" mezz'ore su quattro";});
+  t("la videolezione c'e', con icona, motivo e durata sue",function(){
+    var v=ACTS.filter(function(a){return a.k==="VID";})[0];
+    if(!v)return "non c'e' nell'elenco delle attivita'";
+    if(!ICON.VID||!ATRAMA.VID||!ATRAMALEG.VID||!TRDIM.VID)return "manca icona o motivo";
+    if(AFASE.VID!=="Acquisizione")return "la fase e' "+AFASE.VID;
+    if(daSola("VID"))return "non deve spuntarsi da sola";
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"VID",len:2},0);render();
+    var bl=document.querySelector('.blk[data-date="'+G[0]+'"]');
+    return (bl&&pomConf("VID").s>0)?true:"non si disegna in griglia";});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
