@@ -1768,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="22 set 2026 · e";
+const VERSIONE="22 set 2026 · f";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3533,7 +3533,7 @@ function slotDiOggi(act){
 function pomStart(act,linked){
   logPartial(state.pomRun);
   const c=pomConf(act);
-  state.pomRun={act:act,phase:"work",cycle:1,
+  state.pomRun={act:act,phase:"work",cycle:1,base:0,
     ends:Date.now()+c.s*60000,paused:null,linked:linked||null};
   save();pomRender();pomLoop();redrawLinked();
   toast(actOf(act).n+" · "+c.s+" min");
@@ -3686,8 +3686,16 @@ function pomAdvance(auto){
        novanta: un blocco da un'ora e mezza si chiudeva dopo tre quarti d'ora.
        Il banco di prova non lo vedeva perche' chiamava la fine sessione con
        l'orologio ancora all'inizio. */
+    /* La mezz'ora "di cortesia" vale solo se durante la sessione non ne e'
+       scattata nessuna. Guardare solo questo istante non bastava: con lo
+       schema, sessioni da quarantacinque minuti, la prima mezz'ora scatta al
+       minuto trenta — dentro la sessione — e a fine sessione ne arrivava una
+       seconda in regalo, che con la chiusura della coda finiva per spuntare
+       tutto un blocco da un'ora e mezza in una sessione sola. Il contrario di
+       quello che avevi chiesto. */
+    const spesiPrima=r.base||0;
     let k=spuntaMaturato(r);
-    if(auto&&!k)k+=spuntaUnaSola(r);
+    if(auto&&!k&&(r.spesi||0)<=spesiPrima)k+=spuntaUnaSola(r);
     if(auto)k+=chiudiCoda(r);
     r.min=(r.min||0)+min;
     if(k)afterEdit(hrs(k)+" segnate come fatte");
@@ -3733,6 +3741,7 @@ function pomAdvance(auto){
     if(auto)notify("Pausa finita","Riprendi con "+actOf(r.act).n.toLowerCase());
     r.cycle=r.phase==="long"?1:r.cycle+1;
     r.phase="work";
+    r.base=r.spesi||0;                 /* da qui conta la sessione nuova */
     r.ends=Date.now()+c.s*60000;
   }
   r.paused=null;save();pomRender();pomLoop();

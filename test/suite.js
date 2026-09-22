@@ -2145,6 +2145,24 @@
     }finally{window.Date=Vero;}
     return esito;});
 
+  /* Con le sessioni lunghe la prima mezz'ora scatta dentro la sessione: a
+     fine sessione non ne deve arrivare un'altra in regalo, se no un blocco da
+     un'ora e mezza si chiude in quarantacinque minuti. */
+  t("la mezz'ora di cortesia non arriva se una e' gia' scattata durante la sessione",function(){
+    pulisci();apri();
+    state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+    placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:3},0);   /* un'ora e mezza */
+    pomStart("SCH",[{date:oggi,start:MATT,lane:0}]);
+    /* il tempo scorre: al minuto trenta la prima mezz'ora scatta da sola */
+    var r=state.pomRun;r.min=0;r.ends=Date.now()+15*60000;   /* trenta minuti gia' fatti */
+    spuntaMaturato(r);
+    var dopo30=[0,1,2].map(function(i2){var v=at(ck(oggi,MATT+i2))[0];return v&&v.done?"■":"□";}).join("");
+    fine();                                            /* fine dei quarantacinque */
+    var dopoSess=[0,1,2].map(function(i2){var v=at(ck(oggi,MATT+i2))[0];return v&&v.done?"■":"□";}).join("");
+    pomStop(true);state.pomConf={};
+    if(dopo30!=="■□□")return "al minuto trenta il blocco e' "+dopo30;
+    return dopoSess==="■□□"?true:"a fine sessione e' diventato "+dopoSess+" (atteso ■□□)";});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
