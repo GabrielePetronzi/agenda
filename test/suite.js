@@ -194,7 +194,12 @@
      prossimo. Sembra ovvio e non lo era: chiedeva "che blocco copre adesso?"
      anche mentre continuava, e a meta' mattina l'orologio sta gia' dentro il
      blocco dopo. */
+  /* Alle sette del mattino i due blocchi sono ancora da venire: se il banco
+     gira di sera sono recuperi, si chiudono tutti a fine sessione (giusto,
+     ma e' un'altra regola) e il timer passa al blocco dopo perche' quello in
+     mano e' finito davvero. Qui si prova che non lo molla a meta'. */
   t("il timer finisce il blocco che ha in mano, a qualunque ora sia",function(){
+    return alleSette(function(){
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
     var A=8*PERQ,B=10*PERQ;
@@ -208,7 +213,7 @@
     state.pomRun=null;state.pomConf={};
     if(dove.some(function(s){return s>=B;}))
       return "e' saltato al blocco delle dieci: agganciato a "+dove.join(",");
-    return secondo===0?true:"ha gia' spuntato "+secondo+" mezz'ore del blocco dopo";});
+    return secondo===0?true:"ha gia' spuntato "+secondo+" mezz'ore del blocco dopo";});});
   t("la mezz'ora scatta quando la compi, non a fine fase",function(){
     return alleSette(function(){
     /* Su un blocco lungo il conto deve scorrere: dopo sessione e pausa sono 57
@@ -2077,6 +2082,10 @@
     pomStart("LET",[{date:oggi,start:MATT,lane:0}]);pomRender();
     var con=document.getElementById("pombar").textContent;
     pomStop(true);
+    /* "senza blocco" va provato su una griglia vuota: se un blocco di lettura
+       di oggi c'e', adesso il timer se lo prende da solo — ed e' quello che
+       deve fare. */
+    pulisci();apri();
     pomStart("LET",null);pomRender();
     var senza=document.getElementById("pombar").textContent;
     var bottone=!!document.querySelector('#pombar [data-p="attacca"]');
@@ -2314,6 +2323,26 @@
       pomStop(true);
       if(txt.indexOf("in pausa")<0)return "la barra non dice che e' in pausa";
       return txt.indexOf("spunta 10:00")>=0?true:"la barra da fermo non dice il blocco: "+txt;
+    });});
+
+  /* La sera del 23 settembre: timer di videolezione avviato quando in griglia
+     non c'era ancora niente, blocco messo dopo. La barra diceva "nessun blocco
+     agganciato" per tutta la sessione — il gancio si provava solo a fine
+     sessione — e lui non poteva sapere se qualcosa sarebbe stato spuntato. */
+  t("metti il blocco a timer avviato: se lo prende subito, non a fine sessione",function(){
+    return alleSette(function(){
+      pulisci();apri();
+      var d=iso(new Date());
+      pomStart("VID",null);                     /* griglia vuota: niente da agganciare */
+      var prima=document.getElementById("pombar").textContent;
+      placeRun(d,20,{i:it[0].id,a:"VID",len:2},0);
+      render();                                 /* il blocco compare adesso */
+      var dopo=document.getElementById("pombar").textContent;
+      var ag=(state.pomRun&&state.pomRun.linked||[])[0];
+      pomStop(true);
+      if(prima.indexOf("nessun blocco")<0)return "a griglia vuota la barra non lo diceva: "+prima;
+      if(!ag||ag.start!==20)return "il timer non si e' preso il blocco nuovo";
+      return dopo.indexOf("spunta 10:00")>=0?true:"la barra non dice il blocco nuovo: "+dopo;
     });});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+

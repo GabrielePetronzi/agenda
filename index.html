@@ -1768,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 set 2026 · c";
+const VERSIONE="23 set 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3488,10 +3488,13 @@ function pomFromCell(dateIso,slot,lane){
   state.act=r.a;
   pomAskBlock(false);
   const giro=state.pomRun;
-  if(giro&&giro.act===r.a&&!(giro.linked||[]).length){
+  if(giro&&giro.act===r.a&&(!(giro.linked||[]).length||giro.autoAg)){
     /* il timer sta gia' girando su questa attivita' e non e' agganciato a
-       niente: si attacca qui, senza buttare via i minuti gia' fatti */
+       niente, o e' agganciato a un blocco che si e' scelto da solo: si
+       sposta qui, senza buttare via i minuti gia' fatti. Un aggancio scelto
+       da te invece non si tocca: li' ricominci una sessione nuova. */
     giro.linked=[{date:r.date,start:r.start,lane:r.lane}];
+    giro.autoAg=0;
     save();pomRender();redrawLinked();tools();status();
     toast("Agganciato a "+slotTime(r.start)+"–"+slotTime(r.start+r.len));
     return true;
@@ -3530,11 +3533,31 @@ function slotDiOggi(act){
           rs.find(x=>x.start>=ora)||rs[0];
   return {date:d,start:r.start,lane:r.lane,len:r.len};
 }
+/* Il timer si cerca il blocco da solo: uno di questa attivita', oggi, con
+   ancora qualcosa da fare. Prima questa ricerca stava in un punto solo, la
+   fine della sessione: chi avviava il timer quando in griglia non c'era
+   ancora niente — o chi ricaricava la pagina a sessione avviata — si vedeva
+   "nessun blocco agganciato" per tutta la sessione, senza sapere se a fine
+   corsa qualcosa sarebbe stato spuntato. Ora il gancio si prova a ogni
+   occasione: all'avvio, a ogni secondo che gira, a ogni fase nuova, appena
+   tocchi la griglia e a ogni ridisegno della pagina. */
+function agganciaDaSolo(r){
+  r=r||state.pomRun;
+  if(!r)return 0;
+  if((r.linked||[]).some(b=>restaDelBlocco(b)))return 0;
+  const g=slotDiOggi(r.act);
+  if(!g)return 0;
+  r.linked=[{date:g.date,start:g.start,lane:g.lane}];
+  r.autoAg=1;              /* scelto dal timer, non da te: si puo' cambiare */
+  return 1;
+}
 function pomStart(act,linked){
   logPartial(state.pomRun);
   const c=pomConf(act);
   state.pomRun={act:act,phase:"work",cycle:1,base:0,
-    ends:Date.now()+c.s*60000,paused:null,linked:linked||null};
+    ends:Date.now()+c.s*60000,paused:null,linked:linked||null,
+    autoAg:(linked&&linked.length)?0:1};
+  agganciaDaSolo(state.pomRun);
   save();pomRender();pomLoop();redrawLinked();
   toast(actOf(act).n+" · "+c.s+" min");
 }
@@ -3730,10 +3753,7 @@ function pomAdvance(auto){
        che la mezz'ora esistesse ancora in griglia per considerare il timer
        "a posto", e una sessione intera finiva su un blocco gia' spuntato
        mentre quello vero restava rosso nel riquadro del debito. */
-    if(!(r.linked||[]).some(b=>restaDelBlocco(b))){
-      const g=slotDiOggi(r.act);
-      if(g){r.linked=[{date:g.date,start:g.start,lane:g.lane}];redrawLinked();}
-    }
+    if(agganciaDaSolo(r))redrawLinked();
     const spesiPrima=r.base||0;
     let k=spuntaMaturato(r);
     if(auto&&!k&&(r.spesi||0)<=spesiPrima)k+=spuntaUnaSola(r);
@@ -3785,6 +3805,7 @@ function pomAdvance(auto){
     r.phase="work";
     r.base=r.spesi||0;                 /* da qui conta la sessione nuova */
     r.ends=Date.now()+c.s*60000;
+    if(agganciaDaSolo(r))redrawLinked();
   }
   r.paused=null;save();pomRender();pomLoop();
 }
@@ -3826,6 +3847,7 @@ function pomLoop(){
     const r=state.pomRun;
     if(!r||r.paused){clearInterval(pomTick);pomTick=null;return;}
     if(Date.now()>=r.ends){pomAdvance(true);return;}
+    if(agganciaDaSolo(r)){save(null,true);redrawLinked();pomRender();}
     /* la mezz'ora scatta nel minuto in cui l'hai davvero compiuta */
     const k=spuntaMaturato(r);
     if(k){save(null,true);afterEdit(hrs(k)+" segnate come fatte");}
@@ -3988,6 +4010,9 @@ function pomPanel(){
       if(preso)ag=[{date:preso.date,start:preso.start,lane:preso.lane}];
     }
     pomStart(act,ag);
+    /* preso dal timer, non scelto da te: se poi tocchi un altro blocco di
+       questa attivita' il timer ci si sposta senza ricominciare il conto */
+    if(preso&&state.pomRun)state.pomRun.autoAg=1;
     if(preso)toast("Agganciato a "+slotTime(preso.start)+"–"+
       slotTime(preso.start+preso.len)+" di oggi");
     else if(!ag.length){
@@ -5400,8 +5425,10 @@ function afterEdit(msg){
   const days=new Set();
   for(let p=0;p<PANELS;p++)panelDates(p).forEach(d=>days.add(iso(d)));
   days.forEach(d=>compattaCorsie(d));
+  const preso=state.pomRun&&agganciaDaSolo(state.pomRun);
   save(msg);commit();
   days.forEach(d=>drawDay(d));
+  if(preso){pomRender();redrawLinked();}
   refreshMetrics();selInfo();
 }
 
@@ -6363,6 +6390,7 @@ function themeIcon(){
 function render(){
   applySpan();controls();picklist();tools();examList();weeknav();panels();status();modeFlag();selInfo();
   lateBar();
+  if(state.pomRun&&agganciaDaSolo(state.pomRun))save(null,true);
   pomPanel();pomRender();
   document.querySelector("#semToggle .chev").classList.toggle("open",!!state.semOpen);
   semSummary();
