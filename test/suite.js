@@ -2277,6 +2277,45 @@
     }finally{window.Date=Vero;}
     return esito;});
 
+  /* Il caso di stasera: il timer e' agganciato a un blocco gia' spuntato e in
+     giornata ce n'e' un altro della stessa attivita' rimasto indietro. Prima
+     bastava che la mezz'ora agganciata esistesse ancora per non cercare piu'
+     niente: la sessione finiva a vuoto e il blocco vero restava rosso. */
+  t("se il blocco agganciato e' gia' tutto fatto, a fine sessione ne cerca un altro",function(){
+    var esito;
+    var Vero=Date,fisso=new Vero();fisso.setHours(23,0,0,0);
+    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+    try{
+      window.Date=F;
+      pulisci();apri();
+      var d=iso(new Date());
+      placeRun(d,36,{i:it[0].id,a:"VID",len:1,done:1},0);   /* 18:00, gia' fatto */
+      placeRun(d,42,{i:it[0].id,a:"VID",len:2},0);          /* 21:00, rimasto indietro */
+      pomStart("VID",[{date:d,start:36,lane:0}]);
+      fine();
+      var q=[0,1].map(function(i2){var v=at(ck(d,42+i2))[0];return v&&v.done?"■":"□";}).join("");
+      pomStop(true);
+      esito=q==="■■"?true:"il blocco rimasto indietro e' "+q+" (atteso ■■)";
+    }finally{window.Date=Vero;}
+    return esito;});
+
+  /* Col timer fermo a mano la riga diceva solo "in pausa": spariva proprio la
+     risposta alla domanda di chi lo guarda, cioe' quale blocco spunta. */
+  t("da fermo la barra dice lo stesso quale blocco spunta",function(){
+    return alleSette(function(){
+      var d=iso(new Date());
+      pulisci();apri();
+      placeRun(d,20,{i:it[0].id,a:"VID",len:2},0);
+      pomStart("VID",[{date:d,start:20,lane:0}]);
+      pomPause();pomRender();
+      var txt=document.getElementById("pombar").textContent;
+      pomStop(true);
+      if(txt.indexOf("in pausa")<0)return "la barra non dice che e' in pausa";
+      return txt.indexOf("spunta 10:00")>=0?true:"la barra da fermo non dice il blocco: "+txt;
+    });});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }

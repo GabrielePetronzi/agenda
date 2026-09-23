@@ -1768,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 set 2026 · b";
+const VERSIONE="23 set 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3725,8 +3725,12 @@ function pomAdvance(auto){
        cerca da solo: un blocco di questa attivita', oggi, non ancora fatto.
        Serve a chi avvia il timer e solo dopo mette il blocco in griglia, o lo
        avvia quando di quell'attivita' non c'era ancora niente: a fine
-       sessione la spunta arriva lo stesso, senza dover agganciare a mano. */
-    if(!(r.linked||[]).some(b=>at(ck(b.date,b.start))[b.lane])){
+       sessione la spunta arriva lo stesso, senza dover agganciare a mano.
+       Vale anche se il blocco agganciato e' gia' tutto fatto: prima bastava
+       che la mezz'ora esistesse ancora in griglia per considerare il timer
+       "a posto", e una sessione intera finiva su un blocco gia' spuntato
+       mentre quello vero restava rosso nel riquadro del debito. */
+    if(!(r.linked||[]).some(b=>restaDelBlocco(b))){
       const g=slotDiOggi(r.act);
       if(g){r.linked=[{date:g.date,start:g.start,lane:g.lane}];redrawLinked();}
     }
@@ -3890,9 +3894,11 @@ function pomRender(onlyTime){
   const dove=ag.length
     ? (ag.length===1?slotTime(ag[0].start)+" di oggi":ag.length+" blocchi")
     : null;
-  const nota=fermo
-    ? '<u class="nolink">in pausa: il tempo non scorre</u>'
-    : (dove?"spunta "+dove:'<u class="nolink">nessun blocco agganciato</u>');
+  /* Anche da fermo si deve leggere a quale blocco va il tempo. Prima la riga
+     "in pausa" prendeva tutto il posto e nascondeva proprio la risposta alla
+     domanda di chi guarda il timer fermo: "e questo, cosa mi spunta?". */
+  const nota=(fermo?'<u class="nolink">in pausa: il tempo non scorre</u> · ':"")+
+    (dove?"spunta "+dove:'<u class="nolink">nessun blocco agganciato</u>');
   const prima=bar.classList.contains("on");
   bar.className="pombar on "+r.phase+(r.paused!=null?" pause":"");
   bar.innerHTML=
