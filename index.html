@@ -1768,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="22 set 2026 · g";
+const VERSIONE="23 set 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3671,6 +3671,34 @@ function spuntaUnaSola(r){
   }
   return 0;
 }
+/* Un blocco che stai recuperando si chiude tutto a fine sessione. E' il caso
+   che chiedevi: l'ora e' gia' passata, il blocco sta nella fascia rossa del
+   debito, ti siedi e fai la sessione per rimediare — finita quella, il blocco
+   e' fatto, non fatto a meta'. Vale solo per i blocchi la cui ora e' gia'
+   passata: quello che stai facendo mentre e' in corso continua a spuntarsi
+   una mezz'ora per volta, come avevi chiesto a settembre. */
+function chiudiRecupero(r){
+  if(!r||!r.linked||!r.linked.length)return 0;
+  const oggi=iso(new Date()),ora=oraAdesso();
+  let n=0;
+  r.linked.forEach(b=>{
+    const base=at(ck(b.date,b.start))[b.lane];
+    if(!base)return;
+    let fine=b.start;
+    for(let sl=b.start;;sl++){
+      const v=at(ck(b.date,sl))[b.lane];
+      if(!v||v.i!==base.i||v.a!==base.a)break;
+      fine=sl+1;
+    }
+    const passato=b.date<oggi||(b.date===oggi&&fine<=ora);
+    if(!passato)return;
+    for(let sl=b.start;sl<fine;sl++){
+      const key=ck(b.date,sl),arr=at(key).slice(),v=arr[b.lane];
+      if(v&&!v.done){v.done=1;setAt(key,arr);n++;r.spesi=(r.spesi||0)+1;}
+    }
+  });
+  return n;
+}
 function pomAdvance(auto){
   const r=state.pomRun;if(!r)return;
   const c=pomConf(r.act);
@@ -3696,6 +3724,7 @@ function pomAdvance(auto){
     const spesiPrima=r.base||0;
     let k=spuntaMaturato(r);
     if(auto&&!k&&(r.spesi||0)<=spesiPrima)k+=spuntaUnaSola(r);
+    if(auto)k+=chiudiRecupero(r);
     if(auto)k+=chiudiCoda(r);
     r.min=(r.min||0)+min;
     if(k)afterEdit(hrs(k)+" segnate come fatte");

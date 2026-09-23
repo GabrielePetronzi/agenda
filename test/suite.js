@@ -80,6 +80,17 @@
      fine() a orologio fermo all'inizio della fase provava un caso
      che nella vita non esiste, e non vedeva i minuti contati due volte. */
   function fine(){if(state.pomRun)state.pomRun.ends=Date.now()-1;pomAdvance(true);}
+  /* Blocchi delle otto del mattino: se il banco di prova gira di pomeriggio
+     sono "recuperi" e a fine sessione si chiudono tutti, che e' giusto ma non
+     e' quello che questi controlli vogliono provare. Qui l'orologio si ferma
+     alle sette, cosi' i blocchi sono ancora da venire. */
+  function alleSette(f){
+    var Vero=Date,fisso=new Vero();fisso.setHours(7,0,0,0);
+    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+    try{window.Date=F;return f();}finally{window.Date=Vero;}
+  }
   pulisci();apri();
   /* Due ancore diverse, e la differenza conta.
      ORA e' la mezz'ora in cui siamo adesso: serve solo ai tre controlli che
@@ -133,6 +144,7 @@
     state.pomRun=null;
     return eq(!!(q&&q.done),true,"spuntato: ");});
   t("un blocco da un'ora e mezza non si spunta tutto in quarantacinque minuti",function(){
+    return alleSette(function(){
     /* il caso vero: schemi da 1h30 e pomodoro da 45 minuti. Una sessione vale
        45 minuti, cioè una mezz'ora spuntata e un quarto d'ora in cassa. */
     pulisci();apri();
@@ -151,8 +163,9 @@
     state.pomRun=null;state.pomConf={};
     return (dopoSess===1&&dopoPausa===2&&dopoSecondo===3)?true:
       "mezz'ore spuntate: dopo la sessione "+dopoSess+" (attesa 1), dopo la pausa "+
-      dopoPausa+" (attese 2), dopo la seconda sessione "+dopoSecondo+" (attese 3)";});
+      dopoPausa+" (attese 2), dopo la seconda sessione "+dopoSecondo+" (attese 3)";});});
   t("chiuso un blocco, il tempo avanzato va nel prossimo di oggi",function(){
+    return alleSette(function(){
     /* 45+12+45+20+45+12 = 179 minuti su due blocchi da un'ora e mezza:
        il primo si chiude e il secondo prende quello che resta */
     pulisci();apri();
@@ -176,7 +189,7 @@
        fascia il timer si ferma da solo */
     return (uno===3&&due===3&&fermo)?true:
       "primo "+uno+"/3, secondo "+due+"/3, timer fermo: "+fermo+
-      " (attesi 3, 3 e true)";});
+      " (attesi 3, 3 e true)";});});
   /* Il timer deve finire il blocco che ha in mano prima di passare al
      prossimo. Sembra ovvio e non lo era: chiedeva "che blocco copre adesso?"
      anche mentre continuava, e a meta' mattina l'orologio sta gia' dentro il
@@ -197,6 +210,7 @@
       return "e' saltato al blocco delle dieci: agganciato a "+dove.join(",");
     return secondo===0?true:"ha gia' spuntato "+secondo+" mezz'ore del blocco dopo";});
   t("la mezz'ora scatta quando la compi, non a fine fase",function(){
+    return alleSette(function(){
     /* Su un blocco lungo il conto deve scorrere: dopo sessione e pausa sono 57
        minuti e una mezz'ora sola; tre minuti dentro la sessione dopo sono
        sessanta, e la seconda mezz'ora deve scattare lì — non alla fine di
@@ -216,8 +230,9 @@
     var a60=conta();
     state.pomRun=null;state.pomConf={};
     return (a57===1&&a60===2)?true:
-      "a 57 minuti "+a57+"/6, a 60 minuti "+a60+"/6 (attesi 1 e 2)";});
+      "a 57 minuti "+a57+"/6, a 60 minuti "+a60+"/6 (attesi 1 e 2)";});});
   t("il blocco si chiude a fine sessione, senza aspettare la pausa",function(){
+    return alleSette(function(){
     /* un'ora di studio: dopo i 45 minuti resta mezz'ora, meno di una sessione,
        e non ne farai un'altra per quella: il blocco si chiude lì */
     pulisci();apri();
@@ -230,8 +245,9 @@
     var infase=state.pomRun&&state.pomRun.phase;
     state.pomRun=null;state.pomConf={};
     return (k===2&&infase==="break")?true:
-      "mezz'ore "+k+"/2, fase "+infase+" (attesi 2 e break)";});
+      "mezz'ore "+k+"/2, fase "+infase+" (attesi 2 e break)";});});
   t("finita la fascia il timer si ferma da solo",function(){
+    return alleSette(function(){
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
     placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:2},0);
@@ -242,8 +258,9 @@
     fine();                       /* fine pausa: niente più, si ferma */
     var fermo=state.pomRun===null;
     state.pomConf={};
-    return (pausa&&fermo)?true:"la pausa è partita: "+pausa+", timer fermo: "+fermo;});
+    return (pausa&&fermo)?true:"la pausa è partita: "+pausa+", timer fermo: "+fermo;});});
   t("la pausa che ferma il timer non finisce due volte a registro",function(){
+    return alleSette(function(){
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
     state.log={};
@@ -254,7 +271,7 @@
     var m=0;Object.keys(state.log).forEach(function(k2){
       Object.keys(state.log[k2]).forEach(function(f){m+=state.log[k2][f];});});
     state.pomConf={};
-    return eq(m,57,"minuti a registro ");});
+    return eq(m,57,"minuti a registro ");});});
   t("la parte fatta e quella da fare diventano due blocchi",function(){
     pulisci();apri();
     placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:3},0);
@@ -2009,6 +2026,7 @@
      chiudeva: chi fermava li' il timer si ritrovava il blocco da fare per
      sempre. */
   t("una sessione piu' corta della mezz'ora chiude lo stesso il blocco",function(){
+    return alleSette(function(){
     pulisci();apri();
     state.pomConf={LET:{s:27,b:8,l:20,n:3}};
     placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:1},0);
@@ -2016,8 +2034,9 @@
     fine();                                  /* fine dei 27 minuti */
     var v=at(ck(oggi,MATT))[0],fatto=!!(v&&v.done);
     pomStop(true);state.pomConf={};
-    return fatto?true:"a fine sessione il blocco e' ancora da fare";});
+    return fatto?true:"a fine sessione il blocco e' ancora da fare";});});
   t("e un blocco lungo non si chiude tutto per una sessione sola",function(){
+    return alleSette(function(){
     pulisci();apri();
     state.pomConf={LET:{s:27,b:8,l:20,n:3}};
     placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:4},0);   /* due ore */
@@ -2026,7 +2045,7 @@
     var k=0;for(var i=0;i<4;i++){var v=at(ck(oggi,MATT+i))[0];if(v&&v.done)k++;}
     pomStop(true);state.pomConf={};
     /* una mezz'ora si', le altre tre no: la sessione vale quello che vale */
-    return k===1?true:"dopo ventisette minuti risultano fatte "+k+" mezz'ore su quattro";});
+    return k===1?true:"dopo ventisette minuti risultano fatte "+k+" mezz'ore su quattro";});});
   t("la videolezione c'e', con icona, motivo e durata sue",function(){
     var v=ACTS.filter(function(a){return a.k==="VID";})[0];
     if(!v)return "non c'e' nell'elenco delle attivita'";
@@ -2101,6 +2120,7 @@
     }finally{window.Date=Vero;}
     return esito;});
   t("una sessione finita vale almeno una mezz'ora del blocco",function(){
+    return alleSette(function(){
     pulisci();apri();
     state.pomConf={LET:{s:27,b:8,l:20,n:3}};
     placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:4},0);   /* due ore di lettura */
@@ -2108,7 +2128,7 @@
     fine();                                            /* ventisette minuti */
     var q=[0,1,2,3].map(function(i2){var v=at(ck(oggi,MATT+i2))[0];return v&&v.done?"■":"□";}).join("");
     pomStop(true);state.pomConf={};
-    return q==="■□□□"?true:"dopo una sessione il blocco e' "+q+" (attesa una mezz'ora sola)";});
+    return q==="■□□□"?true:"dopo una sessione il blocco e' "+q+" (attesa una mezz'ora sola)";});});
   t("senza blocco agganciato lo dice invece di spuntare a caso",function(){
     pulisci();apri();
     var detti=[],vt=toast;toast=function(m){detti.push(m);};
@@ -2149,6 +2169,7 @@
      fine sessione non ne deve arrivare un'altra in regalo, se no un blocco da
      un'ora e mezza si chiude in quarantacinque minuti. */
   t("la mezz'ora di cortesia non arriva se una e' gia' scattata durante la sessione",function(){
+    return alleSette(function(){
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
     placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:3},0);   /* un'ora e mezza */
@@ -2161,7 +2182,7 @@
     var dopoSess=[0,1,2].map(function(i2){var v=at(ck(oggi,MATT+i2))[0];return v&&v.done?"■":"□";}).join("");
     pomStop(true);state.pomConf={};
     if(dopo30!=="■□□")return "al minuto trenta il blocco e' "+dopo30;
-    return dopoSess==="■□□"?true:"a fine sessione e' diventato "+dopoSess+" (atteso ■□□)";});
+    return dopoSess==="■□□"?true:"a fine sessione e' diventato "+dopoSess+" (atteso ■□□)";});});
 
   /* In pausa a mano il tempo non scorre e nessuna mezz'ora scattera' mai: la
      barra deve dirlo, perche' la parola "Pausa" da sola e' anche il nome
@@ -2181,6 +2202,47 @@
       return "in pausa la barra dice: "+fermo;
     return (vivo.indexOf("FERMO")<0&&vivo.indexOf("spunta")>=0)?true:
       "ripreso, la barra dice ancora: "+vivo;});
+
+  /* Il caso che chiedevi a voce alta: un blocco che l'ora ha gia' superato,
+     lo recuperi con una sessione, e a fine sessione e' fatto tutto — non
+     mezzo. Vale per qualunque attivita', videolezione compresa. */
+  t("un blocco che stai recuperando si chiude tutto a fine sessione",function(){
+    var esito;
+    var Vero=Date,fisso=new Vero();fisso.setHours(23,0,0,0);
+    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+    try{
+      window.Date=F;
+      pulisci();apri();
+      var d=iso(new Date());
+      placeRun(d,41,{i:it[0].id,a:"VID",len:2},0);      /* videolezione 20:30-21:30, e sono le 23 */
+      var g=slotDiOggi("VID");
+      pomStart("VID",[{date:g.date,start:g.start,lane:g.lane}]);
+      fine();                                          /* una sessione da trenta minuti */
+      var q=[0,1].map(function(i2){var v=at(ck(d,41+i2))[0];return v&&v.done?"■":"□";}).join("");
+      pomStop(true);
+      esito=q==="■■"?true:"dopo la sessione il blocco e' "+q+" (atteso ■■)";
+    }finally{window.Date=Vero;}
+    return esito;});
+  t("ma un blocco ancora in corso no: si spunta una mezz'ora per volta",function(){
+    var esito;
+    var Vero=Date,fisso=new Vero();fisso.setHours(20,45,0,0);
+    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+    try{
+      window.Date=F;
+      pulisci();apri();
+      var d=iso(new Date());
+      placeRun(d,41,{i:it[0].id,a:"VID",len:2},0);      /* 20:30-21:30, e sono le 20:45 */
+      pomStart("VID",[{date:d,start:41,lane:0}]);
+      fine();
+      var q=[0,1].map(function(i2){var v=at(ck(d,41+i2))[0];return v&&v.done?"■":"□";}).join("");
+      pomStop(true);
+      esito=q==="■□"?true:"dopo la sessione il blocco e' "+q+" (attesa una mezz'ora sola)";
+    }finally{window.Date=Vero;}
+    return esito;});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
