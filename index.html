@@ -1768,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 set 2026 · a";
+const VERSIONE="23 set 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3721,6 +3721,15 @@ function pomAdvance(auto){
        seconda in regalo, che con la chiusura della coda finiva per spuntare
        tutto un blocco da un'ora e mezza in una sessione sola. Il contrario di
        quello che avevi chiesto. */
+    /* Prima di fare i conti, se non c'e' niente agganciato il timer se lo
+       cerca da solo: un blocco di questa attivita', oggi, non ancora fatto.
+       Serve a chi avvia il timer e solo dopo mette il blocco in griglia, o lo
+       avvia quando di quell'attivita' non c'era ancora niente: a fine
+       sessione la spunta arriva lo stesso, senza dover agganciare a mano. */
+    if(!(r.linked||[]).some(b=>at(ck(b.date,b.start))[b.lane])){
+      const g=slotDiOggi(r.act);
+      if(g){r.linked=[{date:g.date,start:g.start,lane:g.lane}];redrawLinked();}
+    }
     const spesiPrima=r.base||0;
     let k=spuntaMaturato(r);
     if(auto&&!k&&(r.spesi||0)<=spesiPrima)k+=spuntaUnaSola(r);

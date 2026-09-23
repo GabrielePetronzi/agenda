@@ -639,13 +639,23 @@
     pulisci();apri();
     placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2,done:1},0);
     return eq(slotDiOggi("ESE"),null);});
-  t("una sessione senza aggancio non spunta niente e non si rompe",function(){
+  /* Senza aggancio il timer si cerca da solo un blocco di oggi di quella
+     attivita' — e se in giornata non ce n'e' nessuno non spunta niente e non
+     si rompe, che era il senso di questo controllo. */
+  t("una sessione senza aggancio non spunta niente se di quell'attivita' oggi non c'e' nulla",function(){
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2},0);
+    pomStart("LAB",[]);                    /* di laboratorio oggi non c'e' niente */
+    pomAdvance(true);
+    var q=runAt(oggi,ORA,0);state.pomRun=null;
+    return eq(!!(q&&q.done),false,"spuntato: ");});
+  t("ma se un blocco di quell'attivita' c'e', lo trova senza che tu lo agganci",function(){
     pulisci();apri();
     placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2},0);
     pomStart("ESE",[]);
     pomAdvance(true);
     var q=runAt(oggi,ORA,0);state.pomRun=null;
-    return eq(!!(q&&q.done),false,"spuntato: ");});
+    return eq(!!(q&&q.done),true,"spuntato: ");});
   t("i minuti si dividono fra le materie agganciate",function(){
     pulisci();apri();state.log={};
     logAdd("ESE",60,[it[0].id,it[1].id]);
@@ -2241,6 +2251,29 @@
       var q=[0,1].map(function(i2){var v=at(ck(d,41+i2))[0];return v&&v.done?"■":"□";}).join("");
       pomStop(true);
       esito=q==="■□"?true:"dopo la sessione il blocco e' "+q+" (attesa una mezz'ora sola)";
+    }finally{window.Date=Vero;}
+    return esito;});
+
+  /* Avviare il timer senza agganciare niente — perche' il blocco lo metti
+     dopo, o perche' quando sei partito non c'era — non deve costare la
+     spunta: a fine sessione il timer si cerca da solo il blocco di oggi di
+     quella attivita'. */
+  t("a fine sessione il timer si cerca il blocco da solo, se non ne ha",function(){
+    var esito;
+    var Vero=Date,fisso=new Vero();fisso.setHours(23,0,0,0);
+    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+    try{
+      window.Date=F;
+      pulisci();apri();
+      var d=iso(new Date());
+      pomStart("VID",null);                    /* niente agganciato: in griglia non c'era nulla */
+      placeRun(d,41,{i:it[0].id,a:"VID",len:2},0);   /* il blocco lo metto adesso */
+      fine();
+      var q=[0,1].map(function(i2){var v=at(ck(d,41+i2))[0];return v&&v.done?"■":"□";}).join("");
+      pomStop(true);
+      esito=q==="■■"?true:"dopo la sessione il blocco e' "+q+" (atteso ■■)";
     }finally{window.Date=Vero;}
     return esito;});
 
