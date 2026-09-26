@@ -1729,7 +1729,7 @@
     return incollati===2?true:"Ctrl-clic sulla casella vuota ha incollato "+incollati+" blocchi invece di 2";});
 
   /* ---------- NASPI e piano di studi ---------- */
-  t("il Master PAI si mette da solo, come lavoro e NASPI, e ha il tasto 0",function(){
+  t("il Master PAI si mette senza materia, ha il tasto 0 e si fa col timer",function(){
     pulisci();apri();
     state.brush=null;state.act="PAI";
     var chi=brushNow();
@@ -1741,7 +1741,8 @@
     state.act="LEZ";
     if(!r)return "il blocco non c'e'";
     if(!m||m.kind!=="g")return "il Master PAI non e' una voce di servizio";
-    if(!daSola("PAI"))return "non si spunta da solo quando l'ora passa";
+    /* il 26 settembre: "PAI non va spuntata da sola" */
+    if(daSola("PAI"))return "si spunta ancora da solo quando l'ora passa";
     if(!document.querySelector('.blk[data-date="'+G[0]+'"]'))return "non si disegna";
     return eq(tasto,"PAI","col tasto 0 l'attivita' e' ");});
   t("la NASPI si mette da sola, come ripasso e lavoro",function(){
@@ -2380,7 +2381,7 @@
       placeRun(d,36,{i:it[0].id,a:"SCH",len:2},0);
       setDone(d,36,0,true);
       var prima=oreFatte(it[0].id);
-      state.act="VID";avvia();
+      state.act="SCH";avvia();
       var r=state.pomRun,ag=r&&(r.linked||[])[0];
       fine();
       var dopo=oreFatte(it[0].id);pomStop(true);
@@ -2389,18 +2390,55 @@
       return dopo===2?true:"dopo la sessione le ore fatte sono "+dopo+" mezz'ore (attese 2)";
     });});
 
-  t("Avvia senza scegliere l'attivita': prende il blocco saltato e la sua attivita'",function(){
+  /* Il timer si aggancia da solo, ma solo alla sua attivita': un pomodoro di
+     lettura non spunta lo schema delle nove. */
+  t("Avvia con lettura non spunta uno schema: si aggancia solo alla sua attivita'",function(){
     return alle(15,function(){
       pulisci();apri();
       var d=iso(new Date());
       placeRun(d,18,{i:it[0].id,a:"SCH",len:4},0);     /* schema 9-11, saltato */
-      state.act="VID";                                /* in mano c'e' un altro pennello */
+      placeRun(d,24,{i:it[1].id,a:"LET",len:2},0);     /* lettura 12-13, saltata */
+      state.act="LET";
       var b=avvia(),testo=b?b.textContent:"";
       var r=state.pomRun,ag=r&&(r.linked||[])[0],act=r&&r.act;
+      fine();
+      var schema=[0,1,2,3].some(function(k){var v=at(ck(d,18+k))[0];return v&&v.done;});
       pomStop(true);
-      if(!/schema 9:00/i.test(testo))return "il pulsante non dice cosa prende: "+testo;
-      if(act!=="SCH")return "e' partito con "+act+" invece che con lo schema";
-      return ag&&ag.start===18?true:"non si e' agganciato al blocco delle nove";
+      if(act!=="LET")return "e' partito con "+act+" invece che con la lettura";
+      if(!ag||ag.start!==24)return "non si e' agganciato alla lettura delle 12";
+      if(!/lettura 12:00/i.test(testo))return "il pulsante non dice cosa prende: "+testo;
+      return schema?"un pomodoro di lettura ha spuntato lo schema":true;
+    });});
+
+  t("Avvia con un'attivita' che oggi non ha blocchi: niente aggancio, niente spunte",function(){
+    return alle(15,function(){
+      pulisci();apri();
+      var d=iso(new Date());
+      placeRun(d,18,{i:it[0].id,a:"SCH",len:4},0);
+      state.act="VID";avvia();
+      var r=state.pomRun,act=r&&r.act,n=(r&&r.linked||[]).length;
+      fine();
+      var schema=[0,1,2,3].some(function(k){var v=at(ck(d,18+k))[0];return v&&v.done;});
+      pomStop(true);pomAskBlock(false);
+      if(act!=="VID")return "e' partito con "+act;
+      if(n)return "si e' agganciato a un blocco di un'altra attivita'";
+      return schema?"una videolezione ha spuntato lo schema":true;
+    });});
+
+  t("il Master PAI saltato resta nel debito, e col timer si spunta",function(){
+    return alle(23,function(){
+      pulisci();apri();
+      var d=iso(new Date());
+      placeRun(d,36,{i:PAIID,a:"PAI",len:2},0);        /* 18-19, e sono le 23 */
+      autoLessons();
+      var dasolo=!!(at(ck(d,36))[0]||{}).done;
+      var inDebito=arretrati().some(function(x){return x.start===36;});
+      state.act="PAI";avvia();fine();
+      var q=[0,1].map(function(k){return vero(at(ck(d,36+k))[0])?"■":"□";}).join("");
+      pomStop(true);
+      if(dasolo)return "passata l'ora si e' spuntato da solo";
+      if(!inDebito)return "non e' finito nel debito";
+      return q.indexOf("■")>=0?true:"la sessione di PAI non l'ha spuntato: "+q;
     });});
 
   t("la spunta a mano resta tale dopo un ricarico e uno spostamento di corsia",function(){

@@ -1614,8 +1614,9 @@ const ACTS=[
   /* la NASPI si mette come il lavoro: senza materia, si spunta da sola quando
      l'ora passa, non conta come studio. E' il tempo che ha un nome suo. */
   {k:"NAS",n:"NASPI"},
-  /* il master PAI: come il lavoro, senza materia, si spunta da solo, fuori dal
-     metodo di studio */
+  /* il master PAI: senza materia e fuori dal metodo di studio, ma non si
+     spunta da solo — dal 26 settembre si fa col timer come lo studio, e se
+     l'ora passa senza averlo fatto finisce nel debito */
   {k:"PAI",n:"Master PAI"}
 ];
 
@@ -1772,7 +1773,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="26 set 2026 · c";
+const VERSIONE="26 set 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3318,7 +3319,7 @@ const AUTOACT="LEZ";
    il lavoro perché è lavoro — l'orario lo decide qualcun altro e non lo
    recuperi la sera. Per queste due il pomodoro non ha senso e non finiscono
    fra gli arretrati. */
-const AUTOSPUNTA=["LEZ","LAV","NAS","PAI"];
+const AUTOSPUNTA=["LEZ","LAV","NAS"];
 function daSola(a){return AUTOSPUNTA.indexOf(a)>=0;}
 /* Fatto davvero: spuntato dal timer, spuntato da solo (lezioni, lavoro), o
    spuntato prima che esistesse questa differenza. Una spunta messa a mano su
@@ -3375,7 +3376,7 @@ function promemoria(){
   const oggi=iso(new Date()),n=new Date(),m=map();
   const adesso=n.getHours()*60+n.getMinutes();
   runsOf(oggi).forEach(r=>{
-    if(r.v.done||r.v.a==="LAV"||r.v.a==="NAS"||r.v.a==="PAI")return;
+    if(r.v.done||r.v.a==="LAV"||r.v.a==="NAS")return;
     /* Un blocco gia' cominciato non ha un promemoria: mentre lo fai, ogni
        mezz'ora spuntata spezza il resto in un blocco nuovo che "comincia"
        adesso, e l'avviso "fra 1 minuti" arrivava a ogni mezz'ora di ogni
@@ -3531,10 +3532,12 @@ function askNotify(){
 /* Senza attivita' (act nullo) cerca fra tutte quelle col pomodoro: e' Avvia
    senza aver scelto niente, e il blocco decide l'attivita'. Un blocco
    spuntato a mano per il timer e' ancora da fare, come uno aperto. */
-/* Il blocco per Avvia: dell'attivita' che hai scelto, se oggi ne ha uno da
-   fare; se no quello di qualunque attivita'. */
+/* Il blocco per Avvia: il timer si aggancia da solo, ma solo a un blocco
+   dell'attivita' con cui lo avvii. Il 26 settembre per qualche ora pescava
+   anche fra le altre attivita', e un pomodoro di lettura finiva a spuntare
+   uno schema: "l'attivita' deve corrispondere al blocco che spunta". */
 function bloccoDaAvviare(){
-  return (!daSola(state.act)&&slotDiOggi(state.act))||slotDiOggi(null);
+  return daSola(state.act)?null:slotDiOggi(state.act);
 }
 function slotDiOggi(act){
   const d=iso(new Date()),n=new Date();
@@ -3970,11 +3973,8 @@ function pomPanel(){
   const box=document.getElementById("pomtools");box.innerHTML="";
   const sel=Object.keys(selRuns).map(k=>selRuns[k]);
   /* Senza blocchi selezionati Avvia si prende da solo il blocco di oggi da
-     fare (quello in corso, se no quello saltato, se no il prossimo): della
-     attivita' che hai in mano se ne ha uno, se no di qualunque attivita', e
-     parte con la sua. Prima partiva sempre con l'attivita' in mano, e con
-     Videolezione scelta e lo schema delle nove da recuperare girava a vuoto:
-     "nessun blocco agganciato". */
+     fare (quello in corso, se no quello saltato, se no il prossimo) — sempre
+     dell'attivita' con cui lo avvii — e il pulsante dice quale. */
   const dopo=sel.length?null:bloccoDaAvviare();
   const act=dopo?dopo.a:state.act;
   const c=pomConf(act);
@@ -3986,7 +3986,7 @@ function pomPanel(){
     "e a fine lo spunta come fatto";
   pick.onclick=()=>pomAskBlock(!pomPick);
 
-  if(daSola(act)&&!dopo){
+  if(daSola(act)){
     const h=document.createElement("span");
     h.className="pomhint";
     h.innerHTML=(act===AUTOACT?"Le lezioni":"Il lavoro")+
@@ -4007,7 +4007,7 @@ function pomPanel(){
     ? "Al termine segna come fatti i "+sel.length+" blocchi selezionati"
     : (dopo?"Prende da solo il blocco di "+actOf(act).n.toLowerCase()+" delle "+
         slotTime(dopo.start)+" e a fine sessione lo spunta"
-      :"Oggi non c'e' niente da fare in griglia: parte una sessione libera");
+      :"Oggi non c'e' un blocco di "+actOf(act).n.toLowerCase()+" da fare: parte senza aggancio");
   go.onclick=()=>{
     if(typeof Notification!=="undefined"&&Notification.permission==="default")
       Notification.requestPermission().catch(()=>{});
@@ -4020,8 +4020,6 @@ function pomPanel(){
       preso=bloccoDaAvviare();
       if(preso){ag=[{date:preso.date,start:preso.start,lane:preso.lane}];aGo=preso.a;}
     }
-    if(daSola(aGo)){toast(actOf(aGo).n+": si spunta da sola al passare dell'ora");return;}
-    state.act=aGo;
     pomStart(aGo,ag);
     /* preso dal timer, non scelto da te: se poi tocchi un altro blocco di
        questa attivita' il timer ci si sposta senza ricominciare il conto */
@@ -4029,7 +4027,8 @@ function pomPanel(){
     if(preso)toast("Agganciato a "+slotTime(preso.start)+"–"+
       slotTime(preso.start+preso.len)+" di oggi");
     else if(!ag.length){
-      toast("Oggi non c'e' niente da fare in griglia: tocca un blocco per agganciarlo");
+      toast("Nessun blocco di "+actOf(aGo).n.toLowerCase()+
+        " da fare oggi: tocca un blocco per agganciarlo");
       pomAskBlock(true);       /* resta armato: il prossimo tocco lo aggancia */
     }
   };

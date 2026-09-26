@@ -7,8 +7,8 @@
    il suo vero giro di ogni secondo (pomLoop), non una copia: quello che vedi
    qui e' quello che fa l'app sul tuo portatile.
 
-   L'attivita' scelta nella colonna e' apposta un'altra (Esercizi): il timer
-   deve trovare il blocco da solo. A ogni fine sessione stampa lo stato dei
+   Scegli l'attivita' e premi Avvia, senza toccare il blocco: il timer lo
+   trova da solo, e solo della sua attivita' (lo prova H). A ogni fine sessione stampa lo stato dei
    blocchi (■ fatto col timer, ◩ spuntato a mano, □ da fare), e a sera le ore
    che contano nei grafici e i blocchi rimasti nel riquadro del debito.
 
@@ -55,7 +55,9 @@
     {t:"F · il furbo: schema 9–11 saltato, alle 15 lo spunto a mano e non avvio niente",act:null,furbo:true,
       bl:[{sl:18,len:4,a:"SCH",nome:"mattina"}],mira:[],debito:1},
     {t:"G · spuntato a mano alle 15, poi ci ripenso e lo faccio col timer",act:"SCH",furbo:true,
-      bl:[{sl:18,len:4,a:"SCH",nome:"mattina"}],mira:[0]}
+      bl:[{sl:18,len:4,a:"SCH",nome:"mattina"}],mira:[0]},
+    {t:"H · schema 9–11 saltato, ma alle 15 avvio un pomodoro di Lettura",act:"LET",
+      bl:[{sl:18,len:4,a:"SCH",nome:"schema"}],mira:[],debito:1}
   ];
 
   var k=-1,sc=null,fase=null,sess=0,FINE=21*60;
@@ -82,8 +84,8 @@
       out.push("  15:00 spunto a mano      "+stato(sc.bl)+"   (\""+(detto[detto.length-1]||"")+"\")");
     }
     if(!sc.act){fase=null;off=FINE*60000;setTimeout(guarda,100);return;}
-    /* il gesto vero: premi Avvia, con in mano un'altra attivita' (Esercizi) */
-    state.act="ESE";selRuns={};pomPanel();
+    /* il gesto vero: scegli l'attivita' e premi Avvia, senza toccare il blocco */
+    state.act=sc.act;selRuns={};pomPanel();
     var go=document.querySelector("#pomtools .pomgo");
     if(!go){guai.push(sc.t+": non trovo il pulsante Avvia");prossimo();return;}
     detto=[];go.click();
