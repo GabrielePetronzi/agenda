@@ -2477,6 +2477,26 @@
     if(!v0.m)return "scendendo di corsia ha perso il segno della spunta a mano";
     return v1&&v1.m&&v1.done?true:"dopo il ricarico la spunta a mano e' diventata vera";});
 
+  /* Il ripasso si fa anche dal telefono: li' la spunta a mano vale. */
+  t("il ripasso spuntato a mano conta come fatto ed esce dal debito",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"RIP",len:2},0);
+    placeRun(ieri,HOURS[6],{i:it[0].id,a:"SCH",len:2},0);
+    setDone(ieri,HOURS[2],0,true);setDone(ieri,HOURS[6],0,true);
+    /* e una spunta a mano sul ripasso messa prima di questa regola */
+    placeRun(ieri,HOURS[10],{i:it[0].id,a:"RIP",len:2,done:1,m:1},0);
+    var ore=oreFatte(it[0].id);
+    var debito=arretrati().map(function(x){return x.v.a;});
+    state.anchor[state.ctx]=iso(monday(parse(ieri)));applySpan();render();
+    var vuoto=document.querySelector('.blk[data-date="'+ieri+'"][data-start="'+HOURS[2]+'"]');
+    var amano=vuoto&&vuoto.classList.contains("amano");
+    apri();
+    if(ore!==4)return "ore fatte "+ore+" mezz'ore (attese 4: i due ripassi si', lo schema no)";
+    if(debito.indexOf("RIP")>=0)return "il ripasso spuntato a mano e' rimasto nel debito";
+    if(debito.indexOf("SCH")<0)return "lo schema spuntato a mano e' uscito dal debito";
+    return amano?"il ripasso spuntato a mano ha il quadratino vuoto":true;});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }

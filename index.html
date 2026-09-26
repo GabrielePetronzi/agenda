@@ -1797,7 +1797,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="26 set 2026 · e";
+const VERSIONE="26 set 2026 · f";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3352,8 +3352,13 @@ function daSola(a){return AUTOSPUNTA.indexOf(a)>=0;}
    se spunto le caselle per fare il furbo devi tenermi conto che quelle ore
    non le ho fatte". Se poi quelle ore le fai col timer, la "m" se ne va e
    contano. */
-function vero(v){return !!(v&&v.done&&!v.m);}
-function spuntaAMano(v){v.done=1;if(daSola(v.a))delete v.m;else v.m=1;}
+/* L'eccezione: il ripasso. Lo fai anche dal telefono, dove avviare il timer
+   e' scomodo, quindi la spunta a mano vale come fatta (26 settembre). Vale
+   anche per le spunte a mano messe prima di questa regola. */
+const MANO_VALE=["RIP"];
+function manoVale(a){return daSola(a)||MANO_VALE.indexOf(a)>=0;}
+function vero(v){return !!(v&&v.done&&(!v.m||manoVale(v.a)));}
+function spuntaAMano(v){v.done=1;if(manoVale(v.a))delete v.m;else v.m=1;}
 function autoLessons(){
   const now=new Date(),oggi=iso(now);
   const slotOra=now.getHours()*PERQ+(now.getMinutes()>=30?1:0);
@@ -5237,7 +5242,7 @@ function drawDay(dateIso,scope){
       const striscia=r.len===1||alt<30;
       const tardi=inRitardo(dateIso,r);
       bl.className="blk"+(striscia?(due?" mini2":" mini"):"")+
-        (r.v.done&&!tardi?" done":"")+(r.v.m?" amano":"")+(tardi?" tardi":"")+
+        (r.v.done&&!tardi?" done":"")+(r.v.done&&!vero(r.v)?" amano":"")+(tardi?" tardi":"")+
         (selRuns[selKey(dateIso,r.start,r.lane)]?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
       bl.dataset.att=r.v.a;
@@ -5295,7 +5300,7 @@ function drawDay(dateIso,scope){
       /* con Cancella acceso il fumetto del browser starebbe sotto l'etichetta
          rossa e direbbe un'altra cosa: l'intero blocco invece della mezz'ora */
       if(!state.erase)bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
-        (r.v.n?" ("+r.v.n+")":"")+(r.v.done?(r.v.m?" · spuntato a mano, non conta":" · fatto"):"");
+        (r.v.n?" ("+r.v.n+")":"")+(r.v.done?(!vero(r.v)?" · spuntato a mano, non conta":" · fatto"):"");
       td.setAttribute("aria-label",
         (td.dataset.lab||"")+" — "+o.name+", "+a.n+", fino alle "+
         slotTime(r.start+r.len)+(r.v.n?", nota: "+r.v.n:"")+(r.v.done?", fatto":""));
@@ -5480,8 +5485,9 @@ function toggleDoneSel(){
     }
     r.done=anyOpen?1:0;
   });
-  afterEdit(!anyOpen?"Segnati come da fare"
-    :"Spuntati a mano: nei conti restano da fare — falli col timer o spostali avanti");
+  const valgono=keys.every(k=>manoVale(selRuns[k].a));
+  afterEdit(!anyOpen?"Segnati come da fare":(valgono?"Segnati come fatti"
+    :"Spuntati a mano: nei conti restano da fare — falli col timer o spostali avanti"));
 }
 function setDone(dateIso,start,lane,val2){
   const r=runAt(dateIso,start,lane);if(!r)return;
@@ -5498,7 +5504,7 @@ function setDone(dateIso,start,lane,val2){
     }
     setAt(key,arr);
   }
-  afterEdit(!val2?"Da fare":(daSola(r.a)?"Fatto"
+  afterEdit(!val2?"Da fare":(manoVale(r.a)?"Fatto"
     :"Spuntato a mano: nei conti resta da fare — fallo col timer o spostalo avanti"));
 }
 
