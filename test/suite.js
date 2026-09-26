@@ -1117,65 +1117,87 @@
     return eq(oreFatte(id),3,"mezz'ore fatte in tutto il piano ");});
 
 
-  /* ---------- la corsa verso l'esame ---------- */
-  t("con la data d'esame la meta sale, senza resta orizzontale",function(){
-    /* con un traguardo nel tempo la riga grigia è una salita verso il monte
-       ore; senza, il monte ore è solo una soglia da raggiungere */
+  /* ---------- la barra verso l'esame (dal 26 settembre, al posto della corsa) ---------- */
+  t("con la data d'esame c'e' la tacca di dove dovresti essere, senza no",function(){
     pulisci();apri();
     var o=items()[0];
-    placeRun(G[0],H0,{i:o.id,a:"LET",len:4},0);
-    placeRun(iso(addDays(new Date(),14)),H0,{i:o.id,a:"LET",len:4},0);
-    var y=function(){
-      var m=document.querySelector("#semBody .gmeta");
-      if(!m)return null;
-      var p2=m.getAttribute("points").trim().split(" ");
-      return [parseFloat(p2[0].split(",")[1]),parseFloat(p2[p2.length-1].split(",")[1])];
-    };
+    for(var w=1;w<=4;w++)
+      placeRun(iso(addDays(monday(new Date()),-7*w)),HOURS[2],{i:o.id,a:"LET",len:2,done:1},0);
     state.semOpen=true;semSummary();
-    var senza=y();
+    var senza=!!document.querySelector("#semBody .gp .gat");
     state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),70))};
     semSummary();
-    var con=y();
+    var tacca=document.querySelector("#semBody .gp .gat");
+    var dove=tacca?parseFloat(tacca.style.left):null;
     state.over={};
-    if(!senza||!con)return "manca il disegno: senza="+senza+" con="+con;
-    return (Math.abs(senza[0]-senza[1])<0.5&&con[0]-con[1]>5)?true:
-      "senza data "+senza.join("→")+" (attesa piatta), con data "+con.join("→")+" (attesa in salita)";});
-  t("il tratteggio è verde se il ritmo che tieni basta, rosso se no",function(){
+    if(senza)return "senza data c'e' una tacca di dove dovresti essere";
+    if(!tacca)return "con la data manca la tacca";
+    /* 4 settimane su 14: circa un quarto dell'obiettivo */
+    return (dove>15&&dove<40)?true:"la tacca sta al "+dove+"% (attesa verso un quarto)";});
+  t("l'esito e' ok se il ritmo che tieni basta, ko se no, e lo dice a parole",function(){
     pulisci();apri();
     var o=items()[0],sett=8;
     state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),7*sett))};
-    /* otto settimane passate con poche ore fatte: la mediana non basta */
     for(var w=1;w<=8;w++)
       placeRun(iso(addDays(monday(new Date()),-7*w)),HOURS[2],
         {i:o.id,a:"LET",len:2,done:1},0);
     state.semOpen=true;semSummary();
-    var rosso=!!document.querySelector("#semBody .gpiano:not(.ok)");
-    /* ora riempio quelle stesse settimane: la mediana sale sopra il richiesto */
+    var r1=document.querySelector("#semBody .gritmo");
+    var ko=!!document.querySelector("#semBody .gesito.ko")&&/non ci arrivi/i.test(r1.textContent);
     for(var w2=1;w2<=8;w2++){
       var lun=monday(addDays(new Date(),-7*w2));
-      for(var d=0;d<7;d++)for(var j=2;j<26;j+=2)
+      /* quindici ore a settimana: il ritmo basta, ma l'obiettivo non e' ancora raggiunto */
+      for(var d=0;d<5;d++)for(var j=4;j<10;j+=2)
         placeRun(iso(addDays(lun,d)),HOURS[j],{i:o.id,a:"LET",len:2,done:1},0);
     }
     semSummary();
-    var verde=!!document.querySelector("#semBody .gpiano.ok");
+    var r2=document.querySelector("#semBody .gritmo");
+    var ok=!!document.querySelector("#semBody .gesito.ok")&&/^ci arrivi/i.test(r2.textContent.replace(/^\W+/,""));
     state.over={};
-    return (rosso&&verde)?true:"poche ore → rosso "+rosso+", tante ore → verde "+verde;});
-  t("l'asse dice da quando e fino a quando, e segna oggi se non è sul bordo",function(){
+    return (ko&&ok)?true:"poche ore → ko "+ko+" ("+r1.textContent+"), tante ore → ok "+ok+" ("+r2.textContent+")";});
+  t("il testo dei grafici non prende il colore dei dati",function(){
     pulisci();apri();
     var o=items()[0];
-    /* otto settimane di storia e otto all'esame: oggi cade a meta' */
-    for(var w=1;w<=8;w++)
-      placeRun(iso(addDays(monday(new Date()),-7*w)),HOURS[2],
-        {i:o.id,a:"LET",len:2,done:1},0);
-    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),56))};
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),30))};
+    placeRun(iso(addDays(monday(new Date()),-7)),HOURS[2],{i:o.id,a:"LET",len:2},0);
     state.semOpen=true;semSummary();
-    var a=document.querySelector("#semBody .gasse");
-    var conOggi=!!(a&&a.querySelector(".oggi"));
-    var testo=a?a.textContent:"";
+    var riga=document.querySelector("#semBody .gritmo");
+    var cs=getComputedStyle(document.documentElement);
+    var c=riga?getComputedStyle(riga).color:"";
+    var tmp=document.createElement("i");document.body.appendChild(tmp);
+    var col=function(v){tmp.style.color=v;return getComputedStyle(tmp).color;};
+    var rosso=col(cs.getPropertyValue("--late")),verde=col(cs.getPropertyValue("--done"));
+    tmp.remove();state.over={};
+    if(!riga)return "manca la riga dell'esito";
+    return (c!==rosso&&c!==verde)?true:"la riga dell'esito e' scritta nel colore "+c;});
+  t("le settimane arrivano fino a questa, e l'ultima si chiama questa",function(){
+    pulisci();apri();
+    var o=items()[0];
+    for(var w=0;w<=3;w++)
+      placeRun(iso(addDays(monday(new Date()),-7*w)),HOURS[2],{i:o.id,a:"LET",len:2},0);
+    placeRun(iso(addDays(monday(new Date()),14)),HOURS[2],{i:o.id,a:"LET",len:2},0);   /* futura */
+    state.semOpen=true;semSummary();
+    var col=document.querySelectorAll("#semBody .gwk .gc").length;
+    var et=[].map.call(document.querySelectorAll("#semBody .gwk .gx span"),function(e){return e.textContent;});
+    if(col!==4)return "colonne "+col+" (attese 4: tre passate e questa, non la futura)";
+    return et[et.length-1]==="questa"?true:"l'ultima etichetta e' "+et[et.length-1];});
+  t("ogni grafico ha i suoi numeri in tabella, e il fumetto dice valore e cosa",function(){
+    pulisci();apri();
+    var o=items()[0];
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),40))};
+    for(var w=0;w<=3;w++)
+      placeRun(iso(addDays(monday(new Date()),-7*w)),HOURS[2],{i:o.id,a:"SCH",len:4,done:1},0);
+    state.semOpen=true;semSummary();
+    var g=document.querySelectorAll("#semBody .graf"),senza=[];
+    [].forEach.call(g,function(x){if(!x.querySelector("details.gtab table"))senza.push(x.querySelector("h4").textContent);});
+    var segno=document.querySelector("#semBody .gwk .gc");
+    segno.dispatchEvent(new FocusEvent("focusin",{bubbles:true}));
+    var f=document.getElementById("gtip"),acceso=f&&f.classList.contains("on"),testo=f?f.textContent:"";
+    segno.dispatchEvent(new FocusEvent("focusout",{bubbles:true}));
     state.over={};
-    return (a&&conOggi&&a.querySelectorAll("span").length===3)?true:
-      "asse: "+testo+" · con oggi: "+conOggi;});
-
+    if(senza.length)return "senza tabella: "+senza.join(", ");
+    if(!acceso)return "col fuoco su una colonna il fumetto non si apre";
+    return /h fatte su/.test(testo)&&/settimana/.test(testo)?true:"il fumetto dice: "+testo;});
 
   /* ---------- il gist come rete, anche senza token ---------- */
   t("il pannello dice cosa c'è davvero in memoria",function(){

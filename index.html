@@ -731,100 +731,124 @@ td.tot b{color:var(--tx2);font-weight:500}
 .sumtoggle .chev{display:flex;align-items:center;color:var(--tx3);transition:transform .16s}
 .sumtoggle .chev.open{transform:rotate(90deg)}
 .sembody{margin-top:6px}
-/* grafici del semestre: niente librerie, sono div con un'altezza e una
-   larghezza in percentuale. La parte piena è il fatto, quella tenue il piano. */
-.graf{margin-top:20px}
-.graf h4{display:flex;align-items:baseline;gap:8px;margin:0 0 10px;
-  font-family:"Familjen Grotesk",sans-serif;font-size:13px;font-weight:600}
-.graf h4 u{text-decoration:none;font-family:"DM Mono",monospace;font-size:9.5px;
-  color:var(--tx3);letter-spacing:.02em;font-weight:400}
-.graf .gnota{margin:8px 0 0;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
-/* colonne: una per settimana */
-.gcol{display:flex;align-items:flex-end;gap:4px;height:104px;
-  border-bottom:1px solid var(--line)}
-/* Con due settimane sole le colonne diventavano larghe mezzo schermo e il
-   grafico sembrava rotto: un tetto alla larghezza e restano colonne. */
-.gcol .gc{flex:1 1 0;min-width:0;max-width:64px;display:flex;flex-direction:column;
-  align-items:center;justify-content:flex-end;height:100%}
-.gcol .gc i{position:relative;display:flex;align-items:flex-end;width:100%;
-  min-height:2px;border-radius:3px 3px 0 0;background:var(--raised);
-  box-shadow:inset 0 0 0 1px var(--line)}
-.gcol .gc i em{display:block;width:100%;border-radius:3px 3px 0 0;background:var(--action)}
-.gcol .gc u{text-decoration:none;font-family:"DM Mono",monospace;font-size:8.5px;
-  color:var(--tx3);margin-top:4px;white-space:nowrap;overflow:hidden}
-.gcol .gc.ora u{color:var(--action)}
-.gcol .gc.ora i{box-shadow:inset 0 0 0 1px var(--action)}
-/* 1 — ce la fai: una riga per materia con obiettivo */
-.gp{padding:10px 0;border-bottom:1px solid var(--line-soft)}
-.gp:last-child{border-bottom:0}
-.gph{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
-.gph b{font-size:12.5px;font-weight:500;flex:1;min-width:0;overflow:hidden;
+/* ---------- i grafici di "come sta andando" ----------
+   Niente librerie: div con altezze e larghezze in percentuale. I colori dei
+   segni sono verificati coi controlli della data visualization (fascia di
+   luminosita', contrasto sul fondo, scala a passi distinguibili) in tutt'e due
+   i temi: --gfill e' l'azione, al buio un passo piu' scuro per restare nella
+   fascia dei segni; --g1…--g5 la scala di "quando salti", dal poco al tanto. */
+:root{--gfill:#7C84F2;--gpl:#464b83;
+  --g1:#464b83;--g2:#6167bb;--g3:#7C84F2;--g4:#a1a6f6;--g5:#c0c4f9;--gink:#101114}
+html[data-theme="light"]{--gfill:#4A54D6;--gpl:#9b9fe0;
+  --g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g5:#2b317c;--gink:#FFFFFF}
+.graf{margin-top:30px}
+.graf h4{margin:0;font-family:"Familjen Grotesk",sans-serif;font-size:14.5px;font-weight:600;color:var(--tx)}
+.graf .gsub{margin:3px 0 14px;font-size:12px;color:var(--tx2)}
+.graf .gnota{margin:12px 0 0;font-size:12.5px;line-height:1.45;color:var(--tx2)}
+.graf .gnota b{color:var(--tx);font-weight:600}
+/* legenda: il segno com'e' nel grafico, il testo nel colore del testo */
+.gleg{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 12px;font-size:11.5px;color:var(--tx2)}
+.gleg span{display:inline-flex;align-items:center;gap:6px}
+.gleg .k{display:inline-block;width:10px;height:10px;border-radius:2px}
+.gleg .k.fa{background:var(--tx2)}
+.gleg .k.pi{background:color-mix(in srgb,var(--tx2) 38%,var(--bg))}
+.gleg .k.at{width:2px;height:13px;border-radius:1px;background:var(--tx)}
+.gleg .k.gf{background:var(--gfill)}
+.gleg .k.gpk{background:var(--gpl)}
+/* i tre numeri */
+.sembody .tally{display:flex;gap:16px 40px;flex-wrap:wrap;margin:6px 0 4px}
+.sembody .tally div{display:flex;flex-direction:column;min-width:0;max-width:240px}
+.sembody .tally span{font-size:12px;color:var(--tx2)}
+.sembody .tally b{font-family:"Familjen Grotesk",sans-serif;font-size:28px;font-weight:600;
+  letter-spacing:-.02em;color:var(--tx);margin-top:2px}
+.sembody .tally i{font-style:normal;font-size:11.5px;line-height:1.35;color:var(--tx3);margin-top:2px}
+/* 1 — ce la fai: una barra per materia, lunga quanto l'obiettivo */
+.gp{padding:13px 0 14px;border-top:1px solid var(--line-soft)}
+.gph{display:flex;align-items:baseline;gap:10px;margin-bottom:9px}
+.gph b{font-size:13px;font-weight:500;flex:1;min-width:0;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
-.gph em{font-style:normal;font-family:"DM Mono",monospace;font-size:9.5px;
-  color:var(--tx3);flex:0 0 auto}
-.gp.corto .gph em{color:var(--late)}
-.gph u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;
-  color:var(--tx2);flex:0 0 auto}
-.gpb{display:flex;gap:2px;height:10px}
-.gpb i{height:100%;border-radius:3px;min-width:0}
-.gpb i.pl{opacity:.34}
-.gpb i.vu{background:var(--sunken);box-shadow:inset 0 0 0 1px var(--line)}
-.gpn{margin-top:5px;font-family:"DM Mono",monospace;font-size:9.5px;color:var(--tx3)}
-.gritmo{margin-top:5px;font-family:"DM Mono",monospace;font-size:10px;
-  color:var(--late);display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
-.gritmo.ok{color:var(--done)}
-.gritmo b{font-family:"Familjen Grotesk",sans-serif;font-size:12px;font-weight:600}
-/* la corsa: il tratto non si deforma con lo stiramento del viewBox */
-/* Alto abbastanza da far vedere le pendenze: il viewBox è cento unità stirate
-   su mille pixel, e con un grafico basso ogni salita diventa una riga piatta. */
-.gsvg{display:block;width:100%;height:92px;margin-top:8px}
-.gsvg line,.gsvg polyline{vector-effect:non-scaling-stroke;fill:none}
-.gsvg .gzona{fill:var(--late);opacity:.13;stroke:none}
-.gsvg .gzona.ok{fill:var(--done);opacity:.11}
-.gsvg .gbase{stroke:var(--line);stroke-width:1}
-.gsvg .gmeta{stroke:var(--tx3);stroke-width:1;stroke-dasharray:2 3;opacity:.85}
-.gsvg .goggi{stroke:var(--line-soft);stroke-width:1}
-.gsvg .greale{stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
-.gsvg .gpiano{stroke:var(--late);stroke-width:1.4;stroke-dasharray:4 3;opacity:.9}
-.gsvg .gpiano.ok{stroke:var(--done)}
-.gasse{position:relative;display:flex;justify-content:space-between;margin-top:3px;
-  font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3)}
-.gasse .oggi{position:absolute;top:0;transform:translateX(-50%);color:var(--tx2)}
-
-/* 4 — quando studi: sette giorni per tre fasce */
-.gmap{display:grid;grid-template-columns:64px repeat(7,1fr);gap:3px}
-.gmap .gmh{font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);
-  text-align:center;letter-spacing:.06em}
-.gmap .gmb{font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);
-  display:flex;align-items:center}
-/* Il colore sta su uno strato sotto e il numero sopra: l'opacità applicata
-   alla cella sbiadirebbe anche la cifra, e nelle celle leggere sparirebbe.
-   L'intensità si ferma a .55 perché oltre il testo chiaro non regge il
-   contrasto sul viola pieno — misurato, 2,1:1 contro 5,6:1. */
-.gmap .gmc{position:relative;display:flex;align-items:center;justify-content:center;
-  height:26px;border-radius:4px;color:var(--tx);
-  font-family:"DM Mono",monospace;font-size:9.5px}
-.gmap .gmc::before{content:"";position:absolute;inset:0;border-radius:4px;
-  background:var(--action);opacity:var(--a,.05)}
-.gmap .gmc span{position:relative}
-/* barre orizzontali: fasi del metodo */
-.gbar{display:flex;flex-direction:column;gap:6px}
-.gbar .gr{display:flex;align-items:center;gap:8px}
-.gbar .gl{text-decoration:none;flex:0 0 132px;max-width:132px;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:var(--tx2)}
-.gbar .gt{position:relative;flex:1 1 auto;min-width:0;height:12px}
-.gbar .gr i,.gbar .gr em{position:absolute;left:0;top:0;height:100%;
-  border-radius:4px;min-width:0}
-.gbar .gr i{opacity:.3;background:var(--action)}
-.gbar .gr em{background:var(--action)}
-.gbar .gv{flex:0 0 auto;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
-@media (max-width:620px){.gbar .gl{flex:0 0 92px;max-width:92px}}
-.sembody .tally{display:flex;gap:12px 24px;flex-wrap:wrap;margin-bottom:16px}
-.sembody .tally div{display:flex;flex-direction:column}
-.sembody .tally b{font-family:"Familjen Grotesk",sans-serif;font-size:22px;font-weight:600;
-  letter-spacing:-.02em}
-.sembody .tally span{font-family:"DM Mono",monospace;font-size:9px;letter-spacing:.11em;
-  text-transform:uppercase;color:var(--tx3);margin-top:5px}
+.gph em{font-style:normal;font-size:11.5px;color:var(--tx3);flex:0 0 auto}
+.gph u{text-decoration:none;font-size:12px;color:var(--tx);flex:0 0 auto;font-variant-numeric:tabular-nums}
+.gpb{position:relative;display:flex;gap:2px;height:10px}
+.gpb>i{position:relative;display:block;height:100%;min-width:2px;flex:0 0 auto}
+.gpb>i.fine{border-radius:0 4px 4px 0}
+.gpb>i.vu{flex:1 1 0;background:var(--line-soft);border-radius:0 4px 4px 0}
+/* il bersaglio del puntatore e' piu' alto della barra */
+.gpb>i::after{content:"";position:absolute;left:0;right:0;top:-8px;bottom:-8px}
+.gpb .gat{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:1px;
+  background:var(--tx);z-index:2;text-decoration:none}
+.gpb .gat::after{content:"";position:absolute;left:-7px;right:-7px;top:0;bottom:0}
+.gritmo{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:12.5px;
+  line-height:1.45;color:var(--tx2)}
+.gritmo b{color:var(--tx);font-weight:600}
+.gesito{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:16px;height:16px;margin-top:1px;border-radius:50%;font-size:10.5px;font-weight:700;
+  color:var(--bg);background:var(--tx3)}
+.gesito.ok{background:var(--done)}
+.gesito.ko{background:var(--late)}
+.gpn{margin:3px 0 0 24px;font-size:12px;color:var(--tx3)}
+/* 2 — reggo il piano: colonne settimanali, il fatto dentro al piano */
+.gwk{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:8px}
+.gwk .gy{position:relative;height:132px;min-width:18px;font-size:10.5px;color:var(--tx3);
+  font-variant-numeric:tabular-nums}
+.gwk .gy span{position:absolute;right:0;transform:translateY(50%);line-height:1}
+.gwk .gpl{position:relative;height:132px;display:flex;align-items:flex-end;gap:4px}
+.gwk .gpl s{position:absolute;left:0;right:0;height:1px;background:var(--line-soft);text-decoration:none}
+.gwk .gpl s:first-child{background:var(--line)}
+.gwk .gc{position:relative;flex:1 1 0;min-width:0;height:100%;display:flex;justify-content:center}
+.gwk .gc i,.gwk .gc em{position:absolute;bottom:0;width:min(24px,100%);border-radius:4px 4px 0 0}
+.gwk .gc i{background:var(--gpl)}
+.gwk .gc em{background:var(--gfill)}
+.gwk .gc:hover i,.gwk .gc:hover em,.gwk .gc:focus-visible em{filter:brightness(1.18)}
+.gwk .gx{grid-column:2;display:flex;gap:4px;margin-top:6px}
+.gwk .gx span{flex:1 1 0;min-width:0;text-align:center;font-size:10.5px;color:var(--tx3);
+  white-space:nowrap;overflow:visible;display:flex;justify-content:center}
+.gwk .gx span.a0{justify-content:flex-start}
+.gwk .gx span.a1{justify-content:flex-end;color:var(--tx2)}
+/* 3 — fasi del metodo */
+.gbar{display:flex;flex-direction:column;gap:10px}
+.gbar .gr{display:grid;grid-template-columns:120px minmax(0,1fr);align-items:center;gap:12px}
+.gbar .gl{font-size:12.5px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gbar .gt{display:flex;align-items:center;gap:8px;min-width:0}
+.gbar .gt i{position:relative;display:block;flex:0 0 auto;height:12px;min-width:2px;
+  border-radius:0 4px 4px 0;background:var(--gfill)}
+.gbar .gt i::after{content:"";position:absolute;left:0;right:0;top:-7px;bottom:-7px}
+.gbar .gt i:hover{filter:brightness(1.18)}
+.gbar .gv{font-size:12.5px;font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums}
+@media (max-width:620px){.gbar .gr{grid-template-columns:96px minmax(0,1fr)}}
+/* 4 — quando salti: giorno per fascia */
+.gmap{display:grid;grid-template-columns:auto repeat(7,minmax(0,1fr));gap:3px}
+.gmap .gmh{font-size:11px;color:var(--tx3);text-align:center;padding-bottom:3px}
+.gmap .gmb{font-size:11.5px;color:var(--tx2);display:flex;align-items:center;padding-right:8px}
+.gmap .gmc{height:30px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+  font-size:11.5px;font-weight:600;color:var(--tx)}
+.gmap .gmc:hover{filter:brightness(1.15)}
+.sembody .h0{background:var(--line-soft)}
+.sembody .h1{background:var(--g1)} .sembody .h2{background:var(--g2)} .sembody .h3{background:var(--g3)}
+.sembody .h4{background:var(--g4)} .sembody .h5{background:var(--g5)}
+.gmap .gmc.h3,.gmap .gmc.h4,.gmap .gmc.h5{color:var(--gink)}
+html[data-theme="light"] .gmap .gmc.h1{color:var(--tx)}
+html[data-theme="light"] .gmap .gmc.h2{color:#fff}
+.gscala{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:11px;color:var(--tx3)}
+.gscala i{display:inline-block;width:18px;height:9px;border-radius:2px}
+.gscala .gs0{display:inline-flex;align-items:center;gap:6px;margin-left:14px}
+/* i numeri in tabella, per chi non vuole leggerli dal disegno */
+.gtab{margin-top:10px;font-size:12px;color:var(--tx2);max-width:100%;overflow-x:auto}
+.gtab summary{cursor:pointer;color:var(--tx3);font-size:11.5px;width:max-content}
+.gtab summary:hover{color:var(--tx2)}
+.gtab table{border-collapse:collapse;margin-top:6px;min-width:260px}
+.gtab th,.gtab td{text-align:left;padding:4px 14px 4px 0;border-bottom:1px solid var(--line-soft);
+  font-weight:400;font-variant-numeric:tabular-nums;white-space:nowrap}
+.gtab th{color:var(--tx3)}
+/* il fumetto: prima il valore, poi di cosa e' */
+#gtip{position:fixed;z-index:95;pointer-events:none;display:none;flex-direction:column;gap:2px;
+  padding:7px 10px;border-radius:8px;background:var(--raised);border:1px solid var(--line);
+  box-shadow:var(--shadow);max-width:280px}
+#gtip.on{display:flex}
+#gtip b{font-size:13px;font-weight:600;color:var(--tx)}
+#gtip span{font-size:11.5px;line-height:1.35;color:var(--tx2)}
+.sembody [data-tip]{outline:none;cursor:default}
+.sembody [data-tip]:focus-visible{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--action)}
 
 /* scadenze in elenco */
 /* le copie di sicurezza, dentro il pannello Backup */
@@ -1773,7 +1797,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="26 set 2026 · d";
+const VERSIONE="26 set 2026 · e";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4270,20 +4294,79 @@ function lateBar(){
 }
 
 /* ---------- come sta andando ----------
-   Non grafici di quello che ho, ma delle decisioni che uno deve prendere:
-   1. ce la faccio ad arrivare all'esame? (l'unica domanda che guarda avanti)
-   2. reggo il piano che mi do, o me ne scrivo il doppio di quello che faccio?
-   3. sto solo accumulando o rielaboro e ripasso anche?
-   4. quando studio davvero, e quel quando regge col lavoro?
-   Il resto — quante ore in totale, quante per materia — sta già nell'elenco a
-   sinistra e non merita un grafico. */
+   Tre numeri e quattro domande, un grafico per domanda:
+   1. ce la faccio ad arrivare all'esame?     una barra per materia: fatto, in
+                                              piano, e dove dovrei essere oggi
+   2. reggo il piano che mi do?               una colonna per settimana: il
+                                              fatto dentro a quello che avevo messo
+   3. sto solo accumulando o rielaboro?       quanto pesa ogni fase sulle ore fatte
+   4. quando salto?                           giorno per fascia: quanto del piano
+                                              faccio davvero
+   Le regole, dal 26 settembre (principi di data visualization): un colore solo
+   per i segni, quello dell'azione, e le materie col loro — sempre col nome
+   accanto; segni sottili con l'estremita' arrotondata, fili di griglia pieni e
+   chiari; un'etichetta solo dove serve, il resto al passaggio del puntatore o
+   col tasto Tab; ogni grafico ha i suoi numeri in una tabella. Il testo non
+   prende mai il colore dei dati: verde e rosso stanno solo sull'icona
+   dell'esito, che ha sempre la sua parola accanto. Prima c'erano linee
+   tratteggiate, cunei colorati, scritte rosse e un numero in ogni cella: tutto
+   vero, ma bisognava studiarselo. */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num1=v=>{v=Math.round(v*10)/10;return v%1?v.toFixed(1).replace(".",","):String(v);};
+/* quello che un segno dice al passaggio: prima il valore, poi di cosa e' */
+const tip=(v,l)=>' tabindex="0" data-tip="'+esc(v)+"|"+esc(l)+'" aria-label="'+esc(v+" · "+l)+'"';
+function tabella(testa,righe){
+  return '<details class="gtab"><summary>vedi i numeri</summary><table><thead><tr>'+
+    testa.map(h=>"<th>"+esc(h)+"</th>").join("")+"</tr></thead><tbody>"+
+    righe.map(r=>"<tr>"+r.map(c=>"<td>"+esc(c)+"</td>").join("")+"</tr>").join("")+
+    "</tbody></table></details>";
+}
+/* tacche tonde per l'asse delle ore: 0, 5, 10… mai piu' di quattro righe */
+function tacche(max){
+  const passo=[1,2,5,10,20,25,50,100].find(p=>max/p<=4)||Math.ceil(max/4);
+  const out=[];for(let v=0;v<max;v+=passo)out.push(v);
+  out.push(out[out.length-1]+passo);
+  return out;
+}
+/* il fumetto dei grafici: uno solo, riempito con textContent */
+function gTip(){
+  const box=document.getElementById("semBody");
+  if(!box||box.dataset.tipOk)return;
+  box.dataset.tipOk="1";
+  const t=document.createElement("div");
+  t.id="gtip";t.setAttribute("role","tooltip");document.body.appendChild(t);
+  const mostra=(el,x,y)=>{
+    const s=el.dataset.tip,k=s.indexOf("|");
+    const b=document.createElement("b"),u=document.createElement("span");
+    b.textContent=s.slice(0,k);u.textContent=s.slice(k+1);
+    t.replaceChildren(b,u);t.classList.add("on");
+    const w=t.offsetWidth,h=t.offsetHeight;
+    let l=x+14,tp=y-h-12;
+    if(l+w>innerWidth-8)l=Math.max(8,x-w-14);
+    if(tp<8)tp=y+18;
+    t.style.left=l+"px";t.style.top=tp+"px";
+  };
+  const nascondi=()=>t.classList.remove("on");
+  box.addEventListener("pointermove",e=>{
+    const el=e.target.closest&&e.target.closest("[data-tip]");
+    if(el)mostra(el,e.clientX,e.clientY);else nascondi();
+  });
+  box.addEventListener("pointerleave",nascondi);
+  box.addEventListener("focusin",e=>{
+    const el=e.target.closest&&e.target.closest("[data-tip]");if(!el)return;
+    const r=el.getBoundingClientRect();mostra(el,r.left+r.width/2,r.top);
+  });
+  box.addEventListener("focusout",nascondi);
+  window.addEventListener("scroll",nascondi,{passive:true});
+}
 function semSummary(){
   const box=document.getElementById("semBody");
   if(!state.semOpen){box.innerHTML="";return;}
+  gTip();
   const m=map(),pre=PRE(),oggi=TODAY;
   const wk={},fase={},mappa={},mat={},ritmo4={},qui={},sm={};
   const lun4=iso(addDays(monday(new Date()),-28)),lunOra=iso(monday(new Date()));
-  let tot=0,done=0,saltate=0,amano=0;
+  let tot=0,done=0,saltate=0,amano=0,fino=0;
   Object.keys(state.cells).forEach(k=>{
     const p=k.split("."),dt=p[p.length-2],sl=+p[p.length-1];
     const d=parse(dt),g=(d.getDay()+6)%7;
@@ -4291,14 +4374,15 @@ function semSummary(){
     const dentro=k.indexOf(pre)===0, futuro=dt>=oggi;
     at(k).forEach(v=>{
       if(!v||!m[v.i])return;
-      const q=vero(v)?1:0;
+      /* fatto vuol dire fatto davvero: una spunta a mano non conta */
+      const q=vero(v)?1:0,mano=v.done&&!q?1:0;
       /* La proiezione guarda tutto il piano e non solo il semestre aperto:
          l'esame di gennaio sta nella sessione, le ore per prepararlo no. */
       mat[v.i]=mat[v.i]||{f:0,fut:0,persa:0};
       if(q)mat[v.i].f++;else if(futuro)mat[v.i].fut++;else mat[v.i].persa++;
       /* il ritmo tenuto davvero nelle quattro settimane già chiuse */
       if(q&&dt>=lun4&&dt<lunOra)ritmo4[v.i]=(ritmo4[v.i]||0)+1;
-      /* e la storia settimana per settimana, che serve a disegnare la corsa */
+      /* e la storia settimana per settimana, che serve al ritmo di solito */
       const ls=iso(monday(d));
       sm[v.i]=sm[v.i]||{};
       const e=sm[v.i][ls]=sm[v.i][ls]||{d:0,p:0};
@@ -4309,37 +4393,41 @@ function semSummary(){
          perché per un esame di gennaio si studia anche a dicembre: una cosa è
          di chi parlare, un'altra è quanto ha fatto. */
       qui[v.i]=1;
-      const lun=iso(monday(d));
-      wk[lun]=wk[lun]||{t:0,d:0};wk[lun].t++;wk[lun].d+=q;
+      wk[ls]=wk[ls]||{t:0,d:0,m:0};wk[ls].t++;wk[ls].d+=q;wk[ls].m+=mano;
       const F=AFASE[v.a]||"Altro";
       fase[F]=fase[F]||{t:0,d:0};fase[F].t++;fase[F].d+=q;
-      mappa[g+"|"+banda]=(mappa[g+"|"+banda]||0)+1;
-      tot++;done+=q;if(!q&&!futuro)saltate++;
-      if(v.done&&!q)amano++;
+      if(!futuro){
+        const c=mappa[g+"|"+banda]=mappa[g+"|"+banda]||{p:0,d:0};
+        c.p++;c.d+=q;fino++;
+        if(!q)saltate++;
+        if(mano)amano++;
+      }
+      tot++;done+=q;
     });
   });
   if(!tot&&!Object.keys(mat).length){
     box.innerHTML='<p class="empty">Niente in piano: i grafici arrivano appena metti qualche ora.</p>';return;}
 
   const sett=Object.keys(wk).sort();
-  const passate=sett.filter(w=>w<iso(monday(new Date())));
+  const passate=sett.filter(w=>w<lunOra);
   const tenuta=(lista)=>{
     const t=lista.reduce((a,w)=>a+wk[w].t,0),f=lista.reduce((a,w)=>a+wk[w].d,0);
     return t?Math.round(f/t*100):null;
   };
   const tGen=tenuta(passate),tUlt=tenuta(passate.slice(-4));
 
-  const cifra=(v,e)=>'<div><b>'+v+"</b><span>"+e+"</span></div>";
+  /* --- tre numeri: etichetta, valore, una riga che dice rispetto a cosa --- */
+  const cifra=(e,v,s)=>"<div><span>"+e+"</span><b>"+v+"</b>"+(s?"<i>"+s+"</i>":"")+"</div>";
   let h='<div class="tally">'+
-    cifra(hrs(done),"fatte")+
-    cifra(tGen==null?"—":tGen+"%","tenuta")+
-    cifra(hrs(saltate),"saltate")+
-    cifra(hrs(tot-done-saltate),"ancora in piano")+
-    (amano?cifra(hrs(amano),"spuntate a mano"):"")+
-    "</div>"+
-    (amano?'<p class="gnota">Le '+hrs(amano)+" spuntate a mano, senza il timer, "+
-      "non contano come fatte: nei grafici stanno fra le saltate. Se le fai col "+
-      "timer tornano ore vere.</p>":"");
+    cifra("Ore fatte",hrs(done),"col timer, su "+hrs(fino)+" in piano fino a ieri")+
+    cifra("Piano rispettato",tGen==null?"—":tGen+"%",
+      tGen==null?"si legge da lunedì prossimo"
+        :(passate.length>4&&tUlt!=null?"ultime quattro settimane: "+tUlt+"%"
+          :"sulle settimane finite"))+
+    cifra("Da recuperare",hrs(saltate),
+      amano?"di cui "+hrs(amano)+" spuntate a mano, che non contano"
+        :(saltate?"ore saltate e non ancora rifatte":"niente di saltato"))+
+    "</div>";
 
   /* 1 — ce la fai? Solo le materie con un obiettivo: le voci libere no. */
   const righe=Object.keys(mat).map(id=>{
@@ -4353,109 +4441,192 @@ function semSummary(){
   }).filter(Boolean).filter(r=>qui[r.o.id]).sort((a,b)=>
     (a.gg==null)-(b.gg==null)||(a.gg-b.gg)||(b.vuoto-a.vuoto));
   if(righe.length){
-    h+='<div class="graf"><h4>Ce la fai?<u>tratteggio grigio: dove dovresti essere · '+
-      'linea piena: dove sei · tratteggio colorato: dove arrivi col ritmo che tieni'+
-      "</u></h4>";
-    righe.forEach(r=>{
-      const verdetto=r.vuoto>0
-        ? "mancano "+hrs(r.vuoto*PERQ)+" che non sono in piano"
-        : "il piano copre l'obiettivo";
-      h+='<div class="gp'+(r.vuoto>0?" corto":"")+'">'+
-        '<div class="gph"><b>'+r.o.name+"</b>"+
-          (r.gg!=null?'<em>'+(r.gg>=0?"esame fra "+r.gg+" g":"esame passato")+"</em>":"")+
-          "<u>"+hrs(r.f*PERQ)+" / "+r.tgt+" h</u></div>"+
-        '<div class="gpn">'+verdetto+
-          (r.persa>0?" · "+hrs(r.persa*PERQ)+" già saltate":"")+"</div>"+
-        corsa(r)+ritmoRiga(r)+
-      "</div>";
-    });
-    h+="</div>";
+    h+='<div class="graf"><h4>Ce la fai per l’esame?</h4>'+
+      '<p class="gsub">Le ore di ogni materia rispetto al suo obiettivo</p>'+
+      '<div class="gleg"><span><i class="k fa"></i>fatte</span>'+
+        '<span><i class="k pi"></i>ancora in piano</span>'+
+        '<span><i class="k at"></i>dove dovresti essere oggi</span></div>';
+    righe.forEach(r=>{h+=bullet(r);});
+    h+=tabella(["Materia","Fatte","In piano","Obiettivo","Esame"],
+      righe.map(r=>[r.o.name,num1(r.f)+" h",num1(r.fut)+" h",r.tgt+" h",
+        r.gg==null?"senza data":(r.gg>=0?"fra "+r.gg+" g":"passato")]))+"</div>";
   }
 
-  /* 2 — reggo il piano? */
+  /* 2 — reggo il piano? le settimane fino a questa, le ultime sedici */
   if(sett.length){
-    const max=Math.max.apply(null,sett.map(w=>wk[w].t));
-    const oggiLun=iso(monday(new Date()));
-    h+='<div class="graf"><h4>Reggo il piano?'+
-      '<u>colonna tenue: messo in piano · piena: fatto</u></h4><div class="gcol">'+
-      sett.map(w=>{
-        const c=wk[w],et=fmt(parse(w));
-        return '<span class="gc'+(w===oggiLun?" ora":"")+'" title="'+et+" · "+
-          hrs(c.t)+" in piano, "+hrs(c.d)+' fatte">'+
-          '<i style="height:'+Math.round(c.t/max*100)+'%"><em style="height:'+
-            (c.t?Math.round(c.d/c.t*100):0)+'%"></em></i>'+
-          "<u>"+et.replace(/ .*/,"")+"</u></span>";
-      }).join("")+"</div>"+
-      '<p class="gnota">'+(tGen==null
-        ? "Nessuna settimana ancora conclusa: la tenuta si potrà leggere da lunedì prossimo."
-        : "Sulle "+passate.length+(passate.length===1?" settimana conclusa":" settimane concluse")+
-          " hai fatto il "+tGen+"% di quello che avevi messo in piano"+
-          (tUlt!=null&&passate.length>4?", il "+tUlt+"% nelle ultime quattro":"")+".")+
-      "</p></div>";
+    const vis=sett.filter(w=>w<=lunOra).slice(-16);
+    h+='<div class="graf"><h4>Reggo il piano?</h4>'+
+      '<p class="gsub">Ore a settimana: quelle fatte dentro a quelle messe in piano</p>';
+    if(vis.length){
+      const max=Math.max(1,...vis.map(w=>wk[w].t/PERQ));
+      const tk=tacche(max),top=tk[tk.length-1];
+      const ogni=Math.max(1,Math.ceil(vis.length/6));
+      h+='<div class="gleg"><span><i class="k gf"></i>fatte</span>'+
+        '<span><i class="k gpk"></i>in piano</span></div>'+
+        '<div class="gwk"><div class="gy">'+
+          tk.map(v=>'<span style="bottom:'+(v/top*100).toFixed(2)+'%">'+v+"</span>").join("")+
+        '</div><div class="gpl">'+
+          tk.map(v=>'<s style="bottom:'+(v/top*100).toFixed(2)+'%"></s>').join("")+
+          vis.map(w=>{
+            const c=wk[w],t=c.t/PERQ,d=c.d/PERQ,ora=w===lunOra;
+            const et=(ora?"questa settimana":"settimana del "+fmt(parse(w)));
+            return '<span class="gc'+(ora?" ora":"")+'"'+
+              tip(num1(d)+" h fatte su "+num1(t)+" in piano"+(t?" ("+Math.round(d/t*100)+"%)":""),
+                et+(c.m?" · "+hrs(c.m)+" spuntate a mano, non contano":""))+'>'+
+              '<i style="height:'+(t/top*100).toFixed(2)+'%"></i>'+
+              '<em style="height:'+(d/top*100).toFixed(2)+'%"></em></span>';
+          }).join("")+
+        '</div><div class="gx">'+
+          vis.map((w,i)=>{
+            const ultimo=i===vis.length-1,mostra=ultimo||(i%ogni===0&&vis.length-1-i>=ogni);
+            return '<span class="'+(i===0?"a0":(ultimo?"a1":""))+'">'+
+              (mostra?(w===lunOra?"questa":fmt(parse(w))):"")+"</span>";
+          }).join("")+
+        "</div></div>";
+    }
+    h+='<p class="gnota">'+(tGen==null
+        ? "Nessuna settimana ancora conclusa: si potrà dire da lunedì prossimo."
+        : "Nelle "+(passate.length>4?"ultime quattro settimane":
+            (passate.length===1?"settimana finita":passate.length+" settimane finite"))+
+          " hai fatto il <b>"+(passate.length>4?tUlt:tGen)+"%</b> di quello che avevi messo in piano"+
+          (passate.length>4?" (il "+tGen+"% da quando hai cominciato)":"")+".")+
+      "</p>"+
+      tabella(["Settimana","Fatte","In piano","%"],
+        sett.filter(w=>w<=lunOra).map(w=>[fmt(parse(w)),hrs(wk[w].d),hrs(wk[w].t),
+          wk[w].t?Math.round(wk[w].d/wk[w].t*100)+"%":"—"]))+
+      "</div>";
   }
 
-  /* 3 — solo accumulo o anche rielaboro? */
+  /* 3 — solo accumulo o anche rielaboro? sulle ore fatte; se ancora non ce
+     ne sono, su quelle in piano, e lo dice */
   const ORD=["Acquisizione","Rielaborazione","Applicazione","Ricordo"];
-  const dentroMetodo=ORD.reduce((a,f)=>a+((fase[f]||{}).t||0),0);
-  if(dentroMetodo){
-    const mx=Math.max.apply(null,ORD.map(f=>(fase[f]||{}).t||0))||1;
-    /* zero deve disegnare zero: il trattino minimo su una barra vuota diceva
-       che qualcosa era stato fatto quando non era stato fatto niente */
-    const larg=v=>v>0?Math.max(2,v/mx*100).toFixed(1):"0";
-    const minF=ORD.slice().sort((a,b)=>((fase[a]||{}).t||0)-((fase[b]||{}).t||0))[0];
-    h+='<div class="graf"><h4>Le fasi del metodo<u>quanto pesa ognuna sulle ore del metodo</u></h4>'+
+  const pianoMetodo=ORD.reduce((a,f)=>a+((fase[f]||{}).t||0),0);
+  if(pianoMetodo){
+    const fatto=ORD.reduce((a,f)=>a+((fase[f]||{}).d||0),0);
+    const su=fatto?"d":"t",totale=fatto||pianoMetodo;
+    const quota=f=>((fase[f]||{})[su]||0)/totale;
+    const mx=Math.max(...ORD.map(quota))||1;
+    const minF=ORD.slice().sort((a,b)=>quota(a)-quota(b))[0];
+    h+='<div class="graf"><h4>Le fasi del metodo</h4>'+
+      '<p class="gsub">'+(fatto?"Quanto pesa ogni fase sulle ore fatte"
+        :"Ancora niente di fatto: quanto pesa ogni fase sulle ore in piano")+"</p>"+
       '<div class="gbar">'+ORD.map(f=>{
-        const c=fase[f]||{t:0,d:0},qt=Math.round(c.t/dentroMetodo*100);
-        return '<span class="gr" title="'+f+" · "+hrs(c.t)+" in piano, "+hrs(c.d)+' fatte">'+
-          '<u class="gl">'+f+"</u>"+
-          '<span class="gt"><i style="width:'+larg(c.t)+'%"></i>'+
-          '<em style="width:'+larg(c.d)+'%"></em></span>'+
-          '<b class="gv">'+qt+"%</b></span>";
+        const q=quota(f),pc=Math.round(q*100);
+        return '<div class="gr"><span class="gl">'+f+'</span><span class="gt">'+
+          '<i style="width:calc((100% - 48px) * '+(q/mx).toFixed(4)+')"'+
+            tip(pc+"%",f+" · "+hrs((fase[f]||{})[su]||0)+(fatto?" fatte":" in piano"))+'></i>'+
+          '<b class="gv">'+pc+"%</b></span></div>";
       }).join("")+"</div>"+
-      '<p class="gnota">La fase più scarsa è <b>'+minF.toLowerCase()+"</b>, "+
-        Math.round(((fase[minF]||{}).t||0)/dentroMetodo*100)+"% delle ore del metodo"+
-        ((fase["fuori dal metodo"]||{}).t?" · "+hrs(fase["fuori dal metodo"].t)+" di lavoro, fuori dal conto":"")+
-      ".</p></div>";
+      '<p class="gnota">La fase più scarsa è <b>'+minF.toLowerCase()+"</b>: "+
+        Math.round(quota(minF)*100)+"% delle ore "+(fatto?"fatte":"in piano")+"."+
+        ((fase["fuori dal metodo"]||{}).t?" Il lavoro ("+hrs(fase["fuori dal metodo"].t)+") è fuori dal conto.":"")+
+      "</p>"+
+      tabella(["Fase","Ore fatte","Ore in piano"],
+        ORD.map(f=>[f,hrs((fase[f]||{}).d||0),hrs((fase[f]||{}).t||0)]))+
+      "</div>";
   }
 
-  /* 4 — quando studi davvero */
+  /* 4 — quando salti: di quello che hai messo in una fascia, quanto fai. Solo
+     il passato; sotto l'ora in piano il numero non vuol dire niente. */
   if(tot){
     const BANDE=["mattina","pomeriggio","sera"];
-    const mx=Math.max.apply(null,Object.keys(mappa).map(k=>mappa[k]))||1;
-    let g='<div class="gmap"><span class="gmh"></span>'+
-      DSH.map(d=>'<span class="gmh">'+d+"</span>").join("");
+    const pc=c=>c&&c.p>=PERQ?c.d/c.p:null;
+    let peggio=null;
+    for(let b=0;b<3;b++)for(let d=0;d<7;d++){
+      const v=pc(mappa[d+"|"+b]);
+      if(v!=null&&(!peggio||v<peggio.v))peggio={v:v,d:d,b:b};
+    }
+    let g='<div class="gmap"><span></span>'+DSH.map(d=>'<span class="gmh">'+d+"</span>").join("");
     BANDE.forEach((b,bi)=>{
       g+='<span class="gmb">'+b+"</span>";
       for(let d=0;d<7;d++){
-        const n=mappa[d+"|"+bi]||0;
-        g+='<span class="gmc" title="'+DSH[d]+" "+b+" · "+hrs(n)+'" style="--a:'+
-          (n?(.14+.41*n/mx).toFixed(2):0.05)+'">'+(n?"<span>"+ore(n)+"</span>":"")+"</span>";
+        const c=mappa[d+"|"+bi],v=pc(c);
+        if(v==null){
+          g+='<span class="gmc h0"'+tip(c&&c.p?hrs(c.p)+" in piano":"niente in piano",
+            DSH[d]+" "+b+(c&&c.p?" · troppo poco per dire":""))+"></span>";
+          continue;
+        }
+        const liv=Math.min(5,1+Math.floor(v*5-1e-9)),pv=Math.round(v*100);
+        const segna=peggio&&peggio.d===d&&peggio.b===bi&&peggio.v<0.95;
+        g+='<span class="gmc h'+Math.max(1,liv)+'"'+
+          tip(pv+"% fatto",DSH[d]+" "+b+" · "+hrs(c.d)+" su "+hrs(c.p))+">"+
+          (segna?pv+"%":"")+"</span>";
       }
     });
-    g+="</div>";
-    const vuoti=[];
-    for(let d=0;d<7;d++){let n=0;for(let b=0;b<3;b++)n+=mappa[d+"|"+b]||0;if(!n)vuoti.push(DSH[d]);}
-    h+='<div class="graf"><h4>Quando studi<u>ore messe in piano per giorno e fascia</u></h4>'+g+
-      '<p class="gnota">'+(vuoti.length
-        ? "Giorni ancora vuoti: "+vuoti.join(", ")+"."
-        : "Nessun giorno completamente vuoto.")+"</p></div>";
+    g+="</div>"+
+      '<div class="gscala"><span>0%</span>'+[1,2,3,4,5].map(i=>'<i class="h'+i+'"></i>').join("")+
+      '<span>100%</span><span class="gs0"><i class="h0"></i>meno di un’ora in piano</span></div>';
+    h+='<div class="graf"><h4>Quando salti</h4>'+
+      '<p class="gsub">Di quello che metti in piano, quanto fai davvero, per giorno e fascia</p>'+g+
+      '<p class="gnota">'+(!peggio
+        ? "Ancora nessun giorno passato con abbastanza ore in piano per dirlo."
+        : (peggio.v>=0.95?"Fai quasi tutto quello che metti, in ogni fascia."
+          :"Salti di più il <b>"+DSH[peggio.d].toLowerCase()+" "+BANDE[peggio.b]+
+            "</b>: fai il "+Math.round(peggio.v*100)+"% di quello che metti."))+"</p>"+
+      tabella(["Fascia"].concat(DSH),BANDE.map((b,bi)=>[b].concat(DSH.map((x,d)=>{
+        const v=pc(mappa[d+"|"+bi]);return v==null?"—":Math.round(v*100)+"%";}))))+
+      "</div>";
   }
 
   box.innerHTML=h;
 }
 
-/* La riga che trasforma la fotografia in una decisione: quante ore a settimana
-   servono da qui all'esame, e quante ne stai facendo davvero. Il confronto è
-   col ritmo delle ultime quattro settimane già chiuse — quello vero, non
-   quello che avevi in mente. Senza una data d'esame non ha senso e non compare. */
-/* La corsa verso l'esame. Tre cose sullo stesso disegno:
-   - la retta grigia: dove dovresti essere ogni settimana per arrivare al monte
-     ore il giorno dell'esame;
-   - la linea piena: dove sei davvero, settimana per settimana, contando le ore
-     spuntate;
-   - il tratteggio: dove arrivi se fai tutto quello che hai già messo in piano.
-   Se il tratteggio finisce sotto la retta, il piano non basta — e si vede
-   senza leggere un numero. */
+/* La barra di una materia verso l'esame. Tutta la lunghezza è l'obiettivo:
+   pieno quello che hai fatto, tenue quello che hai già messo in piano, vuoto
+   quello che manca e non è da nessuna parte; la tacca scura è dove dovresti
+   essere oggi per arrivarci con un passo costante. Sotto, a parole, l'esito
+   col ritmo che tieni di solito — la domanda vera, perché il piano lo sai già,
+   l'hai scritto tu; quello che non sai è se lo rispetterai. */
+function bullet(r){
+  const tgt=r.tgt,f=Math.min(r.f,tgt),pi=Math.max(0,Math.min(r.fut,tgt-f));
+  const passo=ritmoStorico(r);
+  const conData=r.gg!=null&&r.gg>=0;
+  /* da quando: la prima settimana in piano, o oggi */
+  const sk=Object.keys(r.sett).sort();
+  const oggiLun=monday(new Date());
+  let inizio=sk.length?parse(sk[0]):oggiLun;if(inizio>oggiLun)inizio=oggiLun;
+  let atteso=null;
+  if(conData){
+    const fine=parse(r.o.date),tot=fine-inizio;
+    atteso=tot>0?Math.max(0,Math.min(tgt,tgt*(new Date()-inizio)/tot)):tgt;
+  }
+  const w=v=>(v/tgt*100).toFixed(2);
+  const ultimo=pi>0?"pi":"fa";
+  let bar='<div class="gpb">'+
+    (f>0?'<i class="fa'+(ultimo==="fa"?" fine":"")+'" style="width:calc('+w(f)+'% - 2px);background:'+r.o.color+'"'+
+      tip(num1(r.f)+" h fatte",r.o.name+(r.f>tgt?" · oltre l’obiettivo di "+tgt+" h":""))+"></i>":"")+
+    (pi>0?'<i class="pi fine" style="width:calc('+w(pi)+'% - 2px);background:color-mix(in srgb,'+
+      r.o.color+' 38%,var(--bg))"'+tip(num1(r.fut)+" h in piano","messe nei prossimi giorni")+"></i>":"")+
+    (f+pi<tgt?'<i class="vu"'+tip(num1(tgt-f-pi)+" h mancano","non sono ancora in piano")+"></i>":"")+
+    (atteso!=null?'<s class="gat" style="left:'+w(atteso)+'%"'+
+      tip(num1(atteso)+" h","dove dovresti essere oggi")+"></s>":"")+
+    "</div>";
+  const manca=Math.max(0,tgt-r.f);
+  let esito,testo;
+  if(!conData&&r.gg!=null){esito="nd";testo="Esame passato.";}
+  else if(!manca){esito="ok";testo="<b>Obiettivo raggiunto.</b>";}
+  else if(!conData){
+    esito="nd";
+    testo="Senza data d’esame non so dirti se ci arrivi · il tuo ritmo di solito è <b>"+
+      num1(passo)+" h a settimana</b>";
+  }else{
+    const sett=Math.max(1,Math.ceil(r.gg/7)),serve=manca/sett,ce=passo>=serve;
+    esito=ce?"ok":"ko";
+    testo=(ce?"Ci arrivi":"Così non ci arrivi")+": servono <b>"+num1(serve)+
+      " h a settimana</b> per "+sett+(sett===1?" settimana":" settimane")+
+      ", di solito ne fai "+num1(passo)+".";
+  }
+  r.passo=passo;
+  return '<div class="gp"><div class="gph"><b>'+esc(r.o.name)+"</b>"+
+      (r.gg!=null?"<em>"+(r.gg>=0?"esame fra "+r.gg+" g":"esame passato")+"</em>":"")+
+      "<u>"+num1(r.f)+" / "+tgt+" h</u></div>"+bar+
+    '<div class="gritmo"><span class="gesito '+esito+'" aria-hidden="true">'+
+      (esito==="ok"?"✓":(esito==="ko"?"!":"–"))+"</span><span>"+testo+"</span></div>"+
+    (r.vuoto>0&&conData?'<div class="gpn">Nel piano mancano '+num1(r.vuoto)+
+      " h per arrivare all’obiettivo.</div>":"")+
+    "</div>";
+}
+
 /* La mediana delle ore fatte nelle settimane già passate. Mediana e non media
    perché una settimana da otto ore e cinque da zero fanno una media da 1,3 che
    non è successa mai: la mediana dice quello che fai di solito. */
@@ -4474,88 +4645,6 @@ function ritmoStorico(r){
   for(let d=new Date(dal);iso(d)<oggiLun;d=addDays(d,7))
     out.push(((r.sett[iso(d)]||{}).d||0)/PERQ);
   return mediana(out);
-}
-function corsa(r){
-  if(!r.tgt)return "";
-  const sett=Object.keys(r.sett).sort();
-  const oggiLun=monday(new Date());
-  /* Senza data d'esame non c'è un traguardo nel tempo, ma la domanda resta
-     buona: col piano che hai, dove arrivi? Allora l'orizzonte è l'ultima
-     settimana messa in piano, e il monte ore diventa una riga orizzontale
-     invece di una salita. Prima, senza data, non disegnavo niente e la
-     sezione restava vuota. */
-  const conData=r.gg!=null&&r.gg>=0;
-  const fine=conData?monday(parse(r.o.date))
-    :(sett.length?monday(addDays(parse(sett[sett.length-1]),7)):addDays(oggiLun,56));
-  let inizio=sett.length?parse(sett[0]):oggiLun;
-  if(inizio>oggiLun)inizio=oggiLun;
-  if(fine<=inizio)return "";
-  const n=Math.max(1,Math.round((fine-inizio)/604800000));
-  if(n>200)return "";
-  const W=100,H=34,px=i=>i/n*W,py=v=>H-Math.min(1,v/r.tgt)*(H-3)-1.5;
-  const passo=ritmoStorico(r);
-  let cum=0,reali=[],piano=[],meta=[],iOggi=0,fatteOra=0;
-  for(let i=0;i<=n;i++){
-    const k=iso(addDays(inizio,i*7)),c=r.sett[k]||{d:0,p:0};
-    cum+=c.d/PERQ;
-    meta.push([px(i),py(conData?r.tgt*i/n:r.tgt)]);
-    if(parse(k)<=oggiLun){reali.push([px(i),py(cum)]);iOggi=i;fatteOra=cum;}
-  }
-  /* Il tratteggio parte da oggi e sale col ritmo che tieni di solito: dice se
-     ci arrivi continuando così, che è la domanda vera. Il piano lo sai già,
-     l'hai scritto tu; quello che non sai è se lo rispetterai. */
-  let pia=fatteOra;
-  for(let i=iOggi;i<=n;i++){
-    pia=fatteOra+passo*(i-iOggi);
-    piano.push([px(i),py(pia)]);
-  }
-  const via=a=>a.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
-  const ce=pia>=r.tgt-0.01;
-  r.passo=passo;r.arrivo=pia;
-  /* Il divario si riempie invece di essere disegnato con due fili: a centocinquanta
-     ore di obiettivo e quaranta fatte le linee starebbero appiccicate al fondo e
-     sembrerebbe che non ci siano dati, non che sei indietro. */
-  /* Il cuneo ha senso quando c'è una scadenza: dice "il divario si allarga
-     mentre il tempo passa". Senza data la meta è una soglia orizzontale, e
-     riempire tutto quello che manca dipinge di rosso mezzo riquadro senza
-     aggiungere niente a quello che dice già la distanza fra le due righe. */
-  /* il cuneo si chiude sulla parte di meta che il tratteggio attraversa */
-  const zona=conData?via(meta.slice(iOggi))+" "+via(piano.slice().reverse()):"";
-  return '<svg class="gsvg" viewBox="0 0 '+W+" "+H+'" preserveAspectRatio="none" '+
-      'role="img" aria-label="andamento verso l\u2019esame">'+
-    (zona?'<polygon class="gzona'+(ce?" ok":"")+'" points="'+zona+'"/>':"")+
-    '<line class="gbase" x1="0" y1="'+py(0)+'" x2="'+W+'" y2="'+py(0)+'"/>'+
-    '<polyline class="gmeta" points="'+via(meta)+'"/>'+
-    '<line class="goggi" x1="'+px(iOggi)+'" y1="0.5" x2="'+px(iOggi)+'" y2="'+(H-0.5)+'"/>'+
-    (piano.length>1?'<polyline class="gpiano'+(ce?" ok":"")+'" points="'+via(piano)+'"/>':"")+
-    (reali.length>1?'<polyline class="greale" points="'+via(reali)+
-      '" style="stroke:'+r.o.color+'"/>':"")+
-    "</svg>"+
-    /* i riferimenti dell'asse stanno fuori dall'svg: dentro un viewBox stirato
-       il testo si deformerebbe insieme al disegno */
-    '<div class="gasse"><span>'+fmt(inizio)+"</span>"+
-      /* vicino ai bordi l'etichetta di oggi finisce sopra alle date: lì la
-         riga verticale basta da sola */
-      (iOggi/n>0.1&&iOggi/n<0.9
-        ?'<span class="oggi" style="left:'+(iOggi/n*100).toFixed(1)+'%">oggi</span>':"")+
-      "<span>"+(conData?fmt(parse(r.o.date)):"fine del piano")+"</span></div>";
-}
-function ritmoRiga(r){
-  const num=v=>{v=Math.round(v*10)/10;return v%1?v.toFixed(1).replace(".",","):String(v);};
-  const passo=r.passo||0;
-  if(r.gg==null||r.gg<0){
-    return '<div class="gritmo'+((r.arrivo||0)>=r.tgt-0.01?" ok":"")+'"><b>'+
-      num(passo)+" h a settimana</b> è il tuo ritmo di solito · "+
-      "metti la data dell\u2019esame per sapere se basta</div>";
-  }
-  const manca=Math.max(0,r.tgt-r.f);
-  if(!manca)return '<div class="gritmo ok">obiettivo raggiunto</div>';
-  const sett=Math.max(1,Math.ceil(r.gg/7)),serve=manca/sett;
-  const ce=passo>=serve;
-  return '<div class="gritmo'+(ce?" ok":"")+'">'+
-    "<b>"+num(serve)+" h a settimana</b> per arrivarci · "+sett+
-    (sett===1?" settimana":" settimane")+" all'esame · di solito ne fai "+
-    num(passo)+(ce?" — così ci arrivi":" — così non ci arrivi, devi aumentare")+"</div>";
 }
 
 /* ---------- giorno intero: copia, incolla, svuota ---------- */
