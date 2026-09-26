@@ -1768,7 +1768,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 set 2026 · d";
+const VERSIONE="26 set 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3632,7 +3632,8 @@ function restaDelBlocco(b){
 /* A che ora del giorno sta un blocco: mattina, pomeriggio o sera. Le stesse
    tre fasce del grafico "quando studi". */
 function fascia(sl){return sl<13*PERQ?0:(sl<19*PERQ?1:2);}
-const FASCE=["mattina","pomeriggio","sera"];
+/* con l'articolo: "Finita la pomeriggio" si leggeva nell'avviso del timer */
+const FASCE=["la mattina","il pomeriggio","la sera"];
 /* Resta ancora qualcosa di questa attività, oggi, in questa fascia? */
 function restaNellaFascia(act,f){
   return runsOf(iso(new Date())).some(r=>r.v.a===act&&!r.v.done&&fascia(r.start)===f);
@@ -3795,9 +3796,9 @@ function pomAdvance(auto){
     const ultimo=r.linked&&r.linked.length?r.linked[r.linked.length-1]:null;
     const f=ultimo?fascia(ultimo.start):null;
     if(f!==null&&!restaNellaFascia(r.act,f)){
-      if(auto)notify("Fascia finita","Non è rimasto altro di "+
-        actOf(r.act).n.toLowerCase()+" per la "+FASCE[f]);
-      toast("Finita la "+FASCE[f]+": timer fermato");
+      const cosa=actOf(r.act).n.toLowerCase();
+      if(auto)notify("Timer fermato","Non è rimasto altro di "+cosa+" per "+FASCE[f]);
+      toast("Niente altro di "+cosa+" per "+FASCE[f]+": timer fermato");
       pomStop(true);return;
     }
     if(auto)notify("Pausa finita","Riprendi con "+actOf(r.act).n.toLowerCase());
