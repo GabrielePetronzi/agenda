@@ -7,8 +7,16 @@
    il suo vero giro di ogni secondo (pomLoop), non una copia: quello che vedi
    qui e' quello che fa l'app sul tuo portatile.
 
-   A ogni fine sessione stampa lo stato dei blocchi (■ fatto, □ da fare), e a
-   sera controlla che il mattino sia spuntato. */
+   L'attivita' scelta nella colonna e' apposta un'altra (Esercizi): il timer
+   deve trovare il blocco da solo. A ogni fine sessione stampa lo stato dei
+   blocchi (■ fatto col timer, ◩ spuntato a mano, □ da fare), e a sera le ore
+   che contano nei grafici e i blocchi rimasti nel riquadro del debito.
+
+   Le regole, come le hai chieste il 26 settembre:
+   - recuperi il pomeriggio: ogni sessione spunta la sua sezione, e fatte le
+     ore previste il blocco e' tutto spuntato;
+   - spunti a mano senza timer: nei grafici non conta e resta nel debito,
+     finche' non lo fai col timer o lo sposti avanti. */
 (function(){
   var Vero=Date,base=new Vero();base.setHours(0,0,0,0);
   var off=0;
@@ -27,11 +35,11 @@
 
   function stato(bl){
     return bl.map(function(b){
-      var s="";for(var i=0;i<b.len;i++){var v=at(ck(oggi,b.sl+i))[0];s+=(v&&v.done)?"■":"□";}
+      var s="";for(var i=0;i<b.len;i++){var v=at(ck(oggi,b.sl+i))[0];s+=vero(v)?"■":(v&&v.done?"◩":"□");}
       return hh(b.sl)+" "+b.nome+" "+s;}).join("   ");
   }
   function tutti(bl){return bl.every(function(b){
-    for(var i=0;i<b.len;i++){var v=at(ck(oggi,b.sl+i))[0];if(!v||!v.done)return false;}return true;});}
+    for(var i=0;i<b.len;i++){var v=at(ck(oggi,b.sl+i))[0];if(!vero(v))return false;}return true;});}
 
   var SCENARI=[
     {t:"A · Big data, schema 9–11 saltato. Alle 15 avvio Schema",act:"SCH",
@@ -43,7 +51,11 @@
     {t:"D · lettura 9–11 saltata (sessioni da 27'). Alle 15 avvio Lettura",act:"LET",
       bl:[{sl:18,len:4,a:"LET",nome:"mattina"}],mira:[0]},
     {t:"E · videolezione 9–10 saltata e videolezione 11–12 saltata. Alle 15 avvio Videolezione",act:"VID",
-      bl:[{sl:18,len:2,a:"VID",nome:"prima"},{sl:22,len:2,a:"VID",nome:"seconda"}],mira:[0,1]}
+      bl:[{sl:18,len:2,a:"VID",nome:"prima"},{sl:22,len:2,a:"VID",nome:"seconda"}],mira:[0,1]},
+    {t:"F · il furbo: schema 9–11 saltato, alle 15 lo spunto a mano e non avvio niente",act:null,furbo:true,
+      bl:[{sl:18,len:4,a:"SCH",nome:"mattina"}],mira:[],debito:1},
+    {t:"G · spuntato a mano alle 15, poi ci ripenso e lo faccio col timer",act:"SCH",furbo:true,
+      bl:[{sl:18,len:4,a:"SCH",nome:"mattina"}],mira:[0]}
   ];
 
   var k=-1,sc=null,fase=null,sess=0,FINE=21*60;
@@ -59,14 +71,25 @@
     render();
     out.push("");out.push(sc.t);
     out.push("  15:00 prima di avviare   "+stato(sc.bl));
-    /* il gesto vero: scegli l'attivita' e premi Avvia */
-    state.act=sc.act;pomPanel();
+    if(sc.furbo){
+      /* il gesto vero: clic sul quadratino del blocco */
+      var tk=document.querySelector('.blk[data-date="'+oggi+'"][data-start="'+sc.bl[0].sl+'"] .tick');
+      /* il quadratino risponde al tocco del puntatore, non a click(): se il
+         clic finto non arriva, la stessa funzione che il quadratino chiama */
+      if(tk)tk.click();
+      var v0=at(ck(oggi,sc.bl[0].sl))[0];
+      if(!(v0&&v0.done))setDone(oggi,sc.bl[0].sl,0,true);
+      out.push("  15:00 spunto a mano      "+stato(sc.bl)+"   (\""+(detto[detto.length-1]||"")+"\")");
+    }
+    if(!sc.act){fase=null;off=FINE*60000;setTimeout(guarda,100);return;}
+    /* il gesto vero: premi Avvia, con in mano un'altra attivita' (Esercizi) */
+    state.act="ESE";selRuns={};pomPanel();
     var go=document.querySelector("#pomtools .pomgo");
     if(!go){guai.push(sc.t+": non trovo il pulsante Avvia");prossimo();return;}
     detto=[];go.click();
     var bar=document.getElementById("pombar").textContent;
     var riga=(bar.match(/(spunta [^·]*|nessun blocco agganciato)/)||["?"])[0];
-    out.push("  15:00 premo Avvia        la barra dice: \""+riga.trim()+"\"");
+    out.push("  15:00 premo Avvia        il pulsante diceva \""+go.textContent.trim()+"\", la barra dice \""+riga.trim()+"\"");
     fase="work";sess=1;
     setTimeout(passo,500);
   }
@@ -88,7 +111,19 @@
     if(r)fase=r.phase;
     if(ora>=FINE||(!r&&!fase)){
       var ok=sc.mira.every(function(i){return tutti([sc.bl[i]]);});
-      out.push("  a sera: "+stato(sc.bl)+"  →  "+(ok?"OK, tutto spuntato":"NO"));
+      var ore=oreFatte(BD.id),deb=arretrati().length;
+      var atteseOre=sc.mira.reduce(function(n,i){return n+sc.bl[i].len;},0);
+      if(ore!==atteseOre)ok=false;
+      if(sc.furbo&&!sc.act&&stato(sc.bl).indexOf("◩")<0)ok=false;   /* il furbo deve aver spuntato */
+      if(deb!==(sc.debito||0))ok=false;
+      out.push("  a sera: "+stato(sc.bl)+"   ore che contano nei grafici "+hrs(ore)+
+        " · nel debito "+deb+(deb===1?" blocco":" blocchi")+"  →  "+(ok?"OK":"NO"));
+      if(sc.debito&&deb){
+        var sp=document.querySelector('#latebar button[data-l="sposta"]');
+        if(sp)sp.click();
+        out.push("  premo Sposta avanti      "+(detto[detto.length-1]||"")+" · nel debito "+arretrati().length);
+        if(arretrati().length)ok=false;
+      }
       if(!ok)guai.push(sc.t);
       prossimo();return;
     }

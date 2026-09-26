@@ -638,6 +638,10 @@ html[data-theme="light"] .blk:hover{filter:brightness(.96)}
    fondo — cioè non si vedeva. */
 .blk.done .tick::after{content:"";position:absolute;left:4.5px;top:1.5px;width:4px;height:8px;
   border:solid #F4F3EF;border-width:0 2px 2px 0;transform:rotate(42deg)}
+/* Spuntato a mano: la spunta c'e' ma il quadratino resta vuoto, col segno
+   scuro — si vede che l'hai messa tu e che nei conti non vale. */
+.blk.done.amano .tick{background:inherit;box-shadow:inset 0 0 0 1.4px currentColor}
+.blk.done.amano .tick::after{border-color:currentColor}
 .rsz{position:absolute;left:0;right:0;bottom:0;height:9px;z-index:5;cursor:ns-resize}
 .rsz::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:2.5px;
   width:20px;height:2px;border-radius:2px;background:currentColor;opacity:0;transition:opacity .12s}
@@ -1768,7 +1772,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="26 set 2026 · a";
+const VERSIONE="26 set 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2696,7 +2700,7 @@ function countAll(pre){
       if(!v||!m[v.i])return;
       out[v.i]=out[v.i]||{tot:0,done:0};
       out[v.i][v.a]=(out[v.i][v.a]||0)+1;
-      out[v.i].tot++;if(v.done)out[v.i].done++;
+      out[v.i].tot++;if(vero(v))out[v.i].done++;
     });
   });
   return out;
@@ -2710,7 +2714,7 @@ function countPanel(p){
         if(!v||!m[v.i])return;
         out[v.i]=out[v.i]||{tot:0,done:0};
         out[v.i][v.a]=(out[v.i][v.a]||0)+1;
-        out[v.i].tot++;if(v.done)out[v.i].done++;
+        out[v.i].tot++;if(vero(v))out[v.i].done++;
       });
     });
   });
@@ -2721,7 +2725,7 @@ function totalCtx(id){
   let n=0,f=0;
   Object.keys(state.cells).forEach(k=>{
     if(k.indexOf(pre)!==0)return;
-    at(k).forEach(v=>{if(v&&v.i===id){n++;if(v.done)f++;}});
+    at(k).forEach(v=>{if(v&&v.i===id){n++;if(vero(v))f++;}});
   });
   totalCtx.done=f;
   return n;
@@ -3316,6 +3320,15 @@ const AUTOACT="LEZ";
    fra gli arretrati. */
 const AUTOSPUNTA=["LEZ","LAV","NAS","PAI"];
 function daSola(a){return AUTOSPUNTA.indexOf(a)>=0;}
+/* Fatto davvero: spuntato dal timer, spuntato da solo (lezioni, lavoro), o
+   spuntato prima che esistesse questa differenza. Una spunta messa a mano su
+   un blocco di studio porta "m": toglie il blocco dal riquadro del debito, ma
+   nei grafici e nelle ore della materia non conta — l'hai chiesto tu: "anche
+   se spunto le caselle per fare il furbo devi tenermi conto che quelle ore
+   non le ho fatte". Se poi quelle ore le fai col timer, la "m" se ne va e
+   contano. */
+function vero(v){return !!(v&&v.done&&!v.m);}
+function spuntaAMano(v){v.done=1;if(daSola(v.a))delete v.m;else v.m=1;}
 function autoLessons(){
   const now=new Date(),oggi=iso(now);
   const slotOra=now.getHours()*PERQ+(now.getMinutes()>=30?1:0);
@@ -3515,11 +3528,20 @@ function askNotify(){
    primo rimasto da fare. Sempre e solo di quell'attività: se adesso hai in
    piano un ripasso e avvii un pomodoro di esercizi, spuntarti il ripasso
    sarebbe una bugia. */
+/* Senza attivita' (act nullo) cerca fra tutte quelle col pomodoro: e' Avvia
+   senza aver scelto niente, e il blocco decide l'attivita'. Un blocco
+   spuntato a mano per il timer e' ancora da fare, come uno aperto. */
+/* Il blocco per Avvia: dell'attivita' che hai scelto, se oggi ne ha uno da
+   fare; se no quello di qualunque attivita'. */
+function bloccoDaAvviare(){
+  return (!daSola(state.act)&&slotDiOggi(state.act))||slotDiOggi(null);
+}
 function slotDiOggi(act){
   const d=iso(new Date()),n=new Date();
   const ora=n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
-  const rs=runsOf(d).filter(r=>r.v.a===act&&!r.v.done)
+  const tutti=runsOf(d).filter(r=>(act?r.v.a===act:!daSola(r.v.a))&&!vero(r.v))
     .sort((a,b)=>a.start-b.start||a.lane-b.lane);
+  const rs=tutti;
   if(!rs.length)return null;
   /* Prima quello che copre adesso. Se non c'e', quello cominciato piu' di
      recente: se sono le dieci di sera e in giornata ci sono due letture non
@@ -3531,7 +3553,7 @@ function slotDiOggi(act){
   const r=rs.find(x=>ora>=x.start&&ora<x.start+x.len)||
           passati[passati.length-1]||
           rs.find(x=>x.start>=ora)||rs[0];
-  return {date:d,start:r.start,lane:r.lane,len:r.len};
+  return {date:d,start:r.start,lane:r.lane,len:r.len,a:r.v.a};
 }
 /* Il timer si cerca il blocco da solo: uno di questa attivita', oggi, con
    ancora qualcosa da fare. Prima questa ricerca stava in un punto solo, la
@@ -3589,7 +3611,7 @@ function spuntaMaturato(r){
     for(let sl=b.start;n>0;sl++){
       const key=ck(b.date,sl),arr=at(key).slice(),v=arr[b.lane];
       if(!v||v.i!==base.i||v.a!==base.a)break;
-      if(!v.done){v.done=1;setAt(key,arr);n--;fatte++;}
+      if(!vero(v)){v.done=1;delete v.m;setAt(key,arr);n--;fatte++;}
     }
   });
   r.spesi=(r.spesi||0)+fatte;
@@ -3626,7 +3648,7 @@ function restaDelBlocco(b){
   for(let sl=b.start;;sl++){
     const v=at(ck(b.date,sl))[b.lane];
     if(!v||v.i!==base.i||v.a!==base.a)return null;
-    if(!v.done)return {date:b.date,start:sl,lane:b.lane};
+    if(!vero(v))return {date:b.date,start:sl,lane:b.lane};
   }
 }
 /* A che ora del giorno sta un blocco: mattina, pomeriggio o sera. Le stesse
@@ -3636,7 +3658,7 @@ function fascia(sl){return sl<13*PERQ?0:(sl<19*PERQ?1:2);}
 const FASCE=["la mattina","il pomeriggio","la sera"];
 /* Resta ancora qualcosa di questa attività, oggi, in questa fascia? */
 function restaNellaFascia(act,f){
-  return runsOf(iso(new Date())).some(r=>r.v.a===act&&!r.v.done&&fascia(r.start)===f);
+  return runsOf(iso(new Date())).some(r=>r.v.a===act&&!vero(r.v)&&fascia(r.start)===f);
 }
 /* Chiude la coda del blocco a fine sessione. Se di un blocco restano meno
    minuti di una sessione intera non ne farai un'altra per quel pezzetto: il
@@ -3662,13 +3684,13 @@ function chiudiCoda(r){
     for(let sl=b.start;;sl++){
       const v=at(ck(b.date,sl))[b.lane];
       if(!v||v.i!==base.i||v.a!==base.a)break;
-      if(!v.done)resta++;
+      if(!vero(v))resta++;
     }
     if(!resta||resta*(60/PERQ)-avanzo>=c.s)return;   /* niente, o troppo per un avanzo */
     for(let sl=b.start;;sl++){
       const key=ck(b.date,sl),arr=at(key).slice(),v=arr[b.lane];
       if(!v||v.i!==base.i||v.a!==base.a)break;
-      if(!v.done){v.done=1;setAt(key,arr);chiuse++;}
+      if(!vero(v)){v.done=1;delete v.m;setAt(key,arr);chiuse++;}
     }
   });
   if(chiuse)r.spesi=(r.spesi||0)+chiuse;
@@ -3690,39 +3712,16 @@ function spuntaUnaSola(r){
     for(let sl=b.start;;sl++){
       const key=ck(b.date,sl),arr=at(key).slice(),v=arr[b.lane];
       if(!v||v.i!==base.i||v.a!==base.a)break;
-      if(!v.done){v.done=1;setAt(key,arr);r.spesi=(r.spesi||0)+1;return 1;}
+      if(!vero(v)){v.done=1;delete v.m;setAt(key,arr);r.spesi=(r.spesi||0)+1;return 1;}
     }
   }
   return 0;
 }
-/* Un blocco che stai recuperando si chiude tutto a fine sessione. E' il caso
-   che chiedevi: l'ora e' gia' passata, il blocco sta nella fascia rossa del
-   debito, ti siedi e fai la sessione per rimediare — finita quella, il blocco
-   e' fatto, non fatto a meta'. Vale solo per i blocchi la cui ora e' gia'
-   passata: quello che stai facendo mentre e' in corso continua a spuntarsi
-   una mezz'ora per volta, come avevi chiesto a settembre. */
-function chiudiRecupero(r){
-  if(!r||!r.linked||!r.linked.length)return 0;
-  const oggi=iso(new Date()),ora=oraAdesso();
-  let n=0;
-  r.linked.forEach(b=>{
-    const base=at(ck(b.date,b.start))[b.lane];
-    if(!base)return;
-    let fine=b.start;
-    for(let sl=b.start;;sl++){
-      const v=at(ck(b.date,sl))[b.lane];
-      if(!v||v.i!==base.i||v.a!==base.a)break;
-      fine=sl+1;
-    }
-    const passato=b.date<oggi||(b.date===oggi&&fine<=ora);
-    if(!passato)return;
-    for(let sl=b.start;sl<fine;sl++){
-      const key=ck(b.date,sl),arr=at(key).slice(),v=arr[b.lane];
-      if(v&&!v.done){v.done=1;setAt(key,arr);n++;r.spesi=(r.spesi||0)+1;}
-    }
-  });
-  return n;
-}
+/* Un blocco che stai recuperando si spunta come gli altri, una mezz'ora per
+   volta man mano che le fai: il 26 settembre hai chiesto "se faccio le ore
+   previste mi spunti blocco per blocco, sessione da 45 minuti e la rispettiva
+   sezione". Prima (dal 23) a fine sessione si chiudeva tutto il blocco
+   saltato, e tre quarti d'ora valevano due ore. */
 function pomAdvance(auto){
   const r=state.pomRun;if(!r)return;
   const c=pomConf(r.act);
@@ -3758,7 +3757,6 @@ function pomAdvance(auto){
     const spesiPrima=r.base||0;
     let k=spuntaMaturato(r);
     if(auto&&!k&&(r.spesi||0)<=spesiPrima)k+=spuntaUnaSola(r);
-    if(auto)k+=chiudiRecupero(r);
     if(auto)k+=chiudiCoda(r);
     r.min=(r.min||0)+min;
     if(k)afterEdit(hrs(k)+" segnate come fatte");
@@ -3962,7 +3960,7 @@ function setDoneQuiet(dateIso,start,lane,v){
   const r=runAt(dateIso,start,lane);if(!r)return;
   for(let i=0;i<r.len;i++){
     const key=ck(dateIso,r.start+i),arr=at(key).slice();
-    if(arr[lane]){if(v)arr[lane].done=1;else delete arr[lane].done;}
+    if(arr[lane]){if(v)spuntaAMano(arr[lane]);else{delete arr[lane].done;delete arr[lane].m;}}
     setAt(key,arr);
   }
 }
@@ -3971,7 +3969,14 @@ function setDoneQuiet(dateIso,start,lane,v){
 function pomPanel(){
   const box=document.getElementById("pomtools");box.innerHTML="";
   const sel=Object.keys(selRuns).map(k=>selRuns[k]);
-  const act=state.act;
+  /* Senza blocchi selezionati Avvia si prende da solo il blocco di oggi da
+     fare (quello in corso, se no quello saltato, se no il prossimo): della
+     attivita' che hai in mano se ne ha uno, se no di qualunque attivita', e
+     parte con la sua. Prima partiva sempre con l'attivita' in mano, e con
+     Videolezione scelta e lo schema delle nove da recuperare girava a vuoto:
+     "nessun blocco agganciato". */
+  const dopo=sel.length?null:bloccoDaAvviare();
+  const act=dopo?dopo.a:state.act;
   const c=pomConf(act);
 
   const pick=document.createElement("button");
@@ -3981,7 +3986,7 @@ function pomPanel(){
     "e a fine lo spunta come fatto";
   pick.onclick=()=>pomAskBlock(!pomPick);
 
-  if(daSola(act)){
+  if(daSola(act)&&!dopo){
     const h=document.createElement("span");
     h.className="pomhint";
     h.innerHTML=(act===AUTOACT?"Le lezioni":"Il lavoro")+
@@ -3996,29 +4001,35 @@ function pomPanel(){
   }
   const go=document.createElement("button");
   go.className="tool pomgo";
-  go.innerHTML=icon(act,15)+"Avvia "+c.s+" min";
+  go.innerHTML=icon(act,15)+"Avvia "+c.s+" min"+
+    (dopo?" · "+actOf(act).n.toLowerCase()+" "+slotTime(dopo.start):"");
   go.title=sel.length
     ? "Al termine segna come fatti i "+sel.length+" blocchi selezionati"
-    : "Prende da solo lo slot di oggi di questa attività e a fine sessione lo spunta";
+    : (dopo?"Prende da solo il blocco di "+actOf(act).n.toLowerCase()+" delle "+
+        slotTime(dopo.start)+" e a fine sessione lo spunta"
+      :"Oggi non c'e' niente da fare in griglia: parte una sessione libera");
   go.onclick=()=>{
     if(typeof Notification!=="undefined"&&Notification.permission==="default")
       Notification.requestPermission().catch(()=>{});
-    /* se non hai selezionato niente, il timer si prende lo slot di oggi da solo */
+    /* se non hai selezionato niente, il timer si prende il blocco di oggi da
+       solo — ricalcolato adesso, non quello di quando e' stato disegnato il
+       pulsante — e parte con la sua attivita' */
     let ag=sel.map(r=>({date:r.date,start:r.start,lane:r.lane}));
-    let preso=null;
+    let preso=null,aGo=state.act;
     if(!ag.length){
-      preso=slotDiOggi(act);
-      if(preso)ag=[{date:preso.date,start:preso.start,lane:preso.lane}];
+      preso=bloccoDaAvviare();
+      if(preso){ag=[{date:preso.date,start:preso.start,lane:preso.lane}];aGo=preso.a;}
     }
-    pomStart(act,ag);
+    if(daSola(aGo)){toast(actOf(aGo).n+": si spunta da sola al passare dell'ora");return;}
+    state.act=aGo;
+    pomStart(aGo,ag);
     /* preso dal timer, non scelto da te: se poi tocchi un altro blocco di
        questa attivita' il timer ci si sposta senza ricominciare il conto */
     if(preso&&state.pomRun)state.pomRun.autoAg=1;
     if(preso)toast("Agganciato a "+slotTime(preso.start)+"–"+
       slotTime(preso.start+preso.len)+" di oggi");
     else if(!ag.length){
-      toast("Nessuno slot di "+actOf(act).n.toLowerCase()+
-        " oggi: tocca un blocco per agganciarlo");
+      toast("Oggi non c'e' niente da fare in griglia: tocca un blocco per agganciarlo");
       pomAskBlock(true);       /* resta armato: il prossimo tocco lo aggancia */
     }
   };
@@ -4133,7 +4144,9 @@ function oraAdesso(){
   const n=new Date();return n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
 }
 function inRitardo(dateIso,r){
-  if(r.v.done||daSola(r.v.a))return false;
+  /* spuntato a mano non basta: resta da fare finche' non lo fai col timer o
+     non lo sposti avanti */
+  if(vero(r.v)||daSola(r.v.a))return false;
   /* Un blocco su cui il timer sta girando adesso non e' in ritardo: lo stai
      facendo. Il "!" rosso di fianco alla barra che dice "spunta 20:30 di
      oggi" erano due cose che si contraddicevano. */
@@ -4169,7 +4182,7 @@ function tettoGiorno(){
   let max=0;
   for(let g=1;g<=56;g++){
     const d=iso(addDays(new Date(),-g));let n=0;
-    runsOf(d).forEach(r=>{if(!daSola(r.v.a)&&r.v.done)n+=r.len;});
+    runsOf(d).forEach(r=>{if(!daSola(r.v.a)&&vero(r.v))n+=r.len;});
     if(n>max)max=n;
   }
   return max||3*PERQ;
@@ -4237,13 +4250,12 @@ function lateBar(){
   const mez=a.reduce((n,x)=>n+x.len,0),primo=a[0],ultimo=a[a.length-1];
   box.className="latebar on";
   box.innerHTML='<b><i>'+a.length+(a.length===1?" blocco":" blocchi")+
-      "</i> che l'ora ha superato senza spunta</b>"+
+      "</i> che l'ora ha superato e non sono fatti</b>"+
     "<u>"+hrs(mez)+" · dal "+fmt(parse(primo.date))+
       (primo.date===ultimo.date?"":" al "+fmt(parse(ultimo.date)))+"</u>"+
     '<button data-l="vai">Vai al primo</button>'+
     '<button data-l="sposta" title="Li rimette avanti alla stessa ora, senza far '+
-      'superare a un giorno le ore che hai già fatto in un giorno">Sposta avanti</button>'+
-    '<button data-l="fatti">Erano fatti</button>';
+      'superare a un giorno le ore che hai già fatto in un giorno">Sposta avanti</button>';
   box.querySelectorAll("button").forEach(b=>{
     b.onclick=()=>{
       if(b.dataset.l==="sposta"){spostaArretrati();return;}
@@ -4253,10 +4265,6 @@ function lateBar(){
         const el=document.querySelector('.blk[data-date="'+primo.date+
           '"][data-start="'+primo.start+'"]');
         if(el)el.scrollIntoView({block:"center",behavior:"smooth"});
-      }else{
-        a.forEach(x=>setDoneQuiet(x.date,x.start,x.lane,1));
-        save(a.length+(a.length===1?" blocco segnato":" blocchi segnati")+" come fatto");
-        commit();render();
       }
     };
   });
@@ -4276,7 +4284,7 @@ function semSummary(){
   const m=map(),pre=PRE(),oggi=TODAY;
   const wk={},fase={},mappa={},mat={},ritmo4={},qui={},sm={};
   const lun4=iso(addDays(monday(new Date()),-28)),lunOra=iso(monday(new Date()));
-  let tot=0,done=0,saltate=0;
+  let tot=0,done=0,saltate=0,amano=0;
   Object.keys(state.cells).forEach(k=>{
     const p=k.split("."),dt=p[p.length-2],sl=+p[p.length-1];
     const d=parse(dt),g=(d.getDay()+6)%7;
@@ -4284,7 +4292,7 @@ function semSummary(){
     const dentro=k.indexOf(pre)===0, futuro=dt>=oggi;
     at(k).forEach(v=>{
       if(!v||!m[v.i])return;
-      const q=v.done?1:0;
+      const q=vero(v)?1:0;
       /* La proiezione guarda tutto il piano e non solo il semestre aperto:
          l'esame di gennaio sta nella sessione, le ore per prepararlo no. */
       mat[v.i]=mat[v.i]||{f:0,fut:0,persa:0};
@@ -4308,6 +4316,7 @@ function semSummary(){
       fase[F]=fase[F]||{t:0,d:0};fase[F].t++;fase[F].d+=q;
       mappa[g+"|"+banda]=(mappa[g+"|"+banda]||0)+1;
       tot++;done+=q;if(!q&&!futuro)saltate++;
+      if(v.done&&!q)amano++;
     });
   });
   if(!tot&&!Object.keys(mat).length){
@@ -4327,7 +4336,11 @@ function semSummary(){
     cifra(tGen==null?"—":tGen+"%","tenuta")+
     cifra(hrs(saltate),"saltate")+
     cifra(hrs(tot-done-saltate),"ancora in piano")+
-    "</div>";
+    (amano?cifra(hrs(amano),"spuntate a mano"):"")+
+    "</div>"+
+    (amano?'<p class="gnota">Le '+hrs(amano)+" spuntate a mano, senza il timer, "+
+      "non contano come fatte: nei grafici stanno fra le saltate. Se le fai col "+
+      "timer tornano ore vere.</p>":"");
 
   /* 1 — ce la fai? Solo le materie con un obiettivo: le voci libere no. */
   const righe=Object.keys(mat).map(id=>{
@@ -4861,7 +4874,7 @@ function lanesOf(dateIso){
    un'ora, quell'ora è un blocco fatto e la mezz'ora che resta è un blocco da
    fare. Senza questo il disegno prenderebbe lo stato dalla prima mezz'ora e
    direbbe che è tutto fatto. */
-function sameBlock(a,b){return a&&b&&a.i===b.i&&a.a===b.a&&!a.done===!b.done;}
+function sameBlock(a,b){return a&&b&&a.i===b.i&&a.a===b.a&&!a.done===!b.done&&!a.m===!b.m;}
 
 /* elenca i blocchi contigui di un giorno, corsia per corsia */
 function runsOf(dateIso){
@@ -4881,7 +4894,7 @@ function runsOf(dateIso){
 function runAt(dateIso,slot,lane){
   const r=runsOf(dateIso).find(x=>x.lane===lane&&slot>=x.start&&slot<x.start+x.len);
   if(!r)return null;
-  return {i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,lane:lane,start:r.start,len:r.len,date:dateIso};
+  return {i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,m:r.v.m,lane:lane,start:r.start,len:r.len,date:dateIso};
 }
 function anyRunAt(dateIso,slot){
   const rs=runsOf(dateIso).filter(x=>slot>=x.start&&slot<x.start+x.len);
@@ -4926,7 +4939,7 @@ function placeRun(dateIso,start,r,lane){
     const key=ck(dateIso,sl),arr=at(key).slice();
     const e={i:r.i,a:r.a};
     if(k===0&&r.n)e.n=r.n;
-    if(r.done)e.done=1;
+    if(r.done){e.done=1;if(r.m)e.m=1;}
     while(arr.length<L)arr.push(null);
     arr[L]=e;
     setAt(key,arr);
@@ -5136,7 +5149,7 @@ function drawDay(dateIso,scope){
       const striscia=r.len===1||alt<30;
       const tardi=inRitardo(dateIso,r);
       bl.className="blk"+(striscia?(due?" mini2":" mini"):"")+
-        (r.v.done?" done":"")+(tardi?" tardi":"")+
+        (r.v.done&&!tardi?" done":"")+(r.v.m?" amano":"")+(tardi?" tardi":"")+
         (selRuns[selKey(dateIso,r.start,r.lane)]?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
       bl.dataset.att=r.v.a;
@@ -5194,7 +5207,7 @@ function drawDay(dateIso,scope){
       /* con Cancella acceso il fumetto del browser starebbe sotto l'etichetta
          rossa e direbbe un'altra cosa: l'intero blocco invece della mezz'ora */
       if(!state.erase)bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
-        (r.v.n?" ("+r.v.n+")":"")+(r.v.done?" · fatto":"");
+        (r.v.n?" ("+r.v.n+")":"")+(r.v.done?(r.v.m?" · spuntato a mano, non conta":" · fatto"):"");
       td.setAttribute("aria-label",
         (td.dataset.lab||"")+" — "+o.name+", "+a.n+", fino alle "+
         slotTime(r.start+r.len)+(r.v.n?", nota: "+r.v.n:"")+(r.v.done?", fatto":""));
@@ -5316,7 +5329,7 @@ function copyBlocks(){
   });
   state.blockClip=runs.map(r=>({
     dd:Math.round((parse(r.date)-minDay)/86400000),
-    ds:r.start-minSlot,len:r.len,i:r.i,a:r.a,n:r.n,done:r.done
+    ds:r.start-minSlot,len:r.len,i:r.i,a:r.a,n:r.n,done:r.done,m:r.m
   }));
   /* Dice cosa ha copiato, per nome: la selezione resta finche' non premi Esc,
      e un blocco scelto ieri e dimenticato finiva negli appunti insieme a
@@ -5348,7 +5361,7 @@ function pasteBlocks(dove){
        corsie non si incolla, invece di sovrascrivere in silenzio */
     const L=corsiaPerArrivo(d,st,b.len,null);
     if(L<0){senzaPosto++;return;}
-    placeRun(d,st,{i:b.i,a:b.a,n:b.n,done:b.done,len:b.len},L);
+    placeRun(d,st,{i:b.i,a:b.a,n:b.n,done:b.done,m:b.m,len:b.len},L);
     messi++;
   });
   /* la selezione ha finito il suo lavoro: quello che era scelto e' negli
@@ -5374,21 +5387,22 @@ function toggleDoneSel(){
     const r=selRuns[k];
     for(let i=0;i<r.len;i++){
       const key=ck(r.date,r.start+i),arr=at(key).slice();
-      if(arr[r.lane]){if(anyOpen)arr[r.lane].done=1;else delete arr[r.lane].done;}
+      if(arr[r.lane]){if(anyOpen)spuntaAMano(arr[r.lane]);else{delete arr[r.lane].done;delete arr[r.lane].m;}}
       setAt(key,arr);
     }
     r.done=anyOpen?1:0;
   });
-  afterEdit(anyOpen?"Segnati come fatti":"Segnati come da fare");
+  afterEdit(!anyOpen?"Segnati come da fare"
+    :"Spuntati a mano: nei conti restano da fare — falli col timer o spostali avanti");
 }
 function setDone(dateIso,start,lane,val2){
   const r=runAt(dateIso,start,lane);if(!r)return;
   for(let i=0;i<r.len;i++){
     const key=ck(dateIso,r.start+i),arr=at(key).slice();
     if(arr[lane]){
-      if(val2){arr[lane].done=1;delete arr[lane].nd;}
+      if(val2){spuntaAMano(arr[lane]);delete arr[lane].nd;}
       else{
-        delete arr[lane].done;
+        delete arr[lane].done;delete arr[lane].m;
         /* togliendo la spunta a qualcosa che si spunta da sola, non la
            rimetto io: l'hai tolta apposta */
         if(daSola(arr[lane].a))arr[lane].nd=1;
@@ -5396,7 +5410,8 @@ function setDone(dateIso,start,lane,val2){
     }
     setAt(key,arr);
   }
-  afterEdit(val2?"Fatto":"Da fare");
+  afterEdit(!val2?"Da fare":(daSola(r.a)?"Fatto"
+    :"Spuntato a mano: nei conti resta da fare — fallo col timer o spostalo avanti"));
 }
 
 /* Un blocco rimasto da solo sulla seconda corsia — perche' quello di fianco
@@ -5413,7 +5428,7 @@ function compattaCorsie(dateIso){
       const sotto=r.lane-1;
       for(let k=0;k<r.len;k++)if(at(ck(dateIso,r.start+k))[sotto])return;
       clearRun(dateIso,r.start,r.len,r.lane);
-      placeRun(dateIso,r.start,{i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,len:r.len},sotto);
+      placeRun(dateIso,r.start,{i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,m:r.v.m,len:r.len},sotto);
       if(state.pomRun&&state.pomRun.linked)state.pomRun.linked.forEach(b=>{
         if(b.date===dateIso&&b.lane===r.lane&&b.start>=r.start&&b.start<r.start+r.len)b.lane=sotto;});
       cambiato=true;mosso=true;

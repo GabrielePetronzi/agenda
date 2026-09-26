@@ -809,18 +809,26 @@
     var bottoni=box.querySelectorAll("button").length;
     pulisci();render();
     var spento=document.getElementById("latebar").className.indexOf("on")<0;
-    return (acceso&&spento&&bottoni===3&&testo.indexOf("1,5 h")>=0)?true:
-      "acceso="+acceso+" spento dopo="+spento+" bottoni="+bottoni+" (attesi 3) testo="+testo;});
-  t("«erano fatti» li spunta tutti e l'avviso sparisce",function(){
+    return (acceso&&spento&&bottoni===2&&testo.indexOf("1,5 h")>=0)?true:
+      "acceso="+acceso+" spento dopo="+spento+" bottoni="+bottoni+" (attesi 2) testo="+testo;});
+  /* "Erano fatti" l'hai tolto tu il 26 settembre: spuntare a mano non svuota
+     il debito, lo svuota solo farlo col timer o spostarlo avanti. */
+  t("niente «erano fatti»: spuntato a mano resta nel debito, Sposta avanti lo svuota",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
     placeRun(ieri,HOURS[2],{i:it[0].id,a:"ESE",len:2},0);
     placeRun(ieri,HOURS[6],{i:it[1].id,a:"RIP",len:2},0);
+    setDone(ieri,HOURS[2],0,true);                  /* il furbo */
     render();
-    document.querySelector('#latebar button[data-l="fatti"]').click();
-    return (arretrati().length===0&&
-            document.getElementById("latebar").className.indexOf("on")<0)?true:
-      "restano "+arretrati().length+" arretrati";});
+    if(document.querySelector('#latebar button[data-l="fatti"]'))return "c'e' ancora «Erano fatti»";
+    var prima=arretrati().length;
+    document.querySelector('#latebar button[data-l="sposta"]').click();
+    var dopo=arretrati().length;
+    var spostatiFatti=Object.keys(state.cells).some(function(k){
+      return at(k).some(function(v){return v&&v.done&&v.i===it[0].id;});});
+    if(prima!==2)return "prima di spostare i blocchi in debito erano "+prima+" (attesi 2, anche quello spuntato a mano)";
+    if(dopo!==0)return "dopo Sposta avanti restano "+dopo+" arretrati";
+    return spostatiFatti?"il blocco spostato si porta dietro la spunta a mano":true;});
   t("nella griglia il blocco in ritardo è segnato",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
@@ -2222,28 +2230,23 @@
     return (vivo.indexOf("FERMO")<0&&vivo.indexOf("spunta")>=0)?true:
       "ripreso, la barra dice ancora: "+vivo;});
 
-  /* Il caso che chiedevi a voce alta: un blocco che l'ora ha gia' superato,
-     lo recuperi con una sessione, e a fine sessione e' fatto tutto — non
-     mezzo. Vale per qualunque attivita', videolezione compresa. */
-  t("un blocco che stai recuperando si chiude tutto a fine sessione",function(){
-    var esito;
-    var Vero=Date,fisso=new Vero();fisso.setHours(23,0,0,0);
-    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
-      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
-    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
-    try{
-      window.Date=F;
+  /* Il 26 settembre: "se faccio le ore previste mi spunti blocco per blocco,
+     sessione da 45 minuti e la rispettiva sezione". Un blocco saltato si
+     recupera un pezzo per sessione, e con le ore fatte e' fatto tutto. */
+  t("un blocco che stai recuperando si spunta una sezione per sessione",function(){
+    return alle(23,function(){
       pulisci();apri();
       var d=iso(new Date());
-      placeRun(d,41,{i:it[0].id,a:"VID",len:2},0);      /* videolezione 20:30-21:30, e sono le 23 */
-      var g=slotDiOggi("VID");
-      pomStart("VID",[{date:g.date,start:g.start,lane:g.lane}]);
-      fine();                                          /* una sessione da trenta minuti */
-      var q=[0,1].map(function(i2){var v=at(ck(d,41+i2))[0];return v&&v.done?"■":"□";}).join("");
-      pomStop(true);
-      esito=q==="■■"?true:"dopo la sessione il blocco e' "+q+" (atteso ■■)";
-    }finally{window.Date=Vero;}
-    return esito;});
+      state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+      placeRun(d,18,{i:it[0].id,a:"SCH",len:4},0);      /* schema 9-11, e sono le 23 */
+      state.act="SCH";avvia();
+      var q=function(){return [0,1,2,3].map(function(i2){var v=at(ck(d,18+i2))[0];return v&&v.done?"■":"□";}).join("");};
+      fine();var uno=q();                               /* 45 minuti */
+      fine();fine();var due=q();                        /* pausa e altri 45 */
+      pomStop(true);state.pomConf={};
+      if(uno!=="■□□□")return "dopo la prima sessione il blocco e' "+uno+" (atteso ■□□□)";
+      return due==="■■■■"?true:"dopo la seconda il blocco e' "+due+" (atteso ■■■■)";
+    });});
   t("ma un blocco ancora in corso no: si spunta una mezz'ora per volta",function(){
     var esito;
     var Vero=Date,fisso=new Vero();fisso.setHours(20,45,0,0);
@@ -2282,7 +2285,7 @@
       fine();
       var q=[0,1].map(function(i2){var v=at(ck(d,41+i2))[0];return v&&v.done?"■":"□";}).join("");
       pomStop(true);
-      esito=q==="■■"?true:"dopo la sessione il blocco e' "+q+" (atteso ■■)";
+      esito=q==="■□"?true:"dopo la sessione il blocco e' "+q+" (atteso ■□: trovato e spuntata la sua parte)";
     }finally{window.Date=Vero;}
     return esito;});
 
@@ -2306,7 +2309,7 @@
       fine();
       var q=[0,1].map(function(i2){var v=at(ck(d,42+i2))[0];return v&&v.done?"■":"□";}).join("");
       pomStop(true);
-      esito=q==="■■"?true:"il blocco rimasto indietro e' "+q+" (atteso ■■)";
+      esito=q==="■□"?true:"il blocco rimasto indietro e' "+q+" (atteso ■□)";
     }finally{window.Date=Vero;}
     return esito;});
 
@@ -2344,6 +2347,75 @@
       if(!ag||ag.start!==20)return "il timer non si e' preso il blocco nuovo";
       return dopo.indexOf("spunta 10:00")>=0?true:"la barra non dice il blocco nuovo: "+dopo;
     });});
+
+  /* ---- 26 settembre: le spunte oneste e Avvia che sceglie da solo ---- */
+  function alle(ora,f){
+    var Vero=Date,fisso=new Vero();fisso.setHours(ora,0,0,0);
+    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+    try{window.Date=F;return f();}finally{window.Date=Vero;}
+  }
+  function avvia(){selRuns={};pomPanel();var b=document.querySelector("#pomtools .pomgo");if(b)b.click();return b;}
+
+  t("una spunta a mano non conta come ore fatte, resta nel debito, e i grafici lo dicono",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,20,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(ieri,24,{i:it[0].id,a:"LEZ",len:2},0);
+    setDone(ieri,20,0,true);setDone(ieri,24,0,true);
+    var ore=oreFatte(it[0].id);
+    var inDebito=arretrati().some(function(x){return x.date===ieri&&x.start===20;});
+    var era=state.semOpen;state.semOpen=true;semSummary();
+    var tx=document.getElementById("semBody").textContent;
+    state.semOpen=era;semSummary();
+    if(!inDebito)return "spuntato a mano e' uscito dal riquadro del debito";
+    if(ore!==2)return "ore fatte "+ore+" mezz'ore (attese 2: la lezione si, lo schema spuntato a mano no)";
+    return /spuntate a mano/.test(tx)?true:"i grafici non dicono le ore spuntate a mano";});
+
+  t("spuntato a mano e poi rifatto col timer: le ore tornano vere",function(){
+    return alle(23,function(){
+      pulisci();apri();
+      var d=iso(new Date());
+      placeRun(d,36,{i:it[0].id,a:"SCH",len:2},0);
+      setDone(d,36,0,true);
+      var prima=oreFatte(it[0].id);
+      state.act="VID";avvia();
+      var r=state.pomRun,ag=r&&(r.linked||[])[0];
+      fine();
+      var dopo=oreFatte(it[0].id);pomStop(true);
+      if(prima!==0)return "spuntato a mano valeva gia' "+prima;
+      if(!ag||ag.start!==36)return "il timer non e' andato sul blocco spuntato a mano";
+      return dopo===2?true:"dopo la sessione le ore fatte sono "+dopo+" mezz'ore (attese 2)";
+    });});
+
+  t("Avvia senza scegliere l'attivita': prende il blocco saltato e la sua attivita'",function(){
+    return alle(15,function(){
+      pulisci();apri();
+      var d=iso(new Date());
+      placeRun(d,18,{i:it[0].id,a:"SCH",len:4},0);     /* schema 9-11, saltato */
+      state.act="VID";                                /* in mano c'e' un altro pennello */
+      var b=avvia(),testo=b?b.textContent:"";
+      var r=state.pomRun,ag=r&&(r.linked||[])[0],act=r&&r.act;
+      pomStop(true);
+      if(!/schema 9:00/i.test(testo))return "il pulsante non dice cosa prende: "+testo;
+      if(act!=="SCH")return "e' partito con "+act+" invece che con lo schema";
+      return ag&&ag.start===18?true:"non si e' agganciato al blocco delle nove";
+    });});
+
+  t("la spunta a mano resta tale dopo un ricarico e uno spostamento di corsia",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,20,{i:it[1].id,a:"LET",len:2},0);
+    placeRun(ieri,20,{i:it[0].id,a:"SCH",len:2},1);
+    setDone(ieri,20,1,true);
+    clearRun(ieri,20,2,0);compattaCorsie(ieri);       /* scende nella corsia libera */
+    var v0=at(ck(ieri,20))[0];
+    adopt(JSON.parse(payload()));
+    var v1=at(ck(ieri,20))[0];
+    if(!v0||v0.i!==it[0].id)return "il blocco non e' sceso di corsia";
+    if(!v0.m)return "scendendo di corsia ha perso il segno della spunta a mano";
+    return v1&&v1.m&&v1.done?true:"dopo il ricarico la spunta a mano e' diventata vera";});
 
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
