@@ -840,6 +840,28 @@ html[data-theme="light"] .gdot{background:color-mix(in srgb,var(--c) 68%,#000)}
 .gwk .gx span{flex:1 1 0;min-width:0;display:flex;justify-content:center;white-space:nowrap}
 .gwk .gx span.a0{justify-content:flex-start}
 .gwk .gx span.a1{justify-content:flex-end;color:var(--tx2)}
+/* 2 — la costanza: il calendario a quadretti. La scala e' quella
+   verificata coi controlli della data visualization in tutt'e due i temi
+   (un colore solo, passi distinguibili, il primo che si stacca dal fondo):
+   al buio "di piu'" e' piu' chiaro, col tema chiaro piu' scuro. */
+:root{--g1:#464b83;--g2:#6167bb;--g3:#7C84F2;--g4:#a1a6f6;--g5:#c0c4f9}
+html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g5:#2b317c}
+.gcal{display:grid;grid-template-columns:auto repeat(var(--n),minmax(0,20px));gap:3px;
+  align-items:center;justify-content:start}
+.gcal .gcm{font-size:10.5px;color:var(--tx3);white-space:nowrap;overflow:visible;height:14px}
+.gcal .gcd{font-size:10.5px;color:var(--tx3);padding-right:6px}
+.gcal i{display:block;aspect-ratio:1;border-radius:3px;position:relative}
+.gcal i.fuori{visibility:hidden}
+.gcal i.fut{background:var(--line-soft);opacity:.45}
+.sembody .c0{background:var(--line-soft)}
+.sembody .h1{background:var(--g1)} .sembody .h2{background:var(--g2)} .sembody .h3{background:var(--g3)}
+.sembody .h4{background:var(--g4)} .sembody .h5{background:var(--g5)}
+.sembody .buco{box-shadow:inset 0 0 0 1.5px var(--late)}
+.sembody i.oggi{outline:2px solid var(--tx);outline-offset:1px}
+.gcal i[data-tip]:hover{filter:brightness(1.2)}
+.gscala{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:11px;color:var(--tx3)}
+.gscala i{display:inline-block;width:12px;height:12px;border-radius:3px}
+.gscala .gs0{display:inline-flex;align-items:center;gap:6px;margin-left:14px}
 /* il fumetto: prima il valore, poi di cosa e' */
 #gtip{position:fixed;z-index:95;pointer-events:none;display:none;flex-direction:column;gap:2px;
   padding:7px 10px;border-radius:8px;background:var(--raised);border:1px solid var(--line);
@@ -1797,7 +1819,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="27 set 2026 · h";
+const VERSIONE="27 set 2026 · i";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4399,7 +4421,7 @@ function semSummary(){
      fermo al caricamento, e dopo mezzanotte i grafici restavano a ieri */
   const m=map(),pre=PRE(),oggi=iso(new Date()),ora=oraAdesso();
   grafMezz=oggi+"."+ora;
-  const perGiorno={},qui={},futuro={},primo={},ultimo={};
+  const perGiorno={},qui={},futuro={},primo={},ultimo={},cal={};
   const sett={},amano={};
   let pianoTot=0;
   Object.keys(state.cells).forEach(k=>{
@@ -4417,6 +4439,7 @@ function semSummary(){
       if(!dentro)return;
       /* di chi parlare: le materie messe negli slot di questo periodo */
       qui[v.i]=1;pianoTot++;
+      const c=cal[dt]=cal[dt]||{f:0,p:0,m:0};c.p++;if(q)c.f++;else if(v.done)c.m++;
       /* saltata: la sua ora e' passata e non e' fatta davvero */
       const passata=dt<oggi||(dt===oggi&&sl<ora);
       if(passata&&!q){
@@ -4448,7 +4471,10 @@ function semSummary(){
       "</div>";
   }
 
-  /* 2 — quante ore salti, settimana per settimana e di quali materie */
+  /* 2 — la costanza: il semestre giorno per giorno */
+  h+=calendario(cal,oggi);
+
+  /* 3 — quante ore salti, settimana per settimana e di quali materie */
   const lunOra=iso(monday(new Date()));
   const settPiano=[...new Set(Object.keys(state.cells).filter(k=>k.indexOf(pre)===0)
     .map(k=>{const p=k.split(".");return iso(monday(parse(p[p.length-2])));}))].sort();
@@ -4511,6 +4537,78 @@ function semSummary(){
   }
   h+="</div>";
   box.innerHTML=h;
+}
+
+/* Le date del periodo aperto: dal suo inizio al giorno prima del periodo
+   che viene dopo (il primo semestre finisce quando comincia la sessione);
+   l'ultimo, sedici settimane. Se ci sono blocchi fuori, il periodo si
+   allarga fino a loro. */
+function periodoDate(giorni){
+  const st=(CTX[state.ctx]||{}).start;
+  const dopo=Object.keys(CTX).map(k=>CTX[k].start).filter(x=>st&&x>st).sort();
+  let a=st?parse(st):parse(iso(new Date()));
+  let b=dopo.length?addDays(parse(dopo[0]),-1):addDays(a,16*7-1);
+  giorni.forEach(d=>{const x=parse(d);if(x<a)a=x;if(x>b)b=x;});
+  return [monday(a),addDays(monday(b),6),a,b];
+}
+/* Il calendario a quadretti: una colonna per settimana, una riga per giorno.
+   Il colore dice le ore fatte davvero (spunte a mano escluse, lavoro e
+   NASPI fuori), a scaglioni fissi di due ore, cosi' "pieno" vuol dire
+   sempre la stessa cosa. Un giorno con qualcosa in piano e niente fatto ha
+   il bordo rosso: e' un buco, non un giorno di riposo. */
+function calendario(cal,oggi){
+  const [da,a,inizio,fine]=periodoDate(Object.keys(cal));
+  const sett=Math.round((a-da)/604800000)+1;
+  const liv=f=>{const o=f/PERQ;return o<2?1:o<4?2:o<6?3:o<8?4:5;};
+  const MESI=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+  let g='<div class="gcal" style="--n:'+sett+'"><span></span>';
+  /* i mesi, sulla colonna della settimana che contiene il loro primo giorno;
+     la prima colonna dice il mese in cui si comincia, ma solo se il mese
+     dopo non arriva entro tre colonne, se no le due scritte si pestano */
+  const mesi=[];
+  for(let w=0;w<sett;w++){
+    const lun=addDays(da,7*w);let m=null;
+    for(let i=0;i<7;i++){const x=addDays(lun,i);if(x.getDate()===1&&x>=inizio&&x<=fine){m=x.getMonth();break;}}
+    mesi.push(m);
+  }
+  if(mesi[0]==null&&!mesi.slice(1,3).some(x=>x!=null))mesi[0]=(inizio>da?inizio:da).getMonth();
+  mesi.forEach(m=>{g+='<span class="gcm">'+(m!=null?MESI[m]:"")+"</span>";});
+  let buchi=0,ultimoBuco=null,pieno=null;
+  for(let d=0;d<7;d++){
+    g+='<span class="gcd">'+(d%2===0?DSH[d]:"")+"</span>";
+    for(let w=0;w<sett;w++){
+      const x=addDays(da,7*w+d),k=iso(x),c=cal[k]||{f:0,p:0,m:0};
+      if(x<inizio||x>fine){g+='<i class="fuori"></i>';continue;}
+      const fut=k>oggi,et=fmt(x),ore=c.f/PERQ;
+      const cl=fut?"fut":(c.f?"h"+liv(c.f):(c.p?"c0 buco":"c0"));
+      if(!fut&&!c.f&&c.p&&k<oggi){buchi++;if(!ultimoBuco||k>ultimoBuco)ultimoBuco=k;}
+      if(c.f&&(!pieno||c.f>pieno.f))pieno={k:k,f:c.f};
+      const val=fut?(c.p?hrs(c.p)+" in piano":"niente in piano"):(ore?num1(ore)+" h fatte":"niente fatto");
+      const dett=DSH[d]+" "+et+(fut?"":(c.p?" · "+hrs(c.p)+" in piano":" · niente in piano"))+
+        (c.m?" · "+hrs(c.m)+" spuntate a mano, non contano":"")+(k===oggi?" · oggi":"");
+      g+='<i class="'+cl+(k===oggi?" oggi":"")+'" data-tip="'+esc(val)+"|"+esc(dett)+'" aria-label="'+esc(val+" · "+dett)+'"></i>';
+    }
+  }
+  g+="</div>";
+  /* a parole: gli ultimi sette giorni, la serie di fila, i buchi */
+  let n7=0,h7=0;
+  for(let i=0;i<7;i++){const c=cal[iso(addDays(parse(oggi),-i))];if(c&&c.f){n7++;h7+=c.f;}}
+  let fila=0;
+  for(let i=(cal[oggi]&&cal[oggi].f)?0:1;;i++){
+    const x=addDays(parse(oggi),-i);if(x<inizio)break;
+    const c=cal[iso(x)];if(c&&c.f)fila++;else break;
+  }
+  const nota="Negli ultimi 7 giorni hai studiato in <b>"+n7+(n7===1?" giorno":" giorni")+"</b> ("+hrs(h7)+")"+
+    (fila>1?", e sei a <b>"+fila+" giorni di fila</b>":"")+"."+
+    (pieno?" Il giorno più pieno: "+fmt(parse(pieno.k))+", "+hrs(pieno.f)+".":"")+
+    (buchi?" Giorni con qualcosa in piano e niente fatto: <b>"+buchi+"</b>, l’ultimo "+
+      DSH[(parse(ultimoBuco).getDay()+6)%7].toLowerCase()+" "+fmt(parse(ultimoBuco))+".":" Nessun giorno con qualcosa in piano e niente fatto.");
+  return '<div class="graf"><h4>La costanza</h4>'+
+    '<p class="gsub">Un quadretto per giorno del semestre: più ore hai fatto, più è pieno</p>'+g+
+    '<div class="gscala"><span>meno</span>'+[1,2,3,4,5].map(i=>'<i class="h'+i+'"></i>').join("")+
+      '<span>più</span><span class="gs0"><i class="c0 buco"></i>in piano ma niente fatto</span>'+
+      '<span class="gs0"><i class="c0 oggi"></i>oggi</span></div>'+
+    '<p class="gnota">'+nota+"</p></div>";
 }
 
 /* La corsa di una materia verso l'esame, giorno per giorno.

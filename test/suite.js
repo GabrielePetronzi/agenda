@@ -492,18 +492,18 @@
 
 
   /* ---------- grafici ---------- */
-  /* dal 27 settembre i grafici sono due: la corsa di ogni materia e le ore saltate */
-  t("i grafici sono due, sempre aperti",function(){
+  /* dal 27 settembre: la corsa di ogni materia, il calendario, le ore saltate */
+  t("i grafici sono tre, sempre aperti",function(){
     semSummary();
     if(document.getElementById("semToggle"))return "c'e' ancora il pulsante per aprirli";
     if(document.querySelector("#semBody details,#semBody summary"))return "c'e' ancora qualcosa da aprire";
-    return eq(document.querySelectorAll("#semBody .graf").length,2);});
+    return eq(document.querySelectorAll("#semBody .graf").length,3);});
   t("con solo settimane future le ore saltate non contano niente",function(){
     pulisci();
     var futura=iso(addDays(new Date(),21));
     placeRun(futura,H0,{i:it[0].id,a:"LET",len:2},0);   /* mai spuntata */
     state.semOpen=true;semSummary();
-    var nota=document.querySelector("#semBody .gnota").textContent;
+    var gg=document.querySelectorAll("#semBody .graf"),nota=gg[gg.length-1].querySelector(".gnota").textContent;
     return nota.indexOf("Nessuna settimana ancora cominciata")>=0?true:
       "dice: "+nota;});
 
@@ -1268,6 +1268,25 @@
     var dopo=ferma(12,function(){graficiAlPasso();return somma();});
     if(prima!==0)return "alle 10 contava gia' "+prima+" h saltate";
     return dopo===1?true:"alle 12, senza toccare niente, le ore saltate sono "+dopo+" (attesa 1)";});
+  t("il calendario ha un quadretto per ogni giorno del semestre, pieno quanto le ore fatte",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1)),l2=iso(addDays(new Date(),-2)),dom=iso(addDays(new Date(),3));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"SCH",len:6,done:1},0);        /* 3 h fatte */
+    placeRun(l2,HOURS[2],{i:it[0].id,a:"SCH",len:4},0);                 /* in piano, non fatte */
+    placeRun(l2,HOURS[10],{i:it[1].id,a:"LET",len:4,done:1,m:1},0);     /* spuntate a mano */
+    placeRun(ieri,HOURS[20],{i:WORKID,a:"LAV",len:8,done:1},0);         /* lavoro: non conta */
+    placeRun(dom,HOURS[2],{i:it[0].id,a:"SCH",len:4},0);
+    semSummary();
+    var q=function(d){return [].find.call(document.querySelectorAll("#semBody .gcal i[data-tip]"),function(e){
+      return e.getAttribute("aria-label").indexOf(fmt(parse(d)))>=0;});};
+    var P=periodoDate([]),giorni=Math.round((P[3]-P[2])/86400000)+1;
+    var celle=document.querySelectorAll("#semBody .gcal i:not(.fuori)").length;
+    var a=q(ieri),b=q(l2),c=q(dom),o=q(iso(new Date()));
+    if(celle<giorni)return "quadretti "+celle+" per "+giorni+" giorni di semestre";
+    if(!a||!a.classList.contains("h2"))return "ieri, 3 ore fatte (lavoro escluso): classe "+(a&&a.className);
+    if(!b||!b.classList.contains("buco"))return "l'altro ieri, niente fatto e spunta a mano: classe "+(b&&b.className);
+    if(!c||!c.classList.contains("fut"))return "un giorno futuro: classe "+(c&&c.className);
+    return o&&o.classList.contains("oggi")?true:"oggi non e' segnato";});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
