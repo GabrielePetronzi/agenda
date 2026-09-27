@@ -1308,6 +1308,27 @@
     /* e' nel futuro: il quadretto dice le ore in piano, fatte si vedranno */
     return q&&/1 h in piano/.test(q.getAttribute("aria-label"))?true:
       "il giorno in sessione dice: "+(q&&q.getAttribute("aria-label"));});
+  /* 27 settembre: "una volta che ho spuntato l'esame come superato deve
+     sparire dai grafici" */
+  t("un esame superato sparisce dai grafici delle materie e delle ore saltate",function(){
+    pulisci();apri();
+    var a=it[0],b=it[1],ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:a.id,a:"SCH",len:4},0);            /* saltate */
+    placeRun(ieri,HOURS[8],{i:b.id,a:"LET",len:2},0);            /* saltate */
+    placeRun(ieri,HOURS[12],{i:a.id,a:"ESE",len:4,done:1},0);    /* fatte */
+    state.pass[a.id]=1;
+    semSummary();
+    var nomi=[].map.call(document.querySelectorAll("#semBody .gp .gph b"),function(e){return e.textContent;});
+    var leg=[].map.call(document.querySelectorAll("#semBody .gleg span"),function(e){return e.textContent;}).join("|");
+    var tot=[].reduce.call(document.querySelectorAll("#semBody .gwk .gtot"),function(x,e){return x+parseFloat(e.textContent.replace(",","."));},0);
+    var c=" · "+DSH[(parse(ieri).getDay()+6)%7]+" "+fmt(parse(ieri));
+    var q=[].find.call(document.querySelectorAll("#semBody .gcal i[data-tip]"),function(e){return e.getAttribute("aria-label").indexOf(c)>=0;});
+    state.pass={};
+    if(nomi.indexOf(a.name)>=0)return "la materia superata ha ancora il suo grafico";
+    if(leg.indexOf(a.short||a.name)>=0)return "la materia superata e' ancora fra le ore saltate: "+leg;
+    if(tot!==1)return "ore saltate "+tot+" (attesa 1: solo l'altra materia)";
+    return q&&/2 h fatte/.test(q.getAttribute("aria-label"))?true:
+      "nel calendario ieri dice: "+(q&&q.getAttribute("aria-label"))+" (le ore fatte restano)";});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
@@ -1638,6 +1659,23 @@
     var restano=b.filter(function(x){
       return x==="Ripristina"||x==="Chiudi"||x==="In sessione";});
     return restano.length?"c'e' ancora "+restano.join(", "):eq(b.join(","),"Superato");});
+  t("premendo Superato la materia esce subito dai grafici",function(){
+    pulisci();apri();
+    rigaMateria();var o=_mat;
+    if(!o)return "non trovo la prima materia dell'elenco";
+    placeRun(iso(addDays(new Date(),-1)),HOURS[2],{i:o.id,a:"SCH",len:4},0);
+    render();
+    var c=function(){return [].map.call(document.querySelectorAll("#semBody .gp .gph b"),function(e){return e.textContent;}).indexOf(o.name)>=0;};
+    var prima=c();
+    rigaMateria();
+    document.querySelector("#picklist .prow em.dat").onclick({stopPropagation:function(){}});
+    var b=[].find.call(document.querySelectorAll(".vedit.open button"),function(x){return /^Superato/.test(x.textContent);});
+    if(!b)return "non trovo il pulsante Superato";
+    b.click();
+    var dopo=c();
+    state.pass={};render();
+    if(!prima)return "prima di superarlo la materia non era nei grafici";
+    return dopo?"premuto Superato, la materia e' ancora nei grafici":true;});
   t("nel modulo ogni campo ha la sua scritta, data compresa",function(){
     rigaMateria();
     document.querySelector("#picklist .prow em.dat").onclick({stopPropagation:function(){}});

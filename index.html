@@ -1823,7 +1823,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="27 set 2026 · l";
+const VERSIONE="27 set 2026 · m";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3139,7 +3139,9 @@ function editForm(o){
     state.pass=state.pass||{};
     if(fatta())delete state.pass[o.id];else state.pass[o.id]=1;
     save(fatta()?"Esame segnato come superato":"Esame da dare");
-    commit();etichetta();picklist();
+    /* i grafici subito: la materia superata ne esce, quella rimessa da dare
+       ci torna */
+    commit();etichetta();picklist();semSummary();
   };
 
   /* Eliminare c'e' solo per le materie aggiunte a mano: quelle del piano non
@@ -4427,7 +4429,7 @@ function semSummary(){
   /* l'anno di corso intero, tutti i periodi: per il calendario */
   const preAnno=(state.piano&&state.piano!==PIANO_BASE?state.piano+".":"")+state.year+".";
   grafMezz=oggi+"."+ora;
-  const perGiorno={},qui={},futuro={},primo={},ultimo={},cal={};
+  const perGiorno={},qui={},futuro={},primo={},ultimo={},cal={},superati=state.pass||{};
   const sett={},amano={};
   let pianoTot=0;
   Object.keys(state.cells).forEach(k=>{
@@ -4445,8 +4447,15 @@ function semSummary(){
       if(k.indexOf(preAnno)===0){
         const c=cal[dt]=cal[dt]||{f:0,p:0,m:0};c.p++;if(q)c.f++;else if(v.done)c.m++;}
       if(!dentro)return;
+      pianoTot++;
+      /* Un esame segnato come superato sparisce dai grafici delle materie e
+         delle ore saltate: non c'e' piu' niente da inseguire ne' da
+         recuperare (27 settembre). Nel calendario le sue ore restano, perche'
+         li' si guardano i giorni, non le materie: toglierle farebbe sembrare
+         vuoti giorni in cui hai studiato. */
+      if(superati[v.i])return;
       /* di chi parlare: le materie messe negli slot di questo periodo */
-      qui[v.i]=1;pianoTot++;
+      qui[v.i]=1;
       /* saltata: la sua ora e' passata e non e' fatta davvero */
       const passata=dt<oggi||(dt===oggi&&sl<ora);
       if(passata&&!q){
