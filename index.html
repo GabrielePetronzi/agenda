@@ -1797,7 +1797,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="27 set 2026 · f";
+const VERSIONE="27 set 2026 · g";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4507,6 +4507,17 @@ function semSummary(){
    - riga orizzontale: il monte ore; riga verticale: il giorno dell'esame.
    Sotto, quanto manca: servono tot ore a settimana, ne fai tot, quindi
    aumenta di tanto o puoi rallentare fino a tanto. */
+/* Giorni detti in mesi, a mezzi mesi: "circa 2 mesi e mezzo". Oltre l'anno,
+   anni e mesi interi. */
+function inMesi(g){
+  const m=g/30.44;
+  if(m<0.75)return "meno di un mese";
+  const mm=Math.round(m*2)/2,a=Math.floor(mm/12);
+  const mesi=(r,mezzi)=>{const i=Math.floor(r),mz=mezzi&&r-i>=0.5;
+    return i?i+(i===1?" mese":" mesi")+(mz?" e mezzo":""):(mz?"mezzo mese":"");};
+  if(a){const r=Math.round(mm-a*12);return "circa "+a+(a===1?" anno":" anni")+(r?" e "+mesi(r,false):"");}
+  return "circa "+mesi(mm,true);
+}
 function corsa(r,giorni,primoG,ultimoG,inPiano){
   const o=r.o,tgt=r.tgt,oggiD=parse(TODAY);
   const conData=r.gg!=null&&r.gg>=0,passato=r.gg!=null&&r.gg<0;
@@ -4525,11 +4536,15 @@ function corsa(r,giorni,primoG,ultimoG,inPiano){
   const fatte=[];let cum=0;
   for(let g=0;g<=iOggi;g++){cum+=(giorni[iso(addDays(inizio,g))]||0)/PERQ;fatte.push(cum);}
   const ora=cum;
-  /* il ritmo: la media a settimana delle ultime quattro, o da quando hai
-     cominciato se e' meno */
+  /* Il ritmo: le ore fatte nelle ultime quattro settimane (o da quando hai
+     cominciato la materia, se e' meno), divise per le settimane — ma mai per
+     meno di una. Dividere per i giorni passati e moltiplicare per sette
+     gonfiava i primi giorni: sei ore fra sabato e domenica diventavano
+     "ne stai facendo 21 a settimana", e il grafico diceva di rallentare
+     (27 settembre). Una settimana non ancora finita vale una settimana. */
   const fin=Math.min(28,iOggi+1);
   let ult=0;for(let g=iOggi-fin+1;g<=iOggi;g++)ult+=(giorni[iso(addDays(inizio,g))]||0)/PERQ;
-  const alGiorno=ult/fin,aSett=alGiorno*7;
+  const alGiorno=ult/Math.max(7,fin),aSett=alGiorno*7;
   const fineProiez=conData?nEsame:(passato?null:n);
   const proiez=fineProiez!=null?(g=>ora+alGiorno*(g-iOggi)):null;
   const dovresti=conData||passato?(g=>Math.min(tgt,tgt*Math.max(0,g)/Math.max(1,nEsame))):null;
@@ -4573,14 +4588,19 @@ function corsa(r,giorni,primoG,ultimoG,inPiano){
   /* quanto manca, a parole */
   const manca=Math.max(0,tgt-ora),giorniRest=conData?Math.max(0,r.gg):null;
   const tempo=g=>{const s=Math.floor(g/7),x=g%7;
-    return (s?s+(s===1?" settimana":" settimane"):"")+(s&&x?" e ":"")+(x?x+(x===1?" giorno":" giorni"):"")||"oggi";};
+    const w=(s?s+(s===1?" settimana":" settimane"):"")+(s&&x?" e ":"")+(x?x+(x===1?" giorno":" giorni"):"")||"oggi";
+    return g>=21?w+" ("+inMesi(g)+")":w;};
+  /* le ore a settimana dette anche al mese: una settimana e' un quarto
+     abbondante di mese (4,35) */
+  const alMese=v=>" (circa "+Math.round(v*4.35)+" h al mese)";
   let esito,testo;
   if(passato){esito="nd";testo="Esame passato: "+num1(ora)+" h fatte su "+tgt+".";}
   else if(!manca){esito="ok";testo="<b>Obiettivo raggiunto</b>: "+num1(ora)+" h su "+tgt+".";}
   else if(!conData){
     esito="nd";
     testo="Mancano <b>"+num1(manca)+" h</b>. Il tuo ritmo è <b>"+num1(aSett)+" h a settimana</b>"+
-      (aSett>0?": ci arrivi in circa "+tempo(Math.ceil(manca/alGiorno))+".":".")+
+      alMese(aSett)+
+      (aSett>0?": ci arrivi in "+tempo(Math.ceil(manca/alGiorno))+".":".")+
       " Metti la data d’esame per sapere se basta.";
   }else if(!giorniRest){
     esito="ko";testo="L’esame è oggi: mancano "+num1(manca)+" h all’obiettivo.";
@@ -4588,13 +4608,13 @@ function corsa(r,giorni,primoG,ultimoG,inPiano){
     const serve=manca/(giorniRest/7),diff=aSett-serve;
     esito=diff>=0?"ok":"ko";
     testo="Mancano <b>"+num1(manca)+" h</b> in "+tempo(giorniRest)+": servono <b>"+num1(serve)+
-      " h a settimana</b>, ne stai facendo "+num1(aSett)+". "+
+      " h a settimana</b>"+alMese(serve)+", ne stai facendo "+num1(aSett)+alMese(aSett)+". "+
       (diff>=0?(diff<0.05?"Sei esattamente al passo.":"Puoi rallentare fino a "+num1(serve)+" h a settimana.")
-        :"Devi aumentare di <b>"+num1(-diff)+" h a settimana</b>.");
+        :"Devi aumentare di <b>"+num1(-diff)+" h a settimana</b>"+alMese(-diff)+".");
   }
   const vuoto=Math.max(0,manca-inPiano);
   return '<div class="gp"><div class="gph"><b>'+esc(o.name)+"</b>"+
-      (r.gg!=null?"<em>"+(r.gg>=0?"esame fra "+r.gg+" g":"esame passato")+"</em>":"")+
+      (r.gg!=null?"<em>"+(r.gg>=0?"esame fra "+r.gg+" g"+(r.gg>=21?" · "+inMesi(r.gg):""):"esame passato")+"</em>":"")+
       "<u>"+num1(ora)+" / "+tgt+" h</u></div>"+grafico+
     '<div class="gritmo"><span class="gesito '+esito+'" aria-hidden="true">'+
       (esito==="ok"?"✓":(esito==="ko"?"!":"–"))+"</span><span>"+testo+"</span></div>"+

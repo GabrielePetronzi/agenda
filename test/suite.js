@@ -1224,6 +1224,30 @@
     return parseFloat(dopo.replace(",","."))>parseFloat(prima.replace(",","."))?true:
       "fatte due ore oggi, il ritmo e' rimasto "+prima+" → "+dopo;});
 
+  /* 27 settembre: "non mi sembra giusto il conteggio". Una materia cominciata
+     ieri, tre ore ieri e tre oggi: il ritmo e' sei ore a settimana, non
+     ventuno. */
+  t("il ritmo non gonfia i primi giorni di una materia",function(){
+    pulisci();apri();
+    var o=items()[0];
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),70))};
+    placeRun(iso(addDays(new Date(),-1)),HOURS[2],{i:o.id,a:"SCH",len:6,done:1},0);
+    placeRun(TODAY,HOURS[10],{i:o.id,a:"SCH",len:6,done:1},0);
+    semSummary();
+    var t=document.querySelector("#semBody .gritmo").textContent;
+    state.over={};
+    var r=(t.match(/ne stai facendo ([\d,]+)/)||[])[1];
+    return r==="6"?true:"dice: "+t;});
+  t("il tempo che manca e' detto anche in mesi",function(){
+    pulisci();apri();
+    var o=items()[0];
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),75))};
+    placeRun(iso(addDays(new Date(),-3)),HOURS[2],{i:o.id,a:"SCH",len:4,done:1},0);
+    semSummary();
+    var t=document.querySelector("#semBody .gp").textContent;
+    state.over={};
+    if(!/circa 2 mesi e mezzo/.test(t))return "non dice i mesi: "+t;
+    return /h al mese/.test(t)?true:"non dice le ore al mese: "+t;});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
