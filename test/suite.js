@@ -1277,9 +1277,10 @@
     placeRun(ieri,HOURS[20],{i:WORKID,a:"LAV",len:8,done:1},0);         /* lavoro: non conta */
     placeRun(dom,HOURS[2],{i:it[0].id,a:"SCH",len:4},0);
     semSummary();
-    var q=function(d){return [].find.call(document.querySelectorAll("#semBody .gcal i[data-tip]"),function(e){
-      return e.getAttribute("aria-label").indexOf(fmt(parse(d)))>=0;});};
-    var P=periodoDate([]),giorni=Math.round((P[3]-P[2])/86400000)+1;
+    var q=function(d){var c=" · "+DSH[(parse(d).getDay()+6)%7]+" "+fmt(parse(d));
+      return [].find.call(document.querySelectorAll("#semBody .gcal i[data-tip]"),function(e){
+      return e.getAttribute("aria-label").indexOf(c)>=0;});};
+    var P=annoDate([]),giorni=Math.round((P[3]-P[2])/86400000)+1;
     var celle=document.querySelectorAll("#semBody .gcal i:not(.fuori)").length;
     var a=q(ieri),b=q(l2),c=q(dom),o=q(iso(new Date()));
     if(celle<giorni)return "quadretti "+celle+" per "+giorni+" giorni di semestre";
@@ -1287,6 +1288,26 @@
     if(!b||!b.classList.contains("buco"))return "l'altro ieri, niente fatto e spunta a mano: classe "+(b&&b.className);
     if(!c||!c.classList.contains("fut"))return "un giorno futuro: classe "+(c&&c.className);
     return o&&o.classList.contains("oggi")?true:"oggi non e' segnato";});
+  /* 27 settembre: "deve essere annuale il calendario" */
+  t("il calendario e' l'anno accademico, e conta anche gli altri periodi",function(){
+    pulisci();apri();
+    var P=annoDate([]),giorni=Math.round((P[3]-P[2])/86400000)+1;
+    /* tre ore fatte in sessione d'esami, guardando il primo semestre */
+    var d=iso(addDays(parse(CTX.S.start),2));
+    var pp=(state.piano&&state.piano!==PIANO_BASE?state.piano+".":"")+state.year+".S.";
+    state.cells[pp+d+"."+HOURS[2]]=[{i:it[0].id,a:"SCH",done:1}];
+    state.cells[pp+d+"."+HOURS[3]]=[{i:it[0].id,a:"SCH",done:1}];
+    placeRun(G[0],H0,{i:it[0].id,a:"LET",len:2},0);
+    semSummary();
+    var celle=document.querySelectorAll("#semBody .gcal i:not(.fuori)").length;
+    var cerca=" · "+DSH[(parse(d).getDay()+6)%7]+" "+fmt(parse(d));
+    var q=[].find.call(document.querySelectorAll("#semBody .gcal i[data-tip]"),function(e){
+      return e.getAttribute("aria-label").indexOf(cerca)>=0;});
+    if(giorni<365)return "l'anno del calendario dura "+giorni+" giorni";
+    if(celle<giorni)return "quadretti "+celle+" per "+giorni+" giorni";
+    /* e' nel futuro: il quadretto dice le ore in piano, fatte si vedranno */
+    return q&&/1 h in piano/.test(q.getAttribute("aria-label"))?true:
+      "il giorno in sessione dice: "+(q&&q.getAttribute("aria-label"));});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
