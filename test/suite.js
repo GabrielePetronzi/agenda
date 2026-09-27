@@ -1763,6 +1763,65 @@
     if(tutto!==(H0+2)+"+4"||cont2!==1||riq2)return "col ⌘ scelti "+tutto+" (atteso il blocco intero "+(H0+2)+"+4)";
     if(primo!==(H0+2)+"+1")return "il clic sulla prima mezz'ora ha scelto "+primo;
     return cont3?"scelta la prima mezz'ora, il blocco intero ha preso il contorno":true;});
+  /* 27 settembre, il copia e incolla della mezz'ora e l'orario al passaggio */
+  function mezzora(d,sl){          /* un clic su una mezz'ora dentro al blocco del giorno d */
+    var b=document.querySelector('.blk[data-date="'+d+'"]'),c=document.querySelector('td.c[data-date="'+d+'"][data-h="'+sl+'"]');
+    var rb=b.getBoundingClientRect(),rc=c.getBoundingClientRect(),x=rb.left+rb.width/2,y=rc.top+rc.height/2;
+    ["pointerdown","pointerup"].forEach(function(tp){
+      b.dispatchEvent(new PointerEvent(tp,{bubbles:true,cancelable:true,pointerId:1,clientX:x,clientY:y,
+        buttons:tp==="pointerdown"?1:0,isPrimary:true}));});
+    lastTap={sig:null,t:0};return [x,y];
+  }
+  t("la mezz'ora copiata e incollata li' stesso non si raddoppia",function(){
+    pulisci();apri();clearSel();state.blockClip=null;
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:8},0);render();
+    mezzora(G[0],H0+6);copyBlocks();
+    pasteBlocks(document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+(H0+6)+'"]'));
+    var r=runsOf(G[0]).map(function(x){return x.start+"+"+x.len+"/"+x.lane;}).join(",");
+    return r===(H0+2)+"+8/0"?true:"dopo ⌘C ⌘V sul posto: "+r;});
+  t("con qualcosa selezionato, il clic su una casella vuota non dipinge",function(){
+    pulisci();apri();clearSel();state.blockClip=null;
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:4},0);render();
+    var pennello=state.brush;state.brush=it[3].id;state.act="LET";
+    mezzora(G[0],H0+3);copyBlocks();
+    var vuota=document.querySelector('td.c[data-date="'+G[1]+'"][data-h="'+(H0+3)+'"]');
+    tocco(vuota);painting=false;
+    var dipinto=runsOf(G[1]).length;
+    pasteBlocks(document.querySelector('td.c[data-date="'+G[1]+'"][data-h="'+(H0+3)+'"]'));
+    var dopo=runsOf(G[1]).map(function(x){return x.start+"+"+x.len+"/"+x.lane+" "+x.v.a;}).join(",");
+    state.brush=pennello;
+    if(dipinto)return "il clic per togliere la selezione ha dipinto col pennello";
+    return dopo===(H0+3)+"+1/0 SCH"?true:"incollato: "+dopo;});
+  t("sopra quello che e' selezionato c'e' l'orario, e la barra lo dice",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:4},0);render();
+    /* il passaggio chiede al browser cosa c'e' sotto il puntatore: il blocco
+       deve essere sullo schermo */
+    document.querySelector('.blk[data-date="'+G[0]+'"]').scrollIntoView({block:"center"});
+    var p=mezzora(G[0],H0+4);
+    var barra=document.getElementById("selbar").textContent;
+    selHover(p[0],p[1]);
+    var l=document.getElementById("selLbl"),testo=l&&l.classList.contains("on")?l.textContent:"";
+    var altra=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+(H0+2)+'"]').getBoundingClientRect();
+    selHover(p[0],altra.top+altra.height/2);
+    var fuori=l.classList.contains("on");
+    clearSel();
+    var atteso=slotTime(H0+4)+"–"+slotTime(H0+5);
+    if(barra.indexOf(atteso)<0)return "la barra dice: "+barra;
+    if(testo.indexOf(atteso)!==0)return "al passaggio si legge: "+testo;
+    return fuori?"l'etichetta resta anche sopra una mezz'ora non scelta":true;});
+  /* 27 settembre: la barra della selezione compariva sopra la griglia e la
+     spingeva giu' di 64 pixel, e il blocco appena toccato scappava via. */
+  t("selezionare non sposta la griglia",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:4},0);render();
+    window.scrollTo(0,0);
+    var b=function(){return document.querySelector('.blk[data-date="'+G[0]+'"]').getBoundingClientRect().top;};
+    var prima=b();tocco(document.querySelector('.blk[data-date="'+G[0]+'"]'));var dopo=b();
+    var fissa=getComputedStyle(document.getElementById("selbar")).position;
+    clearSel();
+    if(!Object.keys(selRuns).length&&fissa!=="fixed")return "la barra della selezione sta in fila: "+fissa;
+    return Math.abs(dopo-prima)<0.5?true:"selezionando il blocco e' sceso di "+(dopo-prima).toFixed(1)+" px";});
   t("dopo un clic col mouse la casella non mostra il contorno del cursore, con le frecce si'",function(){
     pulisci();apri();clearSel();
     var c=document.querySelector('td.c[data-date="'+G[1]+'"][data-h="'+(H0+8)+'"]');

@@ -406,9 +406,23 @@ body.dropping td.c.dropok{background:var(--tint-hover);
 .blk.tardi:hover .tick{box-shadow:inset 0 0 0 2px #C5221F}
 html[data-row="micro"] .blk.tardi .tick::after{font-size:9px}
 .selbar{display:none}
-.selbar.on{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;
+/* La barra della selezione galleggia in basso, sopra alla griglia. Stava in
+   fila sopra la griglia: compariva al primo clic e spingeva giu' tutto di
+   sessantaquattro pixel, e il blocco appena toccato scappava da sotto il
+   mouse — il clic dopo prendeva la mezz'ora sbagliata (27 settembre). */
+.selbar.on{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  width:max-content;max-width:calc(100vw - 32px);
   padding:8px 12px;border:1px solid var(--action);border-radius:var(--r);
-  background:var(--surface)}
+  background:var(--surface);box-shadow:var(--shadow)}
+body.consel .toast{bottom:84px}
+/* Quando c'e' la colonna delle materie la barra sta sopra di lei, in basso:
+   al centro copriva le ultime ore della sera, proprio dove si incolla. */
+@media (min-width:1060px){
+  .selbar.on{left:max(var(--pad),calc((100vw - 1440px)/2 + var(--pad)));transform:none;
+    width:308px;max-width:308px;gap:8px 12px}
+  body.consel .toast{bottom:18px}
+}
 .selbar b{font-family:"DM Mono",monospace;font-size:12px;font-weight:500;color:var(--action)}
 .selbar span{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
 .modeflag{display:none}
@@ -530,6 +544,7 @@ td.c.mira::after{content:"";position:absolute;inset:0;z-index:6;pointer-events:n
   font-family:"DM Mono",monospace;font-size:11px;white-space:nowrap;
   box-shadow:0 2px 8px rgba(0,0,0,.35)}
 .miralbl.on{display:block}
+.miralbl.sellbl{background:var(--action);color:var(--bg)}
 tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
 
 /* blocchi */
@@ -1809,7 +1824,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="27 set 2026 · d";
+const VERSIONE="27 set 2026 · e";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5430,10 +5445,14 @@ function clearSel(){
 function selInfo(){
   const n=Object.keys(selRuns).length;
   const el=document.getElementById("selbar");
-  if(!n){el.className="selbar";el.innerHTML="";pomPanel();return;}
+  document.body.classList.toggle("consel",!!n);
+  if(!n){el.className="selbar";el.innerHTML="";pomPanel();
+    const l=document.getElementById("selLbl");if(l)l.classList.remove("on");return;}
   let tot=0;Object.keys(selRuns).forEach(k=>tot+=selRuns[k].len);
   el.className="selbar on";
-  el.innerHTML="<b>"+(n===1&&tot===1?"mezz’ora":n+(n===1?" blocco":" blocchi"))+" · "+hrs(tot)+"</b>"+
+  const uno=n===1?selRuns[Object.keys(selRuns)[0]]:null;
+  el.innerHTML="<b>"+(uno?(uno.len===1?"mezz’ora":"blocco")+" "+slotTime(uno.start)+"–"+slotTime(uno.start+uno.len)
+      :n+" blocchi · "+hrs(tot))+"</b>"+
     "<span>copia C · incolla V · fatto F · elimina ⌫ · esci Esc</span>";
   const rip=document.createElement("button");
   rip.className="btn";
@@ -5482,7 +5501,12 @@ function pasteBlocks(dove){
        sulla casella e poi ⌘V, per abitudine, sono due incolla, e il secondo
        metteva una copia di fianco alla prima — due blocchi uguali larghi
        meta', che sembravano un difetto e lo erano. */
-    if(runsOf(d).some(r=>r.start===st&&r.len===b.len&&r.v.i===b.i&&r.v.a===b.a)){gia++;return;}
+    /* Uguale vuol dire stessa materia e stessa attivita' in ognuna delle sue
+       mezz'ore, in qualunque corsia: una mezz'ora copiata da dentro un blocco
+       e incollata li' stesso c'e' gia', anche se il blocco e' piu' lungo. */
+    let tutte=true;
+    for(let q=0;q<b.len;q++)if(!at(ck(d,st+q)).some(v=>v&&v.i===b.i&&v.a===b.a)){tutte=false;break;}
+    if(tutte){gia++;return;}
     /* dove c'e' gia' qualcosa si affianca; dove sono piene tutte e tre le
        corsie non si incolla, invece di sovrascrivere in silenzio */
     const L=corsiaPerArrivo(d,st,b.len,null);
@@ -5691,7 +5715,11 @@ function wire(t){
     /* Un clic normale su una casella vuota toglie la selezione. Prima il
        blocco scelto restava selezionato, e Canc, ⌘C o Ripeti agivano ancora
        su quello (27 settembre). Col ⌘ no: li' la casella vuota e' "incolla qui". */
-    if(!e.target.closest(".blk")&&Object.keys(selRuns).length)clearSel();
+    /* E non dipinge: con qualcosa selezionato, il primo clic fuori e' "via di
+       qui", o "qui voglio incollare". Dipingeva col pennello in mano, e il ⌘V
+       dopo finiva di fianco a quel che aveva appena dipinto, due mezzi
+       blocchi. Il clic dopo dipinge come sempre. */
+    if(!e.target.closest(".blk")&&Object.keys(selRuns).length){clearSel();return;}
 
     /* doppio tocco: nota */
     const sig=td.dataset.date+"."+td.dataset.h+"."+lane,now=Date.now();
@@ -5859,11 +5887,32 @@ function mira(el,y,x){
     l.classList.add("on");
   }else l.classList.remove("on");
 }
+/* Sopra a una mezz'ora o a un blocco scelti, di fianco al puntatore c'e'
+   l'orario: senza, dentro a un blocco da quattro ore non si capiva quale
+   mezz'ora si fosse presa (27 settembre). */
+function selLbl(){
+  let l=document.getElementById("selLbl");
+  if(!l){l=document.createElement("div");l.id="selLbl";l.className="miralbl sellbl";document.body.appendChild(l);}
+  return l;
+}
+function selHover(x,y){
+  const l=selLbl();
+  if(state.erase||drag||!Object.keys(selRuns).length){l.classList.remove("on");return;}
+  const el=document.elementFromPoint(x,y);
+  const bl=el&&el.closest&&el.closest(".blk");
+  const td=bl&&cellaSotto(el,y);
+  const q=td&&Object.keys(selRuns).map(k=>selRuns[k]).find(r=>r.date===bl.dataset.date&&
+    r.lane===+bl.dataset.lane&&+td.dataset.h>=r.start&&+td.dataset.h<r.start+r.len);
+  if(!q){l.classList.remove("on");return;}
+  l.textContent=slotTime(q.start)+"–"+slotTime(q.start+q.len)+(q.len===1?" · mezz’ora":" · "+hrs(q.len));
+  l.style.left=(x+14)+"px";l.style.top=(y+16)+"px";l.classList.add("on");
+}
 window.addEventListener("pointermove",e=>{
+  selHover(e.clientX,e.clientY);
   if(!state.erase){if(mirata)mira(null,0);return;}
   mira(document.elementFromPoint(e.clientX,e.clientY),e.clientY,e.clientX);
 });
-window.addEventListener("pointerleave",()=>mira(null,0));
+window.addEventListener("pointerleave",()=>{mira(null,0);selLbl().classList.remove("on");});
 /* la cella della colonna di un giorno che sta all'altezza del puntatore:
    serve alla maniglia, che deve seguire solo la verticale */
 /* La casella sotto il puntatore. Un blocco e' disegnato dentro la sua prima
