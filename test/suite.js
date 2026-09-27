@@ -2497,6 +2497,25 @@
     if(debito.indexOf("SCH")<0)return "lo schema spuntato a mano e' uscito dal debito";
     return amano?"il ripasso spuntato a mano ha il quadratino vuoto":true;});
 
+  /* 27 settembre: "la spunta del fatto non e' perfettamente dentro al
+     rettangolo". Era fatta con due bordi ruotati e finiva in alto a destra;
+     ora e' un disegno grande quanto il quadratino, centrato per costruzione. */
+  t("la spunta occupa il quadratino intero, a ogni misura di riga",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"SCH",len:2,done:1},0);render();
+    var tk=document.querySelector('.blk.done .tick');
+    if(!tk)return "non trovo un blocco fatto";
+    var prima=document.documentElement.getAttribute("data-row"),storti=[];
+    [null,"tight","micro"].forEach(function(r){
+      if(r)document.documentElement.setAttribute("data-row",r);else document.documentElement.removeAttribute("data-row");
+      var q=tk.getBoundingClientRect(),a=getComputedStyle(tk,"::after");
+      var w=parseFloat(a.width),h=parseFloat(a.height),l=parseFloat(a.left),tp=parseFloat(a.top);
+      if(Math.abs(w-q.width)>0.5||Math.abs(h-q.height)>0.5||Math.abs(l)>0.1||Math.abs(tp)>0.1||a.transform!=="none")
+        storti.push((r||"normale")+": "+w+"x"+h+" a "+l+","+tp+" "+a.transform+" nel quadratino "+q.width+"x"+q.height);
+    });
+    if(prima)document.documentElement.setAttribute("data-row",prima);else document.documentElement.removeAttribute("data-row");
+    return storti.length?storti.join(" · "):true;});
+
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
