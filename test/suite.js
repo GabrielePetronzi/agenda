@@ -1248,6 +1248,26 @@
     state.over={};
     if(!/circa 2 mesi e mezzo/.test(t))return "non dice i mesi: "+t;
     return /h al mese/.test(t)?true:"non dice le ore al mese: "+t;});
+  /* 27 settembre: "i grafici si devono aggiornare in tempo reale". Senza
+     toccare niente, passata l'ora di un blocco non fatto, le ore saltate
+     devono contarlo. */
+  t("passata l'ora di un blocco non fatto, i grafici lo contano da soli",function(){
+    pulisci();apri();
+    var somma=function(){return [].reduce.call(document.querySelectorAll("#semBody .gwk .gtot"),
+      function(a,e){return a+parseFloat(e.textContent.replace(",","."));},0);};
+    var ferma=function(ora,f){
+      var Vero=Date,fisso=new Vero();fisso.setHours(ora,0,0,0);
+      function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+        return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+      F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+      try{window.Date=F;return f();}finally{window.Date=Vero;}
+    };
+    var prima=ferma(10,function(){
+      placeRun(iso(new Date()),10*PERQ,{i:it[0].id,a:"LET",len:2},0);   /* 10-11, non fatta */
+      semSummary();return somma();});
+    var dopo=ferma(12,function(){graficiAlPasso();return somma();});
+    if(prima!==0)return "alle 10 contava gia' "+prima+" h saltate";
+    return dopo===1?true:"alle 12, senza toccare niente, le ore saltate sono "+dopo+" (attesa 1)";});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));

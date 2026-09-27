@@ -1797,7 +1797,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="27 set 2026 · g";
+const VERSIONE="27 set 2026 · h";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3424,7 +3424,19 @@ function promemoria(){
     if(!w_notifOK()&&!document.hidden)toast(titolo+" · "+corpo);
   });
 }
-setInterval(()=>{nowLine();autoLessons();promemoria();copiaGiorno();},60000);
+/* I grafici seguono l'orologio, non solo le modifiche: a ogni mezz'ora che
+   passa un blocco non fatto diventa saltato e le lezioni si spuntano, a
+   mezzanotte cambia il giorno del ritmo. Si rifanno quando cambia la
+   mezz'ora, e quando torni sulla pagina dopo averla lasciata (27 settembre:
+   "i grafici si devono aggiornare in tempo reale"). */
+let grafMezz=null;
+function graficiAlPasso(){
+  const k=iso(new Date())+"."+oraAdesso();
+  if(k===grafMezz)return;
+  grafMezz=k;semSummary();lateBar();
+}
+setInterval(()=>{nowLine();autoLessons();promemoria();copiaGiorno();graficiAlPasso();},60000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){nowLine();autoLessons();graficiAlPasso();}});
 
 /* ============================================================
    POMODORO
@@ -4383,7 +4395,10 @@ function mirino(plot,x,y){
 function semSummary(){
   const box=document.getElementById("semBody");
   gTip();
-  const m=map(),pre=PRE(),oggi=TODAY,ora=oraAdesso();
+  /* il giorno di adesso, non quello in cui si e' aperta la pagina: TODAY e'
+     fermo al caricamento, e dopo mezzanotte i grafici restavano a ieri */
+  const m=map(),pre=PRE(),oggi=iso(new Date()),ora=oraAdesso();
+  grafMezz=oggi+"."+ora;
   const perGiorno={},qui={},futuro={},primo={},ultimo={};
   const sett={},amano={};
   let pianoTot=0;
@@ -4519,7 +4534,7 @@ function inMesi(g){
   return "circa "+mesi(mm,true);
 }
 function corsa(r,giorni,primoG,ultimoG,inPiano){
-  const o=r.o,tgt=r.tgt,oggiD=parse(TODAY);
+  const o=r.o,tgt=r.tgt,oggiD=parse(iso(new Date()));
   const conData=r.gg!=null&&r.gg>=0,passato=r.gg!=null&&r.gg<0;
   let inizio=primoG?parse(primoG):oggiD;if(inizio>oggiD)inizio=oggiD;
   const dd=(a,b)=>Math.round((b-a)/86400000);
