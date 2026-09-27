@@ -38,6 +38,11 @@ body{font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.45;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--action);outline-offset:2px;border-radius:4px}
+/* La casella toccata col mouse prende il fuoco (serve all'incolla), ma il
+   contorno celeste e' il segno del cursore da tastiera: dopo un clic
+   sembrava che la casella, o il blocco appena dipinto, fosse ancora
+   selezionato (27 settembre). Torna appena usi la tastiera. */
+body.amouse td.c:focus-visible{outline:none}
 ::selection{background:var(--action);color:#fff}
 
 /* famiglie per ruolo */
@@ -620,6 +625,8 @@ html[data-theme="light"] .blk:hover{filter:brightness(.96)}
 .blk.done::after{content:"";position:absolute;inset:0;pointer-events:none;
   background:repeating-linear-gradient(45deg,rgba(0,0,0,.11) 0 4px,transparent 4px 9px)}
 .blk.selblk{box-shadow:0 0 0 2px var(--action),0 0 0 3px rgba(0,0,0,.3)}
+.blk .selmezz{position:absolute;left:0;right:0;z-index:3;pointer-events:none;border-radius:5px;
+  box-shadow:inset 0 0 0 2px var(--action),inset 0 0 0 3px rgba(0,0,0,.3);background:rgba(255,255,255,.14)}
 .blk.running{box-shadow:0 0 0 2px var(--action),0 0 0 4px rgba(139,147,255,.24)}
 /* Il quadratino era solo un bordo su un elemento trasparente: dentro ci passava
    il motivo, e un quadratino pieno di trama da lontano sembra già spuntato.
@@ -1801,7 +1808,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="27 set 2026 · b";
+const VERSIONE="27 set 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5247,7 +5254,8 @@ function drawDay(dateIso,scope){
       const tardi=inRitardo(dateIso,r);
       bl.className="blk"+(striscia?(due?" mini2":" mini"):"")+
         (r.v.done&&!tardi?" done":"")+(r.v.done&&!vero(r.v)?" amano":"")+(tardi?" tardi":"")+
-        (selRuns[selKey(dateIso,r.start,r.lane)]?" selblk":"")+(run?" running":"");
+        /* il contorno e' del blocco scelto intero, non della sua prima mezz'ora */
+        ((selRuns[selKey(dateIso,r.start,r.lane)]||{}).len===r.len?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
       bl.dataset.att=r.v.a;
       /* Il riempimento dice l'attività, la barra dice la materia. Non è un
@@ -5300,7 +5308,13 @@ function drawDay(dateIso,scope){
       bl.innerHTML='<span class="tick" role="button" aria-label="Segna come fatto"></span>'+
         "<em>"+(striscia?testa
                 :'<span class="l1">'+testa+"</span>"+nota+'<span class="tr"></span>')+
-        "</em>"+'<span class="rsz"></span>';
+        "</em>"+'<span class="rsz"></span>'+
+        /* le mezz'ore scelte col clic semplice dentro a questo blocco: il
+           blocco intero ha il suo contorno, un pezzo ha il suo riquadro */
+        Object.keys(selRuns).map(k=>selRuns[k]).filter(x=>x.date===dateIso&&x.lane===r.lane&&
+          x.start>=r.start&&x.start<r.start+r.len&&!(x.start===r.start&&x.len===r.len))
+          .map(x=>'<i class="selmezz" style="top:'+((x.start-r.start)*ROW)+'px;height:'+
+            (Math.min(x.len,r.start+r.len-x.start)*ROW-2)+'px"></i>').join("");
       /* con Cancella acceso il fumetto del browser starebbe sotto l'etichetta
          rossa e direbbe un'altra cosa: l'intero blocco invece della mezz'ora */
       if(!state.erase)bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
@@ -5390,7 +5404,13 @@ function toggleSel(dateIso,slot,lane){
   const r=runAt(dateIso,slot,lane);
   if(!r)return false;
   const k=selKey(dateIso,r.start,r.lane);
-  if(selRuns[k])delete selRuns[k];else selRuns[k]=r;
+  const intero=!!(selRuns[k]&&selRuns[k].len===r.len);
+  /* col Cmd si prende il blocco intero: via le sue mezz'ore gia' scelte, che
+     se no resterebbero doppie — e se la prima era scelta, il Cmd la toglieva
+     invece di prendere il blocco */
+  Object.keys(selRuns).forEach(x=>{const q=selRuns[x];
+    if(q.date===dateIso&&q.lane===r.lane&&q.start>=r.start&&q.start<r.start+r.len)delete selRuns[x];});
+  if(!intero)selRuns[k]=r;
   drawDay(dateIso);selInfo();
   return true;
 }
@@ -5404,7 +5424,7 @@ function selInfo(){
   if(!n){el.className="selbar";el.innerHTML="";pomPanel();return;}
   let tot=0;Object.keys(selRuns).forEach(k=>tot+=selRuns[k].len);
   el.className="selbar on";
-  el.innerHTML="<b>"+n+(n===1?" blocco":" blocchi")+" · "+hrs(tot)+"</b>"+
+  el.innerHTML="<b>"+(n===1&&tot===1?"mezz’ora":n+(n===1?" blocco":" blocchi"))+" · "+hrs(tot)+"</b>"+
     "<span>copia C · incolla V · fatto F · elimina ⌫ · esci Esc</span>";
   const rip=document.createElement("button");
   rip.className="btn";
@@ -5795,6 +5815,12 @@ function sdArm(el,o){
    non può sopravvivere fino a mangiarsi un click che non c'entra niente */
 ["pointerdown","keydown"].forEach(ev=>
   document.addEventListener(ev,()=>{sdAte=false;},true));
+/* mouse o tastiera: decide se il fuoco sulla casella si vede */
+document.addEventListener("pointerdown",()=>document.body.classList.add("amouse"),true);
+document.addEventListener("keydown",e=>{
+  /* solo i tasti che muovono il cursore: dopo Canc o ⌘V il contorno non
+     deve spuntare sulla casella cliccata prima */
+  if(/^(Arrow|Tab$|Home$|End$|Page)/.test(e.key))document.body.classList.remove("amouse");},true);
 window.addEventListener("pointermove",e=>{if(sd)sdMove(e.clientX,e.clientY);});
 window.addEventListener("touchmove",e=>{if(sd)e.preventDefault();},{passive:false});
 window.addEventListener("pointerup",()=>{if(sd)sdEnd(true);});
@@ -5922,7 +5948,9 @@ window.addEventListener("pointermove",e=>{
 function selezionaSolo(r){
   const k=selKey(r.date,r.start,r.lane);
   const prima=Object.keys(selRuns);
-  const eraSolo=prima.length===1&&!!selRuns[k];
+  /* toglie solo se era scelto proprio questo: il blocco intero e la sua prima
+     mezz'ora cominciano alla stessa ora, ma non sono la stessa scelta */
+  const eraSolo=prima.length===1&&!!selRuns[k]&&selRuns[k].len===r.len;
   const giorni=new Set(prima.map(x=>selRuns[x].date));giorni.add(r.date);
   selRuns={};
   if(!eraSolo)selRuns[k]=r;
@@ -5930,8 +5958,14 @@ function selezionaSolo(r){
 }
 ["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,e=>{
   if(armMove&&!drag&&ev==="pointerup"){
-    const r=armMove.run;armMove=null;
-    if(!(e.ctrlKey||e.metaKey))selezionaSolo(r);
+    const r=armMove.run,off=armMove.off;armMove=null;
+    /* Il clic semplice sceglie la mezz'ora che tocchi, non il blocco intero:
+       il blocco intero si prende col Cmd o Ctrl, che e' anche il modo di
+       sceglierne piu' d'uno (27 settembre). */
+    if(!(e.ctrlKey||e.metaKey)){
+      const q=Math.max(0,Math.min(r.len-1,off|0));
+      selezionaSolo(r.len===1?r:Object.assign({},r,{start:r.start+q,len:1,n:q?undefined:r.n}));
+    }
     return;
   }
   armMove=null;

@@ -1741,6 +1741,43 @@
     if(senza)return "senza pennello il clic sulla casella vuota non ha tolto la selezione";
     if(col)return "col pennello il clic sulla casella vuota non ha tolto la selezione";
     return meta===1?true:"col ⌘ il clic sulla casella vuota ha tolto la selezione";});
+  /* 27 settembre: "devo essere in grado di selezionare la singola mezz'ora, e
+     col cmd/ctrl l'intero blocco". */
+  t("il clic sceglie la mezz'ora che tocchi, col ⌘ il blocco intero",function(){
+    pulisci();apri();clearSel();state.blockClip=null;
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:4},0);
+    render();
+    var bl=function(){return document.querySelector('.blk[data-date="'+G[0]+'"]');};
+    var tocca=function(frac,meta){var b=bl(),r=b.getBoundingClientRect();
+      ["pointerdown","pointerup"].forEach(function(tp){
+        b.dispatchEvent(new PointerEvent(tp,{bubbles:true,cancelable:true,pointerId:1,
+          clientX:r.left+r.width/2,clientY:r.top+r.height*frac,buttons:tp==="pointerdown"?1:0,
+          isPrimary:true,metaKey:!!meta}));});lastTap={sig:null,t:0};};
+    var scelti=function(){return Object.keys(selRuns).map(function(k){return selRuns[k].start+"+"+selRuns[k].len;}).join(",");};
+    tocca(0.62);var uno=scelti(),riq=document.querySelectorAll(".selmezz").length,cont=document.querySelectorAll(".blk.selblk").length;
+    tocca(0.62,true);var tutto=scelti(),cont2=document.querySelectorAll(".blk.selblk").length,riq2=document.querySelectorAll(".selmezz").length;
+    tocca(0.1);var primo=scelti(),cont3=document.querySelectorAll(".blk.selblk").length;
+    clearSel();
+    if(uno!==(H0+4)+"+1")return "il clic a tre quinti ha scelto "+uno+" (attesa la terza mezz'ora, "+(H0+4)+"+1)";
+    if(riq!==1||cont)return "la mezz'ora scelta non ha il suo riquadro (riquadri "+riq+", contorni del blocco "+cont+")";
+    if(tutto!==(H0+2)+"+4"||cont2!==1||riq2)return "col ⌘ scelti "+tutto+" (atteso il blocco intero "+(H0+2)+"+4)";
+    if(primo!==(H0+2)+"+1")return "il clic sulla prima mezz'ora ha scelto "+primo;
+    return cont3?"scelta la prima mezz'ora, il blocco intero ha preso il contorno":true;});
+  t("dopo un clic col mouse la casella non mostra il contorno del cursore, con le frecce si'",function(){
+    pulisci();apri();clearSel();
+    var c=document.querySelector('td.c[data-date="'+G[1]+'"][data-h="'+(H0+8)+'"]');
+    tocco(c);
+    var mouse=document.body.classList.contains("amouse");
+    document.dispatchEvent(new KeyboardEvent("keydown",{key:"Backspace",bubbles:true}));
+    var dopoCanc=document.body.classList.contains("amouse");
+    document.dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowDown",bubbles:true}));
+    var tastiera=!document.body.classList.contains("amouse");
+    var regola=[].some.call(document.styleSheets,function(sh){try{return [].some.call(sh.cssRules,function(r){
+      return /body\.amouse td\.c:focus-visible/.test(r.selectorText||"")&&r.style.outlineStyle==="none";});}catch(e){return false;}});
+    if(!regola)return "manca la regola che spegne il contorno col mouse";
+    if(!mouse)return "dopo il clic l'app non sa che stai usando il mouse";
+    if(!dopoCanc)return "Canc ha riacceso il contorno";
+    return tastiera?true:"con le frecce il contorno non torna";});
   t("col ⌘ il clic aggiunge alla selezione invece di sostituirla",function(){
     pulisci();apri();clearSel();
     placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:2},0);
