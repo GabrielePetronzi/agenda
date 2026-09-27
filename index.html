@@ -1801,7 +1801,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="27 set 2026 · a";
+const VERSIONE="27 set 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5658,6 +5658,11 @@ function wire(t){
       else toast("Nessun blocco qui");
       return;
     }
+
+    /* Un clic normale su una casella vuota toglie la selezione. Prima il
+       blocco scelto restava selezionato, e Canc, ⌘C o Ripeti agivano ancora
+       su quello (27 settembre). Col ⌘ no: li' la casella vuota e' "incolla qui". */
+    if(!e.target.closest(".blk")&&Object.keys(selRuns).length)clearSel();
 
     /* doppio tocco: nota */
     const sig=td.dataset.date+"."+td.dataset.h+"."+lane,now=Date.now();

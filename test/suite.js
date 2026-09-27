@@ -1717,6 +1717,30 @@
     if(due!==1||secondo!==it[1].id)return "dopo il secondo clic selezionati "+due+" ("+secondo+")";
     if(copiato!==it[1].id)return "ha copiato "+copiato+" invece del secondo";
     return zero===0?true:"il clic sul blocco gia' scelto non lo toglie";});
+  /* 27 settembre: "quando clicco su un blocco e poi su uno slot vuoto si deve
+     deselezionare il blocco di prima". Col pennello in mano e senza. */
+  t("un clic su una casella vuota toglie la selezione",function(){
+    pulisci();apri();clearSel();state.blockClip=null;
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:2},0);
+    render();
+    var bl=function(){return document.querySelector('.blk[data-date="'+G[0]+'"]');};
+    var vuota=function(){return document.querySelector('td.c[data-date="'+G[1]+'"][data-h="'+(H0+8)+'"]');};
+    var pennello=state.brush;
+    state.brush=null;state.act="SCH";
+    tocco(bl());var prima=Object.keys(selRuns).length;
+    tocco(vuota());var senza=Object.keys(selRuns).length;
+    state.brush=it[1].id;
+    tocco(bl());var prima2=Object.keys(selRuns).length;
+    tocco(vuota());var col=Object.keys(selRuns).length;
+    painting=false;
+    /* un'altra casella: in quella di prima il pennello ha appena dipinto */
+    var altra=document.querySelector('td.c[data-date="'+G[1]+'"][data-h="'+(H0+14)+'"]');
+    tocco(bl());tocco(altra,true);var meta=Object.keys(selRuns).length;
+    state.brush=pennello;clearSel();
+    if(prima!==1||prima2!==1)return "il clic sul blocco non l'ha selezionato";
+    if(senza)return "senza pennello il clic sulla casella vuota non ha tolto la selezione";
+    if(col)return "col pennello il clic sulla casella vuota non ha tolto la selezione";
+    return meta===1?true:"col ⌘ il clic sulla casella vuota ha tolto la selezione";});
   t("col ⌘ il clic aggiunge alla selezione invece di sostituirla",function(){
     pulisci();apri();clearSel();
     placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:2},0);
