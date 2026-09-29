@@ -1364,6 +1364,52 @@
       }).catch(function(e){fine("eccezione: "+e.message);});
     },0);
     return {poi:function(){return esito===null?"il giro col gist non ha finito in tempo":esito;}};});
+  /* 29 settembre: "se non mi restituisci gli slot mi arrabbio forte". Le
+     copie hanno ancora le settimane sparite: l'app le trova da sola e le
+     rimette con un pulsante. */
+  t("le settimane sparite si trovano nelle copie e tornano con un pulsante",function(){
+    pulisci();apri();
+    var copieP=null,giorniP=null,noP=null;
+    try{copieP=localStorage.getItem(COPIEKEY);giorniP=localStorage.getItem(GIORNIKEY);noP=localStorage.getItem(RIPNOKEY);
+      localStorage.removeItem(RIPNOKEY);}catch(e){}
+    for(var g=0;g<7;g++)placeRun(G[g%G.length],H0+2*g,{i:it[g%3].id,a:"SCH",len:4},0);
+    var buono=JSON.stringify(state.cells);
+    try{localStorage.setItem(COPIEKEY,JSON.stringify([{ts:Date.now()-60000,n:Object.keys(state.cells).length,p:payload()}]));
+      localStorage.setItem(GIORNIKEY,"[]");}catch(e){}
+    state.cells={};                              /* sparite */
+    placeRun(G[0],H0+20,{i:it[4].id,a:"LET",len:2},0);   /* e qualcos'altro al posto loro */
+    ripBar(true);
+    var bar=document.getElementById("ripbar"),acceso=bar.classList.contains("on"),testo=bar.textContent;
+    bar.querySelector('[data-r="si"]').click();
+    var tornato=JSON.stringify(state.cells)===buono;
+    var spento=!document.getElementById("ripbar").classList.contains("on");
+    var tenuta=copieLeggi().some(function(c){try{return JSON.parse(c.p).cells[ck(G[0],H0+20)];}catch(e){return false;}});
+    try{if(copieP!=null)localStorage.setItem(COPIEKEY,copieP);if(giorniP!=null)localStorage.setItem(GIORNIKEY,giorniP);
+      if(noP!=null)localStorage.setItem(RIPNOKEY,noP);else localStorage.removeItem(RIPNOKEY);}catch(e){}
+    ripCache=undefined;pulisci();apri();
+    if(!acceso)return "con le settimane sparite la barra non compare";
+    if(!/sparite/.test(testo))return "la barra dice: "+testo;
+    if(!tornato)return "premuto il pulsante, il piano non e' quello della copia";
+    if(!tenuta)return "quello che c'era prima del pulsante non e' rimasto in una copia";
+    return spento?true:"dopo il recupero la barra resta accesa";});
+  t("fra le copie buone si prende la piu' recente, non la piu' piena",function(){
+    pulisci();apri();
+    var copieP=null,giorniP=null,noP=null;
+    try{copieP=localStorage.getItem(COPIEKEY);giorniP=localStorage.getItem(GIORNIKEY);noP=localStorage.getItem(RIPNOKEY);
+      localStorage.removeItem(RIPNOKEY);}catch(e){}
+    for(var g=0;g<8;g++)placeRun(G[g%G.length],H0+2*g,{i:it[g%3].id,a:"SCH",len:4},0);
+    var vecchia=payload();
+    clearRun(G[7%G.length],H0+14,4,0);           /* un blocco tolto apposta, poi il guasto */
+    var recente=payload();
+    try{localStorage.setItem(COPIEKEY,JSON.stringify([{ts:Date.now()-60000,n:1,p:recente},{ts:Date.now()-86400000,n:1,p:vecchia}]));
+      localStorage.setItem(GIORNIKEY,"[]");}catch(e){}
+    state.cells={};
+    var b=blocchiSpariti();
+    try{if(copieP!=null)localStorage.setItem(COPIEKEY,copieP);if(giorniP!=null)localStorage.setItem(GIORNIKEY,giorniP);
+      if(noP!=null)localStorage.setItem(RIPNOKEY,noP);else localStorage.removeItem(RIPNOKEY);}catch(e){}
+    ripCache=undefined;pulisci();apri();
+    if(!b)return "non trova la copia";
+    return b.p===recente?true:"ha scelto la copia vecchia, col blocco tolto apposta";});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));

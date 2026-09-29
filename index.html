@@ -383,6 +383,10 @@ body.dropping td.c.dropok{background:var(--tint-hover);
    Sta sopra le settimane e non si chiude da solo, perché è quello il punto: o
    li recuperi, o li spunti, o li sposti — ma non devono sparire in silenzio. */
 .latebar{display:none}
+/* i blocchi spariti: la stessa barra, col colore dell'azione invece del rosso */
+.latebar.ripbar.on{border-color:var(--action)}
+.latebar.ripbar b i{color:var(--action)}
+.latebar.ripbar .rip-si{background:var(--action);color:var(--bg);border-color:var(--action);font-weight:600}
 .latebar.on{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;
   padding:8px 12px;border:1px solid var(--late);border-radius:var(--r);
   background:var(--surface)}
@@ -1189,6 +1193,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
     <p class="status" id="status" role="status" aria-live="polite"></p>
     <p class="modeflag" id="modeflag" role="status" aria-live="assertive"></p>
     <div class="selbar" id="selbar"></div>
+    <div class="latebar ripbar" id="ripbar"></div>
     <div class="latebar" id="latebar"></div>
     <div id="panels"></div>
 
@@ -1823,7 +1828,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="29 set 2026 · a";
+const VERSIONE="29 set 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -6293,6 +6298,83 @@ async function ripescaDalGist(){
     return true;
   }catch(e){return false;}
 }
+/* ---------- i blocchi spariti, ripescati dalle copie ----------
+   Il 29 settembre il gist fermo al 6 settembre ha preso il posto del piano e
+   sono sparite le settimane di Informatica dal 21. Le copie di sicurezza le
+   hanno ancora, ma sceglierne una a occhio in un elenco di ore e orari non e'
+   un lavoro da chiedere a chi ha appena perso due settimane. Qui l'app guarda
+   da sola tutte le copie, trova quella che ha piu' mezz'ore del piano aperto
+   che adesso mancano, e le rimette con un pulsante. Solo aggiungendo: una
+   casella che adesso e' occupata non si tocca, e niente di quello che c'e'
+   si cancella. Con le mezz'ore tornano le date d'esame, le materie aggiunte
+   a mano e gli esami superati che mancano. */
+const RIPNOKEY="piano-6272-ripesca-no";
+function daPianoAttivo(k){
+  const pp=state.piano&&state.piano!==PIANO_BASE?state.piano+".":"";
+  return pp?k.indexOf(pp)===0:/^\d/.test(k);
+}
+function blocchiSpariti(){
+  const copie=giorniLeggi().map(c=>({ts:c.ts,p:c.p})).concat(copieLeggi().map(c=>({ts:c.ts,p:c.p})));
+  let no=0;try{no=+(localStorage.getItem(RIPNOKEY)||0)||0;}catch(e){}
+  const cand=[];
+  copie.forEach(c=>{
+    let d;try{d=JSON.parse(c.p);}catch(e){return;}
+    if(!d||!d.cells)return;
+    const manca={};let n=0,da=null,a=null;
+    Object.keys(d.cells).forEach(k=>{
+      if(!daPianoAttivo(k))return;
+      const v=d.cells[k];
+      if(!Array.isArray(v)||!v.some(Boolean))return;
+      if((state.cells[k]||[]).some(Boolean))return;       /* occupata: non si tocca */
+      manca[k]=v;n+=v.filter(Boolean).length;
+      const p=k.split("."),dt=p[p.length-2];
+      if(!da||dt<da)da=dt;if(!a||dt>a)a=dt;
+    });
+    if(n>=20)cand.push({ts:c.ts,n:n,manca:manca,da:da,a:a,d:d,p:c.p});
+  });
+  /* Fra le copie che hanno quasi tutto quello che manca, la piu' recente.
+     "La piu' piena" poteva essere una copia di un giorno prima, con dentro
+     blocchi che avevi tolto apposta — ed e' togliendo blocchi che il gist
+     aveva preso il sopravvento. */
+  const max=cand.reduce((m,c)=>Math.max(m,c.n),0);
+  const meglio=cand.filter(c=>c.n>=max*0.8).sort((a,b)=>b.ts-a.ts)[0]||null;
+  /* "non servono" vale per quella copia e per quelle piu' vecchie */
+  if(meglio&&meglio.ts<=no)return null;
+  return meglio;
+}
+/* Rimette il piano com'era in quella copia, tutto intero. Aggiungere solo le
+   mezz'ore mancanti non bastava: aprendo il piano preso dal gist l'app lo
+   porta al formato di oggi, e alcuni blocchi del vecchio gist (ripasso,
+   lavoro) finivano dentro il piano aperto, proprio sulle caselle da
+   rimettere. La copia invece e' il piano di prima, pulito. Quello che c'e'
+   adesso non si butta: ripristina() ne tiene una copia, e dal Backup si
+   torna indietro. */
+function rimettiSpariti(b){
+  if(!b)return 0;
+  if(!ripristina(b.p,"la copia del "+new Date(b.ts).toLocaleString("it-IT",
+    {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})))return 0;
+  /* la copia di adesso, appena fatta, non va riproposta come "da rimettere" */
+  try{localStorage.setItem(RIPNOKEY,String(Date.now()));}catch(e){}
+  return b.n;
+}
+let ripCache;
+function ripBar(ricalcola){
+  const box=document.getElementById("ripbar");if(!box)return;
+  if(ricalcola||ripCache===undefined)ripCache=blocchiSpariti();
+  const b=ripCache;
+  if(!b){box.className="latebar ripbar";box.innerHTML="";return;}
+  box.className="latebar ripbar on";
+  const quando=new Date(b.ts).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+  box.innerHTML='<b><i>'+hrs(b.n)+'</i> di questo piano sono sparite, dal '+fmt(parse(b.da))+" al "+fmt(parse(b.a))+"</b>"+
+    "<u>ci sono nella copia del "+quando+" · quello che c'è adesso resta in una copia</u>"+
+    '<button data-r="si" class="rip-si">Rimetti il piano com’era</button>'+
+    '<button data-r="no">Non servono</button>';
+  box.querySelector('[data-r="si"]').onclick=()=>{rimettiSpariti(b);ripBar(true);};
+  box.querySelector('[data-r="no"]').onclick=()=>{
+    try{localStorage.setItem(RIPNOKEY,String(b.ts));}catch(e){}
+    ripBar(true);};
+}
+
 /* Cosa c'è davvero in questo browser, scritto in chiaro: senza, l'unico modo
    di saperlo era la console, e da lì non si passa. */
 function linkRicordo(){
@@ -6713,6 +6795,7 @@ window.addEventListener("afterprint",()=>{
 (async()=>{
   await load();iconify();autoLessons();foldToToday();render();histInit();copiaGiorno();
   ripescaDalGist();
+  ripBar(true);
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
   if(fuori)setTimeout(()=>toast(hrs(fuori)+" fuori dalla fascia "+dayFrom()+"–"+dayTo()),900);
