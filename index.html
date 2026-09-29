@@ -383,6 +383,14 @@ body.dropping td.c.dropok{background:var(--tint-hover);
    Sta sopra le settimane e non si chiude da solo, perché è quello il punto: o
    li recuperi, o li spunti, o li sposti — ma non devono sparire in silenzio. */
 .latebar{display:none}
+.bkfile{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 0 12px;padding:10px 12px;
+  border:1px solid var(--line);border-radius:var(--r);font-size:12.5px;line-height:1.45;color:var(--tx2)}
+.bkfile span{flex:1 1 240px}
+.bkfile b{color:var(--tx);font-weight:600}
+.bkfile u{text-decoration:none}
+.bkfile button{border:1px solid var(--line);background:var(--raised);color:var(--tx);border-radius:var(--r-sm);
+  padding:6px 10px;font-size:12px;cursor:pointer}
+.bkfile button.rip-si{background:var(--action);color:var(--bg);border-color:var(--action);font-weight:600}
 /* i blocchi spariti: la stessa barra, col colore dell'azione invece del rosso */
 .latebar.ripbar.on{border-color:var(--action)}
 .latebar.ripbar b i{color:var(--action)}
@@ -1193,6 +1201,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
     <p class="status" id="status" role="status" aria-live="polite"></p>
     <p class="modeflag" id="modeflag" role="status" aria-live="assertive"></p>
     <div class="selbar" id="selbar"></div>
+    <div class="latebar ripbar" id="filebar"></div>
     <div class="latebar ripbar" id="ripbar"></div>
     <div class="latebar" id="latebar"></div>
     <div id="panels"></div>
@@ -1330,6 +1339,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
       Copia questo testo e conservalo, oppure scaricalo. Per rimettere un piano:
       <b>Carica da file</b> se ne hai uno, o scegli una delle copie qui sotto.</p>
     <p class="bkstato" id="bkStato"></p>
+    <div class="bkfile" id="bkFileBox"></div>
     <div class="bklink" id="bkLink"></div>
     <div class="bkcopie" id="bkCopie"></div>
     <textarea id="bkText" spellcheck="false" style="font-family:'DM Mono',monospace;font-size:10.5px"></textarea>
@@ -1828,7 +1838,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="29 set 2026 · b";
+const VERSIONE="29 set 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2049,6 +2059,7 @@ function save(msg,sfondo){
       }
     }
   }
+  fileProgramma();
   /* livello b: in coda */
   if(sv.remote&&b!==sv.remoteSaved){sv.dirty=true;if(msg)sv.msg=msg;schedule();}
   else if(msg)toast(msg);
@@ -2360,6 +2371,10 @@ async function load(){
   if(sv.remote){try{const r=await window.storage.get(KEY);if(r&&r.value)R=JSON.parse(r.value);}catch(e){}}
   if(sv.local){const s=lsGet();if(s){try{L=JSON.parse(s);}catch(e){}}}
   const pick=(R&&L)?(((R.ts||0)>=(L.ts||0))?R:L):(R||L);
+  /* memoria vuota all'apertura: o e' la prima volta, o qualcuno ha cancellato
+     i dati di navigazione. In tutti e due i casi va detto, e va offerto il
+     file di backup (fileBar). */
+  fileBk.partitoVuoto=!pick&&!copieLeggi().length&&!giorniLeggi().length;
   if(pick){
     adopt(pick);
     sv.ts=pick.ts||Date.now();
@@ -6375,6 +6390,180 @@ function ripBar(ricalcola){
     ripBar(true);};
 }
 
+/* ---------- il backup su un file del Mac ----------
+   Il 28 settembre "Cancella dati di navigazione" ha tolto il piano, e con lui
+   tutte le copie di sicurezza: stavano nello stesso posto, la memoria del
+   browser. Si e' salvato solo per caso, in un'istantanea di Time Machine.
+   Qui il piano si scrive anche su un file vero, scelto una volta sola, a ogni
+   modifica: i file del Mac la cronologia di Chrome non li tocca. Se poi la
+   memoria si svuota, l'app lo dice in cima e con un pulsante si riprende il
+   piano dal file — e il backup riparte da solo sullo stesso file.
+   Funziona in Chrome ed Edge (API di accesso ai file); altrove resta Scarica. */
+let fileBk={h:null,stato:"",quando:0,errore:"",timer:null,partitoVuoto:false,no:false};
+const fileOK=()=>typeof window.showSaveFilePicker==="function";
+const FILEDB="piano-6272-file";
+function idbApri(){
+  return new Promise((ok,ko)=>{
+    const r=indexedDB.open(FILEDB,1);
+    r.onupgradeneeded=()=>r.result.createObjectStore("h");
+    r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);
+  });
+}
+async function idbLeggi(){
+  try{const db=await idbApri();
+    return await new Promise(ok=>{const q=db.transaction("h").objectStore("h").get("file");
+      q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null);});
+  }catch(e){return null;}
+}
+async function idbScrivi(v){
+  try{const db=await idbApri();
+    await new Promise(ok=>{const t=db.transaction("h","readwrite");t.objectStore("h").put(v,"file");
+      t.oncomplete=ok;t.onerror=ok;});
+  }catch(e){}
+}
+async function filePermesso(h,chiedi){
+  if(!h)return false;
+  if(!h.queryPermission)return true;
+  const o={mode:"readwrite"};
+  try{if((await h.queryPermission(o))==="granted")return true;}catch(e){}
+  if(!chiedi)return false;
+  try{return (await h.requestPermission(o))==="granted";}catch(e){return false;}
+}
+async function fileScrivi(){
+  const h=fileBk.h;if(!h)return;
+  clearTimeout(fileBk.timer);
+  if(!(await filePermesso(h,false))){fileBk.stato="pausa";fileBar();return;}
+  /* Il file non si sovrascrive a occhi chiusi. Se l'app e' partita con la
+     memoria vuota, o se il piano aperto e' meno della meta' di quello nel
+     file, prima si chiede: e' esattamente il momento in cui il file e'
+     l'unica copia buona. */
+  if(fileBk.partitoVuoto){fileBk.stato="attesa";fileBar();return;}
+  if(!fileBk.forza){
+    const c=await filePiano(h);
+    const la=c?Object.keys(c.d.cells).length:0,qua=Object.keys(state.cells||{}).length;
+    if(la>=40&&qua<la*0.5){fileBk.stato="dubbio";fileBk.dubbio={la:la,ts:c.d.ts,t:c.t};fileBar();return;}
+  }
+  fileBk.forza=false;fileBk.dubbio=null;
+  try{
+    const w=await h.createWritable();await w.write(payload());await w.close();
+    fileBk.quando=Date.now();fileBk.stato="ok";fileBk.errore="";
+  }catch(e){fileBk.stato="errore";fileBk.errore=e.message||"errore";}
+  fileBar();
+}
+/* a ogni salvataggio, un paio di secondi dopo l'ultimo */
+function fileProgramma(){
+  if(!fileBk.h)return;
+  clearTimeout(fileBk.timer);fileBk.timer=setTimeout(fileScrivi,2000);
+}
+/* legge un piano da un file, se c'e' */
+async function filePiano(h){
+  try{const t=await (await h.getFile()).text();const d=JSON.parse(t);return d&&d.cells?{t:t,d:d}:null;}
+  catch(e){return null;}
+}
+/* Sceglie il file. Se quello scelto ha gia' dentro un piano piu' recente di
+   quello aperto non lo sovrascrive: e' proprio il caso di dopo una
+   cancellazione, quando qui c'e' poco o niente e il file e' la salvezza. */
+async function fileScegli(){
+  if(!fileOK()){toast("Questo browser non salva su file: usa Scarica");return;}
+  let h;
+  try{
+    h=await window.showSaveFilePicker({suggestedName:"piano-agenda.json",startIn:"documents",id:"pianoagenda",
+      types:[{description:"Piano dell'agenda",accept:{"application/json":[".json"]}}]});
+  }catch(e){if(e&&e.name!=="AbortError")toast("Non riesco a creare il file");return;}
+  const c=await filePiano(h);
+  const qui=Object.keys(state.cells||{}).length;
+  if(c&&(c.d.ts||0)>(sv.ts||0)&&Object.keys(c.d.cells).length){
+    const n=Object.keys(c.d.cells).length;
+    if(confirm("Nel file "+h.name+" c'è un piano più recente di questo ("+hrs(n)+
+        ", salvato il "+new Date(c.d.ts).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+
+        "). Lo rimetto al posto di quello aperto ("+hrs(qui)+")?")){
+      fileBk.h=h;await idbScrivi(h);
+      ripristina(c.t,h.name);fileBk.partitoVuoto=false;fileBar();return;
+    }
+    toast("Il file non l'ho toccato");return;
+  }
+  fileBk.h=h;await idbScrivi(h);
+  fileBk.partitoVuoto=false;
+  await fileScrivi();
+  if(fileBk.stato==="ok")toast("Backup su "+h.name+": da ora si aggiorna a ogni modifica");
+}
+async function fileRiattiva(){
+  if(await filePermesso(fileBk.h,true))await fileScrivi();
+}
+/* Dopo una cancellazione: si sceglie il file, si rimette il piano, e il
+   backup riparte su quello stesso file. */
+async function fileRiprendi(){
+  if(typeof window.showOpenFilePicker!=="function"){document.getElementById("bkFile").click();return;}
+  let h;
+  try{
+    [h]=await window.showOpenFilePicker({id:"pianoagenda",startIn:"documents",
+      types:[{description:"Piano dell'agenda",accept:{"application/json":[".json"]}}]});
+  }catch(e){if(e&&e.name!=="AbortError")toast("Non riesco ad aprire il file");return;}
+  const c=await filePiano(h);
+  if(!c){toast("In quel file non c'è un piano");return;}
+  if(!ripristina(c.t,h.name))return;
+  fileBk.partitoVuoto=false;fileBk.h=h;await idbScrivi(h);
+  if(await filePermesso(h,true))await fileScrivi();
+  fileBar();
+}
+async function fileAvvio(){
+  const h=await idbLeggi();
+  if(h){fileBk.h=h;fileBk.stato=(await filePermesso(h,false))?"ok":"pausa";}
+  fileBar();
+}
+function fileBar(){
+  const box=document.getElementById("filebar");
+  if(box){
+    let h="";
+    if(fileBk.partitoVuoto&&!fileBk.no){
+      h='<b>La memoria di questa app nel browser era <i>vuota</i></b>'+
+        "<u>succede se si cancellano i dati di navigazione. Se hai il file di backup, il piano è lì</u>"+
+        '<button data-f="riprendi" class="rip-si">Riprendi dal file di backup</button>'+
+        '<button data-f="no">Non ho un backup</button>';
+    }else if(fileBk.h&&fileBk.stato==="dubbio"&&fileBk.dubbio){
+      const q=fileBk.dubbio;
+      h='<b>Il piano aperto ('+hrs(Object.keys(state.cells||{}).length)+') è molto più piccolo di quello nel file di backup (<i>'+hrs(q.la)+"</i>)</b>"+
+        "<u>il file è del "+new Date(q.ts||0).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+
+        " e non l’ho toccato</u>"+
+        '<button data-f="dalfile" class="rip-si">Rimetti quello del file</button>'+
+        '<button data-f="sovrascrivi">Sovrascrivi il file</button>';
+    }else if(fileBk.h&&fileBk.stato==="pausa"){
+      h='<b>Il backup su <i>'+esc(fileBk.h.name||"file")+"</i> è in pausa</b>"+
+        "<u>Chrome chiede di nuovo il permesso dopo che l'hai chiuso</u>"+
+        '<button data-f="riattiva" class="rip-si">Riattiva</button>';
+    }
+    box.className="latebar ripbar"+(h?" on":"");box.innerHTML=h;
+    const b=k=>box.querySelector('[data-f="'+k+'"]');
+    if(b("riprendi"))b("riprendi").onclick=fileRiprendi;
+    if(b("no"))b("no").onclick=()=>{fileBk.no=true;fileBk.partitoVuoto=false;fileBar();};
+    if(b("riattiva"))b("riattiva").onclick=fileRiattiva;
+    if(b("dalfile"))b("dalfile").onclick=()=>{const q=fileBk.dubbio;fileBk.dubbio=null;fileBk.stato="";
+      if(q&&ripristina(q.t,fileBk.h.name||"il file di backup"))fileScrivi();};
+    if(b("sovrascrivi"))b("sovrascrivi").onclick=()=>{fileBk.forza=true;fileBk.dubbio=null;fileScrivi();};
+  }
+  const bx=document.getElementById("bkFileBox");
+  if(bx){
+    if(!fileOK()){
+      bx.innerHTML='<u>Il backup automatico su un file del Mac c’è in Chrome ed Edge. Qui usa <b>Scarica</b>.</u>';
+    }else if(fileBk.h){
+      bx.innerHTML='<span><b>Backup su file attivo</b> · '+esc(fileBk.h.name||"file")+" · "+
+        (fileBk.stato==="ok"&&fileBk.quando?"aggiornato alle "+new Date(fileBk.quando).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})
+          :fileBk.stato==="pausa"?"in pausa: premi Riattiva":fileBk.stato==="errore"?"errore: "+esc(fileBk.errore)
+          :fileBk.stato==="dubbio"?"fermo: il file ha un piano molto più grande, guarda in cima"
+          :fileBk.stato==="attesa"?"fermo finché non riprendi il piano dal file":"pronto")+
+        "</span>"+(fileBk.stato==="pausa"?'<button data-f="riattiva">Riattiva</button>':"")+
+        '<button data-f="cambia">Cambia file</button>';
+    }else{
+      bx.innerHTML='<span><b>Backup su file: non attivo.</b> Salva il piano anche su un file del Mac: '+
+        "si aggiorna a ogni modifica e sopravvive se cancelli i dati di navigazione.</span>"+
+        '<button data-f="cambia" class="rip-si">Salva anche su un file</button>';
+    }
+    const b=k=>bx.querySelector('[data-f="'+k+'"]');
+    if(b("cambia"))b("cambia").onclick=fileScegli;
+    if(b("riattiva"))b("riattiva").onclick=fileRiattiva;
+  }
+}
+
 /* Cosa c'è davvero in questo browser, scritto in chiaro: senza, l'unico modo
    di saperlo era la console, e da lì non si passa. */
 function linkRicordo(){
@@ -6409,7 +6598,7 @@ function bkStato(){
   }
 }
 function bkCopieList(){
-  bkStato();
+  bkStato();fileBar();
   const box=document.getElementById("bkCopie");if(!box)return;
   const g=giorniLeggi(),v=copieLeggi();
   const riga=(c,tipo,i)=>'<span class="bkr"><b>'+hrs(c.n)+"</b><u>"+
@@ -6796,6 +6985,7 @@ window.addEventListener("afterprint",()=>{
   await load();iconify();autoLessons();foldToToday();render();histInit();copiaGiorno();
   ripescaDalGist();
   ripBar(true);
+  fileAvvio();
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
   if(fuori)setTimeout(()=>toast(hrs(fuori)+" fuori dalla fascia "+dayFrom()+"–"+dayTo()),900);

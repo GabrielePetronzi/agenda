@@ -1410,6 +1410,63 @@
     ripCache=undefined;pulisci();apri();
     if(!b)return "non trova la copia";
     return b.p===recente?true:"ha scelto la copia vecchia, col blocco tolto apposta";});
+  /* 29 settembre: "devi salvaguardarmi da queste cose, tipo che cancello la
+     cronologia per sbaglio". Il backup su un file vero: qui con i file del
+     file system privato del browser, che sono gli stessi oggetti di un file
+     scelto sul Mac, ma senza la finestra di scelta. */
+  t("il backup su file: si scrive, non si sovrascrive a occhi chiusi, e dopo una cancellazione rimette il piano",function(){
+    var esito=null;
+    setTimeout(async function(){
+      var tenuti=JSON.stringify(state.cells),vecchioH=fileBk.h,apri_=window.showOpenFilePicker;
+      var fine=function(m){fileBk.h=vecchioH;fileBk.partitoVuoto=false;fileBk.no=false;fileBk.stato="";fileBk.dubbio=null;
+        clearTimeout(fileBk.timer);window.showOpenFilePicker=apri_;state.cells=JSON.parse(tenuti);fileBar();esito=m;};
+      try{
+        /* un file in memoria con i quattro metodi che l'app usa: sulle pagine
+           aperte da disco il file system privato del browser non c'e'. La
+           prova coi file veri e' test/file.py, su un server locale. */
+        var mem={t:""};
+        var h={name:"prova-piano.json",kind:"file",
+          queryPermission:function(){return Promise.resolve("granted");},
+          requestPermission:function(){return Promise.resolve("granted");},
+          getFile:function(){return Promise.resolve({text:function(){return Promise.resolve(mem.t);}});},
+          createWritable:function(){var buf="";return Promise.resolve({
+            write:function(x){buf+=x;return Promise.resolve();},close:function(){mem.t=buf;return Promise.resolve();}});}};
+        var dir={removeEntry:function(){return Promise.resolve();}};
+        var leggi=async function(){try{return JSON.parse(await (await h.getFile()).text());}catch(e){return null;}};
+        /* 1. si scrive */
+        pulisci();apri();
+        placeRun(G[0],H0,{i:it[0].id,a:"LET",len:4},0);save("prova");
+        fileBk.h=h;fileBk.partitoVuoto=false;fileBk.forza=true;
+        await fileScrivi();
+        var f1=await leggi();
+        if(!f1||Object.keys(f1.cells).length!==4){fine("il file non ha il piano: "+JSON.stringify(f1&&f1.cells));return;}
+        /* 2. un file molto piu' grande non si sovrascrive */
+        var grande={ts:Date.now()-3600000,cells:{}};
+        for(var k=0;k<60;k++)grande.cells[state.year+"."+state.ctx+"."+G[1]+"."+(k%48)+"x"+k]=[{i:it[1].id,a:"SCH"}];
+        var w=await h.createWritable();await w.write(JSON.stringify(grande));await w.close();
+        await fileScrivi();
+        var f2=await leggi();
+        if(Object.keys(f2.cells).length!==60){fine("ha sovrascritto un file con un piano molto piu' grande");return;}
+        if(fileBk.stato!=="dubbio"||!document.getElementById("filebar").classList.contains("on")){fine("non lo dice in cima: "+fileBk.stato);return;}
+        /* 3. dopo una cancellazione: la barra, e dal file torna il piano */
+        var buono={ts:Date.now()-60000,v:7,cells:{}};
+        for(var j=0;j<6;j++)buono.cells[(state.piano&&state.piano!==PIANO_BASE?state.piano+".":"")+state.year+"."+state.ctx+"."+G[2]+"."+(H0+j)]=[{i:it[2].id,a:"ESE"}];
+        w=await h.createWritable();await w.write(JSON.stringify(buono));await w.close();
+        state.cells={};fileBk.h=null;fileBk.partitoVuoto=true;fileBk.stato="";fileBk.dubbio=null;fileBar();
+        var barra=document.getElementById("filebar"),vista=barra.classList.contains("on")&&/vuota/.test(barra.textContent);
+        await fileScrivi();                 /* senza file: niente */
+        window.showOpenFilePicker=function(){return Promise.resolve([h]);};
+        await fileRiprendi();
+        var tornato=Object.keys(state.cells).length===6&&!!state.cells[Object.keys(buono.cells)[0]];
+        if(!vista){fine("con la memoria vuota la barra non compare");return;}
+        if(!tornato){fine("dal file il piano non torna: "+Object.keys(state.cells).length+" mezz'ore");return;}
+        if(fileBk.h!==h||fileBk.partitoVuoto){fine("dopo il recupero il backup non riparte sul file");return;}
+        if(document.getElementById("filebar").classList.contains("on")){fine("dopo il recupero la barra resta");return;}
+        await dir.removeEntry("prova-piano.json");
+        fine(true);
+      }catch(e){fine("eccezione: "+e.message);}
+    },0);
+    return {poi:function(){return esito===null?"il giro col file non ha finito in tempo":esito;}};});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
