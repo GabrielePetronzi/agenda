@@ -1823,7 +1823,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="27 set 2026 · m";
+const VERSIONE="29 set 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -6273,7 +6273,18 @@ async function ripescaDalGist(){
     const d=JSON.parse(await leggiGist(gh.gist));
     if(!d||!d.cells)return false;
     const la=Object.keys(d.cells).length,qua=Object.keys(state.cells||{}).length;
-    if(la<=qua)return false;
+    /* Il gist si riprende solo se qui non c'e' niente, oppure se e' piu'
+       recente di quello che c'e' qui E ha di piu'. Prima bastava che avesse
+       piu' mezz'ore: ma senza token il gist non si aggiorna mai, e' una
+       fotografia di settimane fa. Appena qui c'erano un po' meno mezz'ore di
+       allora — bastava cancellare qualche blocco — alla riapertura il piano
+       tornava com'era nel gist e sparivano le settimane fatte dopo: il 29
+       settembre, le prime due dal 21. L'ora di qui la leggo dalla memoria del
+       browser, non solo da sv.ts, cosi' vale anche se nessuno ha ancora
+       salvato in questa apertura. */
+    const loc=lsDati(),tsQui=Math.max(sv.ts||0,(loc&&loc.ts)||0);
+    if(qua&&!((d.ts||0)>tsQui&&la>qua))return false;
+    if(!qua&&!la)return false;
     copiaSalva(payload(),qua);
     DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
     state.exams=state.exams||[];state.collapsed=state.collapsed||{};

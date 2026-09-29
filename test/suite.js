@@ -1329,6 +1329,41 @@
     if(tot!==1)return "ore saltate "+tot+" (attesa 1: solo l'altra materia)";
     return q&&/2 h fatte/.test(q.getAttribute("aria-label"))?true:
       "nel calendario ieri dice: "+(q&&q.getAttribute("aria-label"))+" (le ore fatte restano)";});
+  /* 29 settembre: "mi sono appena spariti tutti gli slot delle prime 2
+     settimane dal 21 settembre". All'apertura l'app riprendeva il gist in
+     sola lettura — fermo a settimane prima — appena aveva piu' mezz'ore del
+     piano nel browser, e lo metteva al posto del piano. */
+  t("un gist vecchio con piu' mezz'ore non prende il posto del piano",function(){
+    /* ripescaDalGist aspetta il gist: il giro si fa subito dopo il resto
+       della suite, e il verdetto legge l'esito gia' pronto */
+    var esito=null;
+    setTimeout(function(){
+      var tenuti=JSON.stringify(state.cells),vero_=leggiGist,tok=null;
+      pulisci();apri();
+      placeRun(G[0],H0,{i:it[0].id,a:"LET",len:4},0);save("prova");
+      var qui=JSON.stringify(state.cells);
+      var vecchio={ts:Date.now()-20*86400000,cells:{}};
+      for(var k=0;k<12;k++)vecchio.cells[state.year+"."+state.ctx+".2026-09-01."+(20+k)]=[{i:it[1].id,a:"SCH"}];
+      leggiGist=function(){return Promise.resolve(JSON.stringify(vecchio));};
+      try{tok=localStorage.getItem(TOKKEY);localStorage.removeItem(TOKKEY);
+        localStorage.setItem(GISTKEY,"a1ccce8f1beda0985df822f0b04a79a9");}catch(e){}
+      var fine=function(m){
+        leggiGist=vero_;
+        try{localStorage.removeItem(GISTKEY);if(tok)localStorage.setItem(TOKKEY,tok);}catch(e){}
+        state.cells=JSON.parse(tenuti);esito=m;
+      };
+      ripescaDalGist().then(function(){
+        var dopo=JSON.stringify(state.cells);
+        if(dopo!==qui){fine("il gist vecchio ha preso il posto del piano");return;}
+        /* da un browser vuoto invece il gist si riprende: e' la sua ragione */
+        state.cells={};
+        return ripescaDalGist().then(function(){
+          var n=Object.keys(state.cells).length;
+          fine(n===12?true:"da un browser vuoto il gist non si riprende ("+n+" mezz'ore)");
+        });
+      }).catch(function(e){fine("eccezione: "+e.message);});
+    },0);
+    return {poi:function(){return esito===null?"il giro col gist non ha finito in tempo":esito;}};});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
