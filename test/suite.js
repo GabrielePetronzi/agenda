@@ -1467,6 +1467,26 @@
       }catch(e){fine("eccezione: "+e.message);}
     },0);
     return {poi:function(){return esito===null?"il giro col file non ha finito in tempo":esito;}};});
+  t("il giorno segnato fatto una volta: tutto conta, anche le spunte a mano, e non si ripete",function(){
+    pulisci();apri();
+    var d=iso(new Date()),K="piano-6272-fatto-"+d,prima=null;
+    try{prima=localStorage.getItem(K);localStorage.removeItem(K);}catch(e){}
+    placeRun(d,HOURS[2],{i:it[0].id,a:"SCH",len:4},0);               /* da fare */
+    placeRun(d,HOURS[8],{i:it[1].id,a:"LET",len:2,done:1,m:1},0);    /* spuntata a mano */
+    placeRun(d,HOURS[12],{i:it[2].id,a:"ESE",len:2,done:1},0);       /* gia' fatta */
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,HOURS[2],{i:it[0].id,a:"SCH",len:2},0);           /* un altro giorno: non si tocca */
+    var domani=segnaGiornoFatto(iso(addDays(new Date(),1)),function(){return true;});
+    var n=segnaGiornoFatto(d,function(){return true;});
+    var tutte=Object.keys(state.cells).filter(function(k){return k.indexOf(d)>=0;}).every(function(k){return at(k).every(function(v){return !v||vero(v);});});
+    var ieriOk=!vero(at(ck(ieri,HOURS[2]))[0]);
+    var di_nuovo=segnaGiornoFatto(d,function(){return true;});
+    try{if(prima!=null)localStorage.setItem(K,prima);else localStorage.removeItem(K);}catch(e){}
+    if(domani)return "ha segnato un giorno che deve ancora venire";
+    if(n!==6)return "segnate "+n+" mezz'ore (attese 6: quattro da fare e due spuntate a mano)";
+    if(!tutte)return "qualcosa di oggi non conta come fatto";
+    if(!ieriOk)return "ha toccato anche ieri";
+    return di_nuovo?"si ripete":true;});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
@@ -2937,4 +2957,7 @@
   document.title=(ko?"FALLITI "+ko+" su "+(ok+ko):"TUTTI OK "+ok+" controlli")+
       (T.length?" || "+T.join(" || "):"");
   }
-  if(rinviati.length)setTimeout(verdetto,400);else verdetto();
+  /* i controlli rinviati fanno giri con attese vere (file, gist): 400 ms
+     bastavano ai primi, non a quelli che rimettono un piano e ridisegnano
+     tutto su una finestra piccola */
+  if(rinviati.length)setTimeout(verdetto,2000);else verdetto();

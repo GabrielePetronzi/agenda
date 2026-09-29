@@ -1838,7 +1838,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="29 set 2026 · c";
+const VERSIONE="29 set 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -6390,6 +6390,37 @@ function ripBar(ricalcola){
     ripBar(true);};
 }
 
+/* ---------- un giorno segnato fatto, una volta sola ----------
+   Il 29 settembre, dopo la serata passata a recuperare il piano: "spuntami
+   solo per questa volta tutto quello di oggi come fatto". Il link
+   ?fatto=AAAA-MM-GG, dopo averlo chiesto, segna come fatte davvero tutte le
+   mezz'ore di quel giorno nel piano aperto — anche quelle spuntate a mano,
+   che di solito non contano. Una volta per giorno, mai per un giorno che
+   deve ancora venire. Non cambia la regola: la spunta a mano continua a non
+   contare. */
+function segnaGiornoFatto(d,chiedi){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d>iso(new Date()))return 0;
+  const K="piano-6272-fatto-"+d;
+  try{if(localStorage.getItem(K))return 0;}catch(e){}
+  const pre=PRE(),chiavi=Object.keys(state.cells).filter(k=>k.indexOf(pre+d+".")===0);
+  let n=0;chiavi.forEach(k=>at(k).forEach(v=>{if(v&&!vero(v))n++;}));
+  if(!n){toast("Il "+fmt(parse(d))+" è già tutto fatto");return 0;}
+  if(chiedi&&!chiedi("Segno come fatte le "+hrs(n)+" ancora da fare del "+fmt(parse(d))+
+      "? Contano come fatte davvero, solo per questa volta."))return 0;
+  chiavi.forEach(k=>{const arr=at(k).slice();
+    arr.forEach(v=>{if(v&&!vero(v)){v.done=1;delete v.m;delete v.nd;}});setAt(k,arr);});
+  try{localStorage.setItem(K,"1");}catch(e){}
+  afterEdit(hrs(n)+" del "+fmt(parse(d))+" segnate come fatte");lateBar();
+  return n;
+}
+function fattoDaLink(){
+  const m=(location.search||"").match(/[?&]fatto=(\d{4}-\d{2}-\d{2})/);
+  if(!m)return;
+  /* il link si toglie dall'indirizzo: ricaricando non si ripete */
+  try{history.replaceState(null,"",location.pathname+location.hash);}catch(e){}
+  segnaGiornoFatto(m[1],t=>confirm(t));
+}
+
 /* ---------- il backup su un file del Mac ----------
    Il 28 settembre "Cancella dati di navigazione" ha tolto il piano, e con lui
    tutte le copie di sicurezza: stavano nello stesso posto, la memoria del
@@ -6986,6 +7017,7 @@ window.addEventListener("afterprint",()=>{
   ripescaDalGist();
   ripBar(true);
   fileAvvio();
+  fattoDaLink();
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
   if(fuori)setTimeout(()=>toast(hrs(fuori)+" fuori dalla fascia "+dayFrom()+"–"+dayTo()),900);
