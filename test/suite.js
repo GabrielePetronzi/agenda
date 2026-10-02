@@ -1487,6 +1487,53 @@
     if(!tutte)return "qualcosa di oggi non conta come fatto";
     if(!ieriOk)return "ha toccato anche ieri";
     return di_nuovo?"si ripete":true;});
+  /* 2 ottobre: "il lavoro non si spunta piu' in automatico". Il segno
+     "l'hai tolta apposta" viaggiava con le settimane incollate. */
+  t("incollare una settimana fa blocchi nuovi: niente spunte e niente segni",function(){
+    pulisci();apri();
+    var lun=monday(new Date()),prima=iso(addDays(lun,-7));
+    state.anchor[state.ctx]=prima;applySpan();render();
+    placeRun(prima,HOURS[2],{i:WORKID,a:"LAV",len:4},0);
+    var a=at(ck(prima,HOURS[2])).slice();a[0]=Object.assign({},a[0],{nd:1});setAt(ck(prima,HOURS[2]),a);
+    placeRun(prima,HOURS[8],{i:it[0].id,a:"SCH",len:2,done:1,m:1},0);
+    copyWeek(0);pasteWeek(1);
+    var dopo=iso(addDays(lun,0));
+    var v1=at(ck(dopo,HOURS[2]))[0],v2=at(ck(dopo,HOURS[8]))[0];
+    state.clip=null;apri();
+    if(!v1||!v2)return "la settimana non e' stata incollata";
+    if(v1.nd)return "il lavoro incollato si porta dietro il segno 'tolto apposta'";
+    return (v2.done||v2.m)?"lo schema incollato nasce gia' spuntato":true;});
+  t("aprendo un piano vecchio il lavoro col segno 'tolto apposta' torna a spuntarsi",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1)),fra=iso(addDays(new Date(),3));
+    var pre=PRE(),d={v:7,cells:{}};
+    d.cells[pre+ieri+"."+HOURS[2]]=[{i:WORKID,a:"LAV",nd:1}];
+    d.cells[pre+ieri+"."+HOURS[6]]=[{i:it[0].id,a:"LEZ",nd:1}];     /* lezione passata tolta: resta */
+    d.cells[pre+fra+"."+HOURS[6]]=[{i:it[0].id,a:"LEZ",nd:1}];      /* lezione futura: il segno va via */
+    var sv_=state.piano;
+    state.cells=JSON.parse(JSON.stringify(d.cells));migrate(d);autoLessons();
+    var lav=at(pre+ieri+"."+HOURS[2])[0],lez=at(pre+ieri+"."+HOURS[6])[0],fut=at(pre+fra+"."+HOURS[6])[0];
+    state.piano=sv_;pulisci();apri();
+    if(!lav||!lav.done)return "il lavoro di ieri non si e' spuntato";
+    if(lez.done)return "la lezione tolta apposta si e' rispuntata";
+    return fut.nd?"la lezione futura ha ancora il segno":true;});
+  t("il link segna fatta una materia sola in un intervallo di giorni",function(){
+    pulisci();apri();
+    var lun=monday(new Date()),d0=iso(addDays(lun,-7)),d4=iso(addDays(lun,-3));
+    var o=it[2],K="piano-6272-fatto-"+d0+".."+d4+"-"+o.id;
+    try{localStorage.removeItem(K);}catch(e){}
+    for(var g=0;g<5;g++){var d=iso(addDays(lun,-7+g));
+      placeRun(d,HOURS[2],{i:o.id,a:"SCH",len:2},0);placeRun(d,HOURS[6],{i:it[0].id,a:"LET",len:2},0);}
+    placeRun(iso(addDays(lun,-2)),HOURS[2],{i:o.id,a:"SCH",len:2},0);    /* sabato: fuori */
+    var n=segnaGiornoFatto(d0,function(){return true;},d4,o.id);
+    var altre=0,sab=vero(at(ck(iso(addDays(lun,-2)),HOURS[2]))[0]);
+    for(var g2=0;g2<5;g2++)if(vero(at(ck(iso(addDays(lun,-7+g2)),HOURS[6]))[0]))altre++;
+    var due=segnaGiornoFatto(d0,function(){return true;},d4,o.id);
+    try{localStorage.removeItem(K);}catch(e){}
+    if(n!==10)return "segnate "+n+" mezz'ore (attese 10)";
+    if(altre)return "ha segnato anche un'altra materia";
+    if(sab)return "ha segnato un giorno fuori dall'intervallo";
+    return due?"si ripete":true;});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));

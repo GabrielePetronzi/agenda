@@ -1838,9 +1838,9 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="29 set 2026 · d";
+const VERSIONE="2 ott 2026 · a";
 const KEY="piano-6272-v5";
-let state={v:7,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
+let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
            pomConf:null,pomRun:null,pomLog:null,log:{},dayFrom:8,dayTo:24,
            custom:[],cells:{},colors:{},anchor:{},clip:null};
@@ -2491,7 +2491,24 @@ function migrate(d){
   if(!d.v||d.v<7){
     state.piano="LM18";state.year=1;state.ctx="1";state.anchor={};moved++;
   }
-  state.v=7;
+  /* v8: il segno "nd" (l'hai tolta apposta, non rispuntarla) viaggiava con
+     le copie di settimane e giorni: copiata una settimana con un lavoro tolto,
+     tutte le settimane dopo nascevano col lavoro che non si spuntava piu' da
+     solo. Il 2 ottobre non si spuntava nessun lavoro della settimana. Una
+     volta sola: via il segno dal lavoro e dalla NASPI dovunque — sono orari
+     che decide qualcun altro — e da qualunque blocco che deve ancora
+     venire, dove un "l'hai tolta apposta" non puo' esserci. */
+  if(!d.v||d.v<8){
+    const oggi=iso(new Date());
+    Object.keys(state.cells).forEach(k=>{
+      const dt=k.split(".").slice(-2)[0];let c=false;
+      const arr=at(k).map(v=>{
+        if(v&&v.nd&&(v.a==="LAV"||v.a==="NAS"||dt>oggi)){v=Object.assign({},v);delete v.nd;c=true;}
+        return v;});
+      if(c){state.cells[k]=arr;moved++;}
+    });
+  }
+  state.v=8;
   if(moved)save();
 }
 
@@ -3371,13 +3388,21 @@ function copyWeek(p){
   state.clip={data:data,label:"Settimana "+(p+1)+" · "+fmt(panelStart(p)),hours:n};
   save("Copiate "+hrs(n));panels();status();
 }
+/* Quello che si incolla e' un piano nuovo, non una copia di quello che e'
+   successo: niente spunte, niente "spuntata a mano", niente "l'hai tolta
+   apposta". Prima si copiavano anche quelle, e una settimana incollata nasceva
+   gia' fatta — o col lavoro che non si spuntava piu'. */
+function fresco(v){
+  if(!v)return v;
+  const e={i:v.i,a:v.a};if(v.n)e.n=v.n;return e;
+}
 function pasteWeek(p){
   if(!state.clip)return;
   const dates=panelDates(p);
   dates.forEach(d=>HOURS.forEach(hr=>delete state.cells[ck(iso(d),hr)]));
   Object.keys(state.clip.data).forEach(k=>{
     const q=k.split("."),v=state.clip.data[k];
-    setAt(ck(iso(dates[+q[0]]),+q[1]),Array.isArray(v)?v:[v]);
+    setAt(ck(iso(dates[+q[0]]),+q[1]),(Array.isArray(v)?v:[v]).map(fresco));
   });
   save("Incollata nella settimana "+(p+1));commit();panels();refreshMetrics();
 }
@@ -5606,7 +5631,7 @@ function pasteBlocks(dove){
        corsie non si incolla, invece di sovrascrivere in silenzio */
     const L=corsiaPerArrivo(d,st,b.len,null);
     if(L<0){senzaPosto++;return;}
-    placeRun(d,st,{i:b.i,a:b.a,n:b.n,done:b.done,m:b.m,len:b.len},L);
+    placeRun(d,st,{i:b.i,a:b.a,n:b.n,len:b.len},L);
     messi++;
   });
   /* la selezione ha finito il suo lavoro: quello che era scelto e' negli
@@ -6398,27 +6423,45 @@ function ripBar(ricalcola){
    che di solito non contano. Una volta per giorno, mai per un giorno che
    deve ancora venire. Non cambia la regola: la spunta a mano continua a non
    contare. */
-function segnaGiornoFatto(d,chiedi){
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d>iso(new Date()))return 0;
-  const K="piano-6272-fatto-"+d;
+function segnaGiornoFatto(d,chiedi,a,materia){
+  a=a||d;
+  const ok=x=>/^\d{4}-\d{2}-\d{2}$/.test(x);
+  if(!ok(d)||!ok(a)||a<d||d>iso(new Date()))return 0;
+  if(a>iso(new Date()))a=iso(new Date());
+  const m=map();
+  let ids=null,nome="";
+  if(materia){
+    const q=String(materia).toLowerCase();
+    const o=items().filter(x=>x.kind==="c"&&(x.id===materia||x.name.toLowerCase().indexOf(q)>=0));
+    if(!o.length){toast("Nessuna materia che si chiami “"+materia+"”");return 0;}
+    ids=new Set(o.map(x=>x.id));nome=o.map(x=>x.name).join(", ");
+  }
+  const K="piano-6272-fatto-"+d+(a!==d?".."+a:"")+(materia?"-"+materia:"");
   try{if(localStorage.getItem(K))return 0;}catch(e){}
-  const pre=PRE(),chiavi=Object.keys(state.cells).filter(k=>k.indexOf(pre+d+".")===0);
-  let n=0;chiavi.forEach(k=>at(k).forEach(v=>{if(v&&!vero(v))n++;}));
-  if(!n){toast("Il "+fmt(parse(d))+" è già tutto fatto");return 0;}
-  if(chiedi&&!chiedi("Segno come fatte le "+hrs(n)+" ancora da fare del "+fmt(parse(d))+
+  const pre=PRE();
+  const chiavi=Object.keys(state.cells).filter(k=>{
+    if(k.indexOf(pre)!==0)return false;
+    const dt=k.slice(pre.length).split(".")[0];return dt>=d&&dt<=a;});
+  const conta=v=>v&&!vero(v)&&(!ids||ids.has(v.i));
+  let n=0;chiavi.forEach(k=>at(k).forEach(v=>{if(conta(v))n++;}));
+  const quando=a===d?"del "+fmt(parse(d)):"dal "+fmt(parse(d))+" al "+fmt(parse(a));
+  if(!n){toast((nome?nome+": ":"")+"è già tutto fatto "+quando);return 0;}
+  if(chiedi&&!chiedi("Segno come fatte le "+hrs(n)+" ancora da fare "+(nome?"di "+nome+" ":"")+quando+
       "? Contano come fatte davvero, solo per questa volta."))return 0;
   chiavi.forEach(k=>{const arr=at(k).slice();
-    arr.forEach(v=>{if(v&&!vero(v)){v.done=1;delete v.m;delete v.nd;}});setAt(k,arr);});
+    arr.forEach(v=>{if(conta(v)){v.done=1;delete v.m;delete v.nd;}});setAt(k,arr);});
   try{localStorage.setItem(K,"1");}catch(e){}
-  afterEdit(hrs(n)+" del "+fmt(parse(d))+" segnate come fatte");lateBar();
+  afterEdit(hrs(n)+(nome?" di "+nome:"")+" "+quando+" segnate come fatte");lateBar();
   return n;
 }
+/* ?fatto=AAAA-MM-GG oppure ?fatto=AAAA-MM-GG..AAAA-MM-GG, e &materia=nome
+   (basta un pezzo del nome) per una materia sola */
 function fattoDaLink(){
-  const m=(location.search||"").match(/[?&]fatto=(\d{4}-\d{2}-\d{2})/);
-  if(!m)return;
-  /* il link si toglie dall'indirizzo: ricaricando non si ripete */
+  const q=new URLSearchParams(location.search||"");
+  const f=q.get("fatto");if(!f)return;
   try{history.replaceState(null,"",location.pathname+location.hash);}catch(e){}
-  segnaGiornoFatto(m[1],t=>confirm(t));
+  const [d,a]=f.split("..");
+  segnaGiornoFatto(d,t=>confirm(t),a||d,q.get("materia"));
 }
 
 /* ---------- il backup su un file del Mac ----------
@@ -6778,7 +6821,7 @@ document.getElementById("dyPaste").onclick=()=>{
   HOURS.forEach(sl=>delete state.cells[ck(d,sl)]);
   Object.keys(state.dayClip.data).forEach(sl=>{
     const v=state.dayClip.data[sl];
-    setAt(ck(d,+sl),Array.isArray(v)?JSON.parse(JSON.stringify(v)):[v]);
+    setAt(ck(d,+sl),(Array.isArray(v)?v:[v]).map(fresco));
   });
   closeDay();save("Giorno incollato");commit();drawDay(d);refreshMetrics();
 };
