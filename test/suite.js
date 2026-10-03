@@ -350,10 +350,11 @@
 
   /* ---------- blocchi ---------- */
   pulisci();apri();
-  t("la mezz'ora non scrive il nome dell'attività",function(){
+  /* dal 3 ottobre si': "a lavoro metti anche la scritta e mi piace molto" */
+  t("la mezz'ora scrive anche il nome dell'attività",function(){
     placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:1},0);render();
     var b=document.querySelector('.blk.mini');
-    return b?eq(b.textContent.indexOf("Esercizi")<0,true,"il testo è: "+b.textContent):"nessun blocco mini";});
+    return b?eq(b.textContent.indexOf("Esercizi")>=0,true,"il testo è: "+b.textContent):"nessun blocco mini";});
   t("la mezz'ora ha la fascia del motivo",function(){
     return eq(!!document.querySelector(".blk.mini span.tr"),true);});
   t("la fascia del motivo non è mai alta zero",function(){
@@ -408,10 +409,14 @@
          di volte: e' li' che nasceva la fila tagliata a meta' */
       if(d[2]&&rr==="repeat"&&Math.abs(r.height/n[1]-Math.round(r.height/n[1]))>.06)
         mal.push(b.dataset.att+" "+(r.height/n[1]).toFixed(2)+" file in verticale");
-      if(n[1]>r.height+.6)
-        mal.push(b.dataset.att+" alta "+n[1].toFixed(1)+" in "+Math.round(r.height));
-      if(d[2]&&n[0]>r.width+.6)
-        mal.push(b.dataset.att+" larga "+n[0].toFixed(1)+" in "+Math.round(r.width));
+      /* le figure stanno al centro di una casella piu' grande: conta la
+         figura, non la casella */
+      var fh=d[2]?figMisura(d).F:n[1],fw=d[2]?figMisura(d).FW:n[0];
+      var rb=b.getBoundingClientRect();
+      if(fh>Math.min(r.height,rb.height)+.6)
+        mal.push(b.dataset.att+" alta "+fh.toFixed(1)+" in "+Math.round(Math.min(r.height,rb.height)));
+      if(d[2]&&fw>r.width+.6)
+        mal.push(b.dataset.att+" larga "+fw.toFixed(1)+" in "+Math.round(r.width));
     });
     return mal.length?mal.join(" \u00b7 "):true;});
 
@@ -741,7 +746,9 @@
     return senza.length?"senza trama: "+senza.map(function(a){return a.n;}).join(", "):true;});
 
   /* ---------- interfaccia ---------- */
-  t("il motivo non finisce sotto il quadratino della spunta",function(){
+  /* Dal 3 ottobre il motivo copre tutto il blocco, quadratino compreso: il
+     quadratino deve coprirlo, cioe' avere un fondo pieno e stare sopra. */
+  t("il motivo non si vede attraverso il quadratino della spunta",function(){
     pulisci();apri();
     ACTS.forEach(function(a,i){placeRun(G[0],H0+i*4,{i:it[0].id,a:a.k,len:(i%3)+1},0);});
     render();
@@ -749,7 +756,10 @@
       var tr=b.querySelector("span.tr"),tk=b.querySelector(".tick");
       if(!tr||!tk)return false;
       var A=tr.getBoundingClientRect(),B=tk.getBoundingClientRect();
-      return A.right>B.left+1&&A.left<B.right-1&&A.bottom>B.top+1&&A.top<B.bottom-1;});
+      var sopra=A.right>B.left+1&&A.left<B.right-1&&A.bottom>B.top+1&&A.top<B.bottom-1;
+      if(!sopra)return false;
+      var bg=getComputedStyle(tk).backgroundColor,z=+getComputedStyle(tk).zIndex||0;
+      return /rgba\(.*,\s*0\)$/.test(bg)||bg==="transparent"||z<2;});
     return male.length?male.map(function(b){
       var A=b.querySelector("span.tr").getBoundingClientRect(),
           B=b.querySelector(".tick").getBoundingClientRect();
@@ -1536,7 +1546,7 @@
     return due?"si ripete":true;});
   /* 3 ottobre: "tutti i motivi devono avere la stessa dimensione e numero,
      in base al numero di slot". */
-  t("i motivi hanno tutti la stessa misura, e una fila per mezz'ora",function(){
+  t("i motivi hanno tutti la stessa misura, e una fila per ogni mezz'ora",function(){
     pulisci();apri();
     var A=["SCH","LEZ","VID","RIP","NAS"];
     for(var g=0;g<5;g++){placeRun(G[g],H0+2,{i:it[g%3].id,a:A[g],len:3},0);placeRun(G[g],H0+8,{i:it[g%3].id,a:A[(g+1)%5],len:5},0);}
@@ -1555,8 +1565,9 @@
     var lunghe=Object.keys(file);
     for(var i=0;i<lunghe.length;i++)if(Object.keys(file[lunghe[i]]).length!==1)guai.push(lunghe[i]+" mezz'ore: "+Object.keys(file[lunghe[i]]).join(" o ")+" file");
     if(guai.length)return guai.join(" · ");
-    return (file[5]&&file[3]&&+Object.keys(file[5])[0]-+Object.keys(file[3])[0]===2)?true:
-      "da 3 a 5 mezz'ore le file non crescono di 2: "+JSON.stringify(file);});
+    /* una fila per ogni mezz'ora, la prima compresa */
+    return (file[5]&&file[3]&&+Object.keys(file[5])[0]===5&&+Object.keys(file[3])[0]===3)?true:
+      "le file non sono una per mezz'ora: "+JSON.stringify(file);});
   /* 3 ottobre: "se salto la pausa deve essere considerata come tempo fatto" */
   t("saltare la pausa conta la pausa intera, nel registro e nelle mezz'ore",function(){
     return alleSette(function(){
@@ -1809,7 +1820,10 @@
     if(!eraDoppia)return true;      /* qui non va a capo: niente da sfoltire */
     return (tolta&&tenuta)?true:
       "stretta: parola tolta "+tolta+" · larga: parola tenuta "+tenuta;});
-  t("quando la prima riga va a capo nella griglia, la parola sparisce",function(){
+  /* Dal 3 ottobre la parola dell'attivita' va a capo e resta, se il blocco
+     ha posto: il motivo sta dietro e non chiede piu' spazio sotto il testo.
+     Quello che conta e' che il testo non esca dal blocco. */
+  t("quando la prima riga va a capo nella griglia, il testo resta dentro al blocco",function(){
     pulisci();apri();
     var lungo=items().filter(function(x){return /dichiar/i.test(x.name||"");})[0]||it[2];
     var G7=[];document.querySelectorAll("td.c").forEach(function(x){
@@ -1820,8 +1834,9 @@
     var l1=document.querySelector(".blk em .l1");
     if(!l1)return true;   /* niente prima riga: o è una striscia o il blocco non c'è */
     var b=l1.querySelector("b");
-    var doppia=l1.getBoundingClientRect().height>b.getBoundingClientRect().height*1.5;
-    return !doppia?true:"la prima riga è ancora doppia";});
+    var bl=l1.closest(".blk").getBoundingClientRect(),r=l1.getBoundingClientRect();
+    if(r.bottom>bl.bottom+1)return "la prima riga esce dal blocco: "+Math.round(r.bottom-bl.bottom)+" px";
+    return /Lezione/.test(l1.textContent)?true:"nel blocco da un'ora la parola dell'attivita' e' sparita";});
 
   /* La data d'esame si mette dalla riga della materia, che e' dove uno la
      cerca appena aggiunta una materia. Prima stava dentro un pannello in

@@ -568,6 +568,14 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
    la riga della griglia cambiava misura o il testo andava a capo. */
 .blk em{display:flex;flex-direction:column;font-style:normal;padding:4px 7px 0;
   overflow:hidden;height:100%;position:relative;z-index:1}
+/* il motivo dietro a tutto il blocco, una fila per mezz'ora */
+.blk em span.tr.tutto{position:absolute;inset:0;margin:0;flex:none;z-index:-1;min-width:0}
+/* Le scritte hanno un bordo pieno del colore del blocco: dove passano sopra
+   una figura la coprono quanto basta a leggerle, e la figura resta al suo
+   posto. L'iconcina dell'attivita' accanto al nome non serve piu': lo dice
+   gia' la fila di figure, in ogni mezz'ora. Torna quando il motivo non ci sta. */
+.blk em b,.blk em s{-webkit-text-stroke:4px var(--bc);paint-order:stroke fill}
+.blk em .l1 s:not(.soloico) .ico{display:none}
 /* Nome e attività sulla stessa riga se ci stanno; se no l'attività va a capo
    da sola, invece di troncarle tutt'e due come faceva la riga forzata. */
 .blk em .l1{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px;
@@ -606,7 +614,10 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
    centoquarantotto pixel gli restavano dieci, cioè niente. Meglio un nome
    troncato e un'attività riconoscibile che il contrario. */
 .blk.mini em b{padding-right:0;flex:0 1 auto;max-width:56%}
-.blk.mini em s{margin-top:0;flex:0 1 auto;min-width:0}
+.blk.mini em s{margin-top:0;flex:0 1 auto;min-width:0;overflow:hidden}
+.blk.mini em s i{white-space:nowrap;min-width:0}
+.blk.mini em b{flex:0 0 auto;max-width:70%}
+.blk.mini em s:not(.soloico) .ico{display:none}
 /* margine suo: quello della fascia orizzontale esce di sette pixel dai bordi
    per arrivare al filo del blocco, ma qui la fascia sta di fianco al testo e
    quei sette pixel se li mangia dalla distanza dal quadratino della spunta —
@@ -645,8 +656,7 @@ html[data-theme="light"] .blk:hover{filter:brightness(.96)}
   background-image:var(--tr);
   background-size:var(--trs,auto);background-repeat:var(--trr,repeat);
   background-position:var(--trp,100% 50%);
-  -webkit-mask-image:linear-gradient(90deg,transparent 0 60%,#000 68%);
-  mask-image:linear-gradient(90deg,transparent 0 60%,#000 68%)}
+  background-position:var(--trp,0 0)}
 .blk.done{opacity:.58}
 .blk.done em b{text-decoration:line-through;text-decoration-thickness:1.5px}
 .blk.done::after{content:"";position:absolute;inset:0;pointer-events:none;
@@ -1838,7 +1848,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="3 ott 2026 · b";
+const VERSIONE="3 ott 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5212,6 +5222,11 @@ function sfoltisci(root){
     const riga=nome.getBoundingClientRect().height||14;
     const doppia=()=>l1.getBoundingClientRect().height>riga*1.5;
     if(!doppia())return;
+    /* Dal 3 ottobre il motivo sta dietro a tutto il blocco e non chiede piu'
+       spazio sotto il testo: se il blocco ha posto per due righe, l'attivita'
+       va a capo e resta scritta. */
+    const bl=l1.closest(".blk"),alto=bl?bl.getBoundingClientRect().height:0;
+    if(alto>=l1.getBoundingClientRect().height+6)return;
     const par=l1.querySelector("s > i");
     if(par)par.remove();
     /* con un nome lungo e una colonna stretta non basta togliere la parola:
@@ -5260,104 +5275,45 @@ function motivi(root){
         {b,d,f:null,w:rb.width*.36,h:rb.height}:null;
       return {b,d,f,rb};
     }).filter(Boolean);
-  /* Prima si fa spazio: in una striscia la figura vuole una larghezza pari
-     alla sua altezza per starci intera, e gliela deve cedere il nome della
-     materia, che ha i puntini e sopravvive troncato. Si stringe il nome e non
-     si allarga la fascia: un minimo sulla fascia la fa sbordare oltre il
-     rientro destro e finisce sotto il quadratino della spunta — che è
-     esattamente il difetto da cui siamo partiti. Al nome resta comunque un
-     terzo abbondante: prima viene lui. */
+  /* Fino al 3 ottobre qui si stringevano il nome e la nota delle strisce
+     per fare posto al motivo accanto. Ora il motivo sta dietro, e nella riga
+     ci stanno il nome e l'attivita': il nome ha la precedenza, l'attivita'
+     si accorcia coi puntini. */
+  /* Poi si misura. Dal 3 ottobre il motivo copre tutto il blocco, dietro
+     alle scritte, con una fila di figure per ogni mezz'ora — la prima
+     compresa, quella col nome — tutte della stessa misura e alla stessa
+     distanza: "tutti gli slot (1, 2, 3, 4...) devono avere lo stesso numero
+     di motivi". Una mezz'ora e' una fila, quattro mezz'ore sono quattro file
+     uguali. Le scritte stanno sopra, con un alone del colore del blocco che
+     le stacca dalle figure. */
+  bl.forEach(o=>{if(o.f){o.f.classList.add("tutto");o.f.style.flex="";o.f.style.marginTop="";}});
   bl.forEach(o=>{
-    if(!o.f||!o.b.classList.contains("mini"))return;
-    const em=o.f.parentNode,nome=em.querySelector("b");if(!nome)return;
-    const cs=getComputedStyle(em),
-      W=em.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),
-      vuole=o.d[2]?figMisura(o.d).FW+4:Math.min(o.d[0]*2,26),
-      hoNome=nome.getBoundingClientRect().width,
-      manca=vuole-o.f.getBoundingClientRect().width;
-    /* si toglie al nome quello che manca alla fascia, non un pollice in più, e
-       comunque mai sotto un terzo della striscia */
-    if(manca>1)nome.style.maxWidth=Math.round(Math.max(W*.34,hoNome-manca))+"px";
-  });
-  /* La nota, in una striscia con la nota, viene dopo il nome e prima del
-     motivo: se dopo aver stretto il nome la fascia è ancora niente, un po' lo
-     cede anche lei — i puntini ce li ha. */
-  bl.forEach(o=>{
-    if(!o.f||!o.b.classList.contains("mini"))return;
-    const par=o.f.parentNode.querySelector("s");
-    if(!par||!par.textContent.trim())return;
-    const vuole=o.d[2]?figMisura(o.d).FW+4:Math.min(o.d[0]*2,26),
-      hoPar=par.getBoundingClientRect().width,
-      manca=vuole-o.f.getBoundingClientRect().width;
-    if(manca>1)par.style.maxWidth=Math.round(Math.max(26,hoPar-manca))+"px";
-  });
-  /* Poi si misura, a larghezze assestate. Dal 3 ottobre il motivo ha una
-     misura sola, decisa dall'altezza della mezz'ora e non dal blocco: prima
-     ogni blocco scalava la sua figura per riempire la fascia che gli restava,
-     e due schemi uno accanto all'altro avevano figure di misura e numero
-     diversi — "mi disturba visivamente". Ora una fila di figure per ogni
-     mezz'ora libera sotto il testo, tutte della stessa misura e alla stessa
-     distanza: piu' mezz'ore, piu' file, e basta. */
-  bl.forEach(o=>{if(o.f){o.f.style.flex="";o.f.style.marginTop="";}});
-  bl.forEach(o=>{
-    let w=o.w,h=o.h;
-    if(o.f){const r=o.f.getBoundingClientRect();w=r.width;h=r.height;}
+    const r=o.b.getBoundingClientRect(),w=r.width,h=r.height;
     const [tw,th,figura]=o.d,a=o.b.dataset.att;
     if(!(w>3&&h>3)){ripiego(o);return;}
-    /* i tessuti — righe, quadretti, punti — a misura naturale, attaccati,
-       dall'angolo: sono gia' uguali dappertutto */
     if(!figura){
-      /* in una striscia piu' bassa del tessuto, il tessuto si rimpicciolisce
-         quanto basta: tagliato a meta' sembra un'altra cosa */
-      const sc=Math.min(1,h/th);
-      o.b.style.setProperty("--trs",(tw*sc).toFixed(1)+"px "+(th*sc).toFixed(1)+"px");
+      /* i tessuti — righe, quadretti, punti — a misura naturale, dall'angolo */
+      o.b.style.setProperty("--trs",tw+"px "+th+"px");
       o.b.style.setProperty("--trr","repeat");
       o.b.style.setProperty("--trp","0 0");
       return;
     }
-    const {F,FW}=figMisura(o.d);
-    /* striscia da mezz'ora: una figura sola, della misura di tutte — o, se
-       la striscia e' piu' stretta, la piu' grande che ci sta intera, mai
-       sotto i nove pixel */
-    if(!o.f||o.b.classList.contains("mini")){
-      const Fs=Math.min(F,Math.floor(h)-1,Math.floor((w-2)*th/tw));
-      if(Fs<9){ripiego(o);return;}
-      const cw=Math.min(Math.floor(w),cellaW()),ch=Math.floor(h);
-      o.b.style.setProperty("--tr",cella(a,cw,ch,Fs));
-      o.b.style.setProperty("--trs",cw+"px "+ch+"px");
-      o.b.style.setProperty("--trr","no-repeat");
-      o.b.style.setProperty("--trp",o.f?"50% 50%":"100% 50%");
-      return;
-    }
-    /* La casella di una figura e' larga quasi due figure: la distanza fra
-       una e l'altra e' sempre quella, e quante ne stanno in fila dipende solo
-       dalla larghezza della colonna — uguale per tutti i blocchi della
-       settimana. */
-    if(w<FW+2||h<F){ripiego(o);return;}
+    const {FW}=figMisura(o.d);
+    if(w<FW+2){ripiego(o);return;}
     const CW=Math.min(Math.floor(w),cellaW());
-    const k=Math.floor((h+1)/ROW);
-    if(k>=1){
-      /* la fascia si accorcia a un numero intero di mezz'ore, appoggiata in
-         fondo: le file cadono sulle mezz'ore del blocco */
-      o.f.style.flex="0 0 "+(k*ROW)+"px";o.f.style.marginTop="auto";
-      o.b.style.setProperty("--tr",cella(a,CW,ROW));
-      o.b.style.setProperty("--trs",CW+"px "+ROW+"px");
-      o.b.style.setProperty("--trr","space repeat");
-      o.b.style.setProperty("--trp","0 100%");
-    }else{
-      const ch=Math.floor(h);
-      o.b.style.setProperty("--tr",cella(a,CW,ch));
-      o.b.style.setProperty("--trs",CW+"px "+ch+"px");
-      o.b.style.setProperty("--trr","space no-repeat");
-      o.b.style.setProperty("--trp","0 50%");
-    }
+    o.b.style.setProperty("--tr",cella(a,CW,ROW));
+    o.b.style.setProperty("--trs",CW+"px "+ROW+"px");
+    o.b.style.setProperty("--trr","space repeat");
+    o.b.style.setProperty("--trp","0 0");
   });
 }
 /* La misura delle figure: quasi tutta la mezz'ora — a poco piu' di meta'
    (3 ottobre) "sono troppo piccoli, non riesco quasi a vederli". Mai sotto
    gli undici pixel ne' sopra i ventidue. */
 function figMisura(d){
-  const F=Math.max(11,Math.min(22,Math.round(ROW*0.82)));
+  /* e mai piu' alta della mezz'ora meno quattro pixel: la striscia da
+     mezz'ora e' alta la mezz'ora meno due, e la figura ci deve stare intera */
+  const F=Math.max(9,Math.min(22,Math.round(ROW*0.82),ROW-4));
   return {F:F,FW:F*d[0]/d[1]};
 }
 /* La casella e' la stessa per tutte le attivita': larga poco piu' della
@@ -5459,6 +5415,7 @@ function drawDay(dateIso,scope){
          legenda. E siccome le otto tinte seguono le fasi del metodo, una
          settimana si legge per quello che è: dove acquisisci, dove applichi. */
       bl.style.background=o.color;
+      bl.style.setProperty("--bc",o.color);
       bl.style.setProperty("--tr",ATRAMA[r.v.a]||"none");
       /* sempre nera: i fondi sono tutti chiari apposta, così non c'è un blocco
          con la scritta bianca e uno con la nera a seconda della materia */
@@ -5475,8 +5432,10 @@ function drawDay(dateIso,scope){
         /* Niente icona: a mezz'ora si prende ventun pixel di una fascia che ne
            aveva dieci, e dice la stessa cosa che dice il motivo. Con una nota
            l'icona resta, perché lì il motivo cede il posto al testo. */
+        /* il nome dell'attivita' anche qui, come nel lavoro (3 ottobre: "a
+           lavoro metti anche la scritta e mi piace molto, negli altri no") */
         corpo=nt?"<s>"+icon(r.v.a,11)+"<i>"+nt+"</i></s>"
-                :"<s></s>";
+                :"<s>"+icon(r.v.a,11)+"<i>"+a.n+"</i></s>";
         corpo+=(due?"":'<span class="tr"></span>');
       }else if(nt&&alt<62){
         /* Quando la colonna è stretta — la vista settimana sta a 147 pixel —
