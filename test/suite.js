@@ -1534,6 +1534,29 @@
     if(altre)return "ha segnato anche un'altra materia";
     if(sab)return "ha segnato un giorno fuori dall'intervallo";
     return due?"si ripete":true;});
+  /* 3 ottobre: "tutti i motivi devono avere la stessa dimensione e numero,
+     in base al numero di slot". */
+  t("i motivi hanno tutti la stessa misura, e una fila per mezz'ora",function(){
+    pulisci();apri();
+    var A=["SCH","LEZ","VID","RIP","NAS"];
+    for(var g=0;g<5;g++){placeRun(G[g],H0+2,{i:it[g%3].id,a:A[g],len:3},0);placeRun(G[g],H0+8,{i:it[g%3].id,a:A[(g+1)%5],len:5},0);}
+    render();
+    var misure={},file={},guai=[];
+    document.querySelectorAll(".blk[data-att]").forEach(function(b){
+      if(["SCH","LEZ","VID","RIP","NAS"].indexOf(b.dataset.att)<0||b.classList.contains("mini"))return;
+      var r=runAt(b.dataset.date,+b.dataset.start,+b.dataset.lane),f=b.querySelector("em > span.tr");
+      if(!f||f.style.display==="none")return;
+      misure[getComputedStyle(b).getPropertyValue("--trs").trim()]=1;
+      var n=Math.round(f.getBoundingClientRect().height/ROW);
+      (file[r.len]=file[r.len]||{})[n]=1;
+    });
+    var m=Object.keys(misure);
+    if(m.length!==1)return "misure diverse: "+m.join(" | ");
+    var lunghe=Object.keys(file);
+    for(var i=0;i<lunghe.length;i++)if(Object.keys(file[lunghe[i]]).length!==1)guai.push(lunghe[i]+" mezz'ore: "+Object.keys(file[lunghe[i]]).join(" o ")+" file");
+    if(guai.length)return guai.join(" · ");
+    return (file[5]&&file[3]&&+Object.keys(file[5])[0]-+Object.keys(file[3])[0]===2)?true:
+      "da 3 a 5 mezz'ore le file non crescono di 2: "+JSON.stringify(file);});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));

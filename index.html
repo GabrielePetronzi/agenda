@@ -1838,7 +1838,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="2 ott 2026 · a";
+const VERSIONE="3 ott 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5268,7 +5268,7 @@ function motivi(root){
     const em=o.f.parentNode,nome=em.querySelector("b");if(!nome)return;
     const cs=getComputedStyle(em),
       W=em.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),
-      vuole=o.d[2]?o.rb.height*o.d[0]/o.d[1]:Math.min(o.d[0]*2,26),
+      vuole=o.d[2]?figMisura(o.d).FW+4:Math.min(o.d[0]*2,26),
       hoNome=nome.getBoundingClientRect().width,
       manca=vuole-o.f.getBoundingClientRect().width;
     /* si toglie al nome quello che manca alla fascia, non un pollice in più, e
@@ -5282,55 +5282,100 @@ function motivi(root){
     if(!o.f||!o.b.classList.contains("mini"))return;
     const par=o.f.parentNode.querySelector("s");
     if(!par||!par.textContent.trim())return;
-    const vuole=o.d[2]?o.rb.height*o.d[0]/o.d[1]:Math.min(o.d[0]*2,26),
+    const vuole=o.d[2]?figMisura(o.d).FW+4:Math.min(o.d[0]*2,26),
       hoPar=par.getBoundingClientRect().width,
       manca=vuole-o.f.getBoundingClientRect().width;
     if(manca>1)par.style.maxWidth=Math.round(Math.max(26,hoPar-manca))+"px";
   });
-  /* poi si misura, a larghezze assestate */
+  /* Poi si misura, a larghezze assestate. Dal 3 ottobre il motivo ha una
+     misura sola, decisa dall'altezza della mezz'ora e non dal blocco: prima
+     ogni blocco scalava la sua figura per riempire la fascia che gli restava,
+     e due schemi uno accanto all'altro avevano figure di misura e numero
+     diversi — "mi disturba visivamente". Ora una fila di figure per ogni
+     mezz'ora libera sotto il testo, tutte della stessa misura e alla stessa
+     distanza: piu' mezz'ore, piu' file, e basta. */
+  bl.forEach(o=>{if(o.f){o.f.style.flex="";o.f.style.marginTop="";}});
   bl.forEach(o=>{
     let w=o.w,h=o.h;
     if(o.f){const r=o.f.getBoundingClientRect();w=r.width;h=r.height;}
-    const [tw,th,figura]=o.d;
+    const [tw,th,figura]=o.d,a=o.b.dataset.att;
     if(!(w>3&&h>3)){ripiego(o);return;}
-    /* Le figure hanno una misura loro, la stessa dappertutto: una lezione deve
-       essere la stessa lezione in un blocco da mezz'ora e in uno da tre ore,
-       se no il motivo non è un segno ma un caso. Mira a una volta e sei la
-       tile, poi arrotonda al numero di file che ci stanno intere: così
-       l'altezza torna esatta e non resta mai mezza figura in fondo. I tessuti
-       — righe, quadretti, punti — restano a misura naturale, che tagliati
-       restano quello che sono. */
-    const mira=figura?1.5:1;
-    let righe=1,dist=1e9;
-    for(let k=1;k<=9;k++){
-      const d=Math.abs(h/(k*th)-mira);
-      if(d<dist){dist=d;righe=k;}
+    /* i tessuti — righe, quadretti, punti — a misura naturale, attaccati,
+       dall'angolo: sono gia' uguali dappertutto */
+    if(!figura){
+      /* in una striscia piu' bassa del tessuto, il tessuto si rimpicciolisce
+         quanto basta: tagliato a meta' sembra un'altra cosa */
+      const sc=Math.min(1,h/th);
+      o.b.style.setProperty("--trs",(tw*sc).toFixed(1)+"px "+(th*sc).toFixed(1)+"px");
+      o.b.style.setProperty("--trr","repeat");
+      o.b.style.setProperty("--trp","0 0");
+      return;
     }
-    /* Il minimo di sette decimi serve a non stampare macchie; ma non puo'
-       far uscire la figura dalla fascia: su una fascia alta dieci pixel una
-       tile alta ventidue scalata a sette decimi ne misura quindici e si
-       taglia. Se non ci sta nemmeno cosi', piu' sotto cede all'icona. */
-    let s=Math.min(Math.max(.7,h/(righe*th)),h/th);
-    /* stretta: una sola, centrata, e non più larga della fascia */
-    const una=w<tw*s*1.9;
-    if(una)s=Math.min(s,w/tw);
-    /* Due strisce da mezz'ora nella stessa mezz'ora, su una colonna della
-       settimana: settanta pixel per un nome, una spunta e un simbolo. Lì il
-       motivo non ci sta e rimpicciolirlo fino a farcelo stare vuol dire
-       stampare una macchia da sei pixel. Meglio quello che il motivo doveva
-       dire, detto dall'icona: torna dentro la riga, alta undici, e la fascia
-       sparisce. È l'unico posto dove il motivo cede, e cede a un simbolo, non
-       al nulla. */
-    if(una&&s*th<9){ripiego(o);return;}
-    o.b.style.setProperty("--trs",(tw*s).toFixed(1)+"px "+(th*s).toFixed(1)+"px");
-    /* space: ne mette quante ce ne stanno intere e distribuisce l'avanzo negli
-       spazi fra una e l'altra. Ripetere e basta lasciava l'ultima figura
-       tagliata dal bordo destro — meno grave di una fila tagliata a metà, ma
-       sempre una figura a metà. Ai tessuti serve il contrario: righe e
-       quadretti devono attaccarsi, gli spazi vuoti si vedrebbero. */
-    o.b.style.setProperty("--trr",figura?"space":(righe>1?"repeat":"repeat-x"));
-    o.b.style.setProperty("--trp",(una||figura)?"50% 50%":"0 50%");
+    const {F,FW}=figMisura(o.d);
+    if(w<FW+2||h<F){ripiego(o);return;}
+    /* striscia da mezz'ora: una figura sola, della misura di tutte */
+    if(!o.f||o.b.classList.contains("mini")){
+      const cw=Math.min(Math.floor(w),cellaW()),ch=Math.floor(h);
+      o.b.style.setProperty("--tr",cella(a,cw,ch));
+      o.b.style.setProperty("--trs",cw+"px "+ch+"px");
+      o.b.style.setProperty("--trr","no-repeat");
+      o.b.style.setProperty("--trp",o.f?"50% 50%":"100% 50%");
+      return;
+    }
+    /* La casella di una figura e' larga quasi due figure: la distanza fra
+       una e l'altra e' sempre quella, e quante ne stanno in fila dipende solo
+       dalla larghezza della colonna — uguale per tutti i blocchi della
+       settimana. */
+    const CW=Math.min(Math.floor(w),cellaW());
+    const k=Math.floor((h+1)/ROW);
+    if(k>=1){
+      /* la fascia si accorcia a un numero intero di mezz'ore, appoggiata in
+         fondo: le file cadono sulle mezz'ore del blocco */
+      o.f.style.flex="0 0 "+(k*ROW)+"px";o.f.style.marginTop="auto";
+      o.b.style.setProperty("--tr",cella(a,CW,ROW));
+      o.b.style.setProperty("--trs",CW+"px "+ROW+"px");
+      o.b.style.setProperty("--trr","space repeat");
+      o.b.style.setProperty("--trp","0 100%");
+    }else{
+      const ch=Math.floor(h);
+      o.b.style.setProperty("--tr",cella(a,CW,ch));
+      o.b.style.setProperty("--trs",CW+"px "+ch+"px");
+      o.b.style.setProperty("--trr","space no-repeat");
+      o.b.style.setProperty("--trp","0 50%");
+    }
   });
+}
+/* La misura delle figure: poco piu' di meta' della mezz'ora, mai sotto i
+   nove pixel (sotto e' una macchia) ne' sopra i sedici. */
+function figMisura(d){
+  const F=Math.max(9,Math.min(16,Math.round(ROW*0.58)));
+  return {F:F,FW:F*d[0]/d[1]};
+}
+/* La casella e' la stessa per tutte le attivita': larga poco piu' della
+   figura piu' larga (lo schema). Cosi' in una colonna stanno sempre le
+   stesse figure per fila, che sia una lezione o uno schema. */
+function cellaW(){
+  const F=figMisura(TRDIM.LEZ).F;
+  let max=0;Object.keys(TRDIM).forEach(a=>{const d=TRDIM[a];if(d[2])max=Math.max(max,F*d[0]/d[1]);});
+  return Math.round(max*1.6);
+}
+/* La stessa figura, al centro di una casella piu' grande: si allarga la
+   viewBox dell'SVG del motivo, cosi' la figura resta della sua misura e il
+   vuoto intorno fa da distanza. Le caselle si tengono da parte. */
+const CELLE={};
+function cella(a,cw,ch){
+  const key=a+"|"+cw+"|"+ch+"|"+ROW;
+  if(CELLE[key])return CELLE[key];
+  const src=ATRAMA[a],d=TRDIM[a];
+  const m=src&&String(src).match(/^url\('data:image\/svg\+xml,(.*)'\)$/);
+  if(!m||!d)return src;
+  let svg=decodeURIComponent(m[1]);
+  const {F}=figMisura(d),k=F/d[1];
+  const W=cw/k,H=ch/k,x=-(W-d[0])/2,y=-(H-d[1])/2;
+  svg=svg.replace(/width='[^']*' height='[^']*' viewBox='[^']*'/,
+    "width='"+W.toFixed(2)+"' height='"+H.toFixed(2)+"' viewBox='"+x.toFixed(2)+" "+y.toFixed(2)+" "+W.toFixed(2)+" "+H.toFixed(2)+"'");
+  return CELLE[key]="url('data:image/svg+xml,"+
+    encodeURIComponent(svg).replace(/%25/g,"%").replace(/'/g,"%27")+"')";
 }
 
 /* ---------- disegno di un giorno ---------- */
