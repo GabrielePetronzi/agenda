@@ -1565,8 +1565,8 @@
     var lunghe=Object.keys(file);
     for(var i=0;i<lunghe.length;i++)if(Object.keys(file[lunghe[i]]).length!==1)guai.push(lunghe[i]+" mezz'ore: "+Object.keys(file[lunghe[i]]).join(" o ")+" file");
     if(guai.length)return guai.join(" · ");
-    /* una fila per ogni mezz'ora, la prima compresa */
-    return (file[5]&&file[3]&&+Object.keys(file[5])[0]===5&&+Object.keys(file[3])[0]===3)?true:
+    /* una fila per ogni mezz'ora sotto quella del titolo */
+    return (file[5]&&file[3]&&+Object.keys(file[5])[0]===4&&+Object.keys(file[3])[0]===2)?true:
       "le file non sono una per mezz'ora: "+JSON.stringify(file);});
   /* 3 ottobre: "se salto la pausa deve essere considerata come tempo fatto" */
   t("saltare la pausa conta la pausa intera, nel registro e nelle mezz'ore",function(){
@@ -1836,7 +1836,13 @@
     var b=l1.querySelector("b");
     var bl=l1.closest(".blk").getBoundingClientRect(),r=l1.getBoundingClientRect();
     if(r.bottom>bl.bottom+1)return "la prima riga esce dal blocco: "+Math.round(r.bottom-bl.bottom)+" px";
-    return /Lezione/.test(l1.textContent)?true:"nel blocco da un'ora la parola dell'attivita' e' sparita";});
+    /* il nome della materia viene prima: intero, mai coi puntini per far
+       posto all'attivita' */
+    var nb=l1.querySelector("b");
+    /* troncato si', ma solo se da solo non ci sta: mai per far posto
+       all'attivita' */
+    var tronco=nb.scrollWidth>nb.clientWidth+1,conParola=!!l1.querySelector("s i");
+    return (tronco&&conParola)?"il nome della materia e' troncato per far posto all'attivita'":true;});
 
   /* La data d'esame si mette dalla riga della materia, che e' dove uno la
      cerca appena aggiunta una materia. Prima stava dentro un pannello in
