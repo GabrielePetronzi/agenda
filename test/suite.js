@@ -351,10 +351,16 @@
   /* ---------- blocchi ---------- */
   pulisci();apri();
   /* dal 3 ottobre si': "a lavoro metti anche la scritta e mi piace molto" */
-  t("la mezz'ora scrive anche il nome dell'attività",function(){
+  /* nome, icona e attivita' (3 ottobre), se ci stanno: il nome prima */
+  t("la mezz'ora scrive il nome, e l'icona e l'attivita' quando ci stanno",function(){
     placeRun(G[0],H0,{i:it[0].id,a:"ESE",len:1},0);render();
     var b=document.querySelector('.blk.mini');
-    return b?eq(b.textContent.indexOf("Esercizi")>=0,true,"il testo è: "+b.textContent):"nessun blocco mini";});
+    if(!b)return "nessun blocco mini";
+    var nb=b.querySelector("em > b"),s2=b.querySelector("em > s");
+    if(!nb||nb.textContent.indexOf(it[0].short.toUpperCase())<0)return "manca il nome: "+b.textContent;
+    var largo=b.getBoundingClientRect().width>=160;
+    if(largo&&!(s2&&s2.querySelector(".ico")))return "in una colonna larga manca l'icona dell'attivita'";
+    return true;});
   t("la mezz'ora ha la fascia del motivo",function(){
     return eq(!!document.querySelector(".blk.mini span.tr"),true);});
   t("la fascia del motivo non è mai alta zero",function(){
@@ -401,6 +407,7 @@
     [].forEach.call(document.querySelectorAll(".blk[data-att]"),function(b){
       var f=b.querySelector("em > span.tr");if(!f)return;
       var r=f.getBoundingClientRect();if(r.height<1)return;   /* ripiego: c'e' l'icona */
+      if(getComputedStyle(f).backgroundImage==="none")return;  /* niente motivo qui */
       var cs=getComputedStyle(b),ts=cs.getPropertyValue("--trs").trim(),
           d=TRDIM[b.dataset.att],
           rr=(cs.getPropertyValue("--trr").trim()||"repeat").split(/\s+/)[0],
@@ -1565,8 +1572,9 @@
     var lunghe=Object.keys(file);
     for(var i=0;i<lunghe.length;i++)if(Object.keys(file[lunghe[i]]).length!==1)guai.push(lunghe[i]+" mezz'ore: "+Object.keys(file[lunghe[i]]).join(" o ")+" file");
     if(guai.length)return guai.join(" · ");
-    /* una fila per ogni mezz'ora sotto quella del titolo */
-    return (file[5]&&file[3]&&+Object.keys(file[5])[0]===4&&+Object.keys(file[3])[0]===2)?true:
+    /* una fila per ogni mezz'ora sotto il titolo: due mezz'ore in piu', due
+       file in piu' */
+    return (file[5]&&file[3]&&+Object.keys(file[5])[0]-+Object.keys(file[3])[0]===2)?true:
       "le file non sono una per mezz'ora: "+JSON.stringify(file);});
   /* 3 ottobre: "se salto la pausa deve essere considerata come tempo fatto" */
   t("saltare la pausa conta la pausa intera, nel registro e nelle mezz'ore",function(){
@@ -3069,4 +3077,4 @@
   /* i controlli rinviati fanno giri con attese vere (file, gist): 400 ms
      bastavano ai primi, non a quelli che rimettono un piano e ridisegnano
      tutto su una finestra piccola */
-  if(rinviati.length)setTimeout(verdetto,2000);else verdetto();
+  if(rinviati.length)setTimeout(verdetto,4000);else verdetto();

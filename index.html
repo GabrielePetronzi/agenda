@@ -579,7 +579,6 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
    posto. L'iconcina dell'attivita' accanto al nome non serve piu': lo dice
    gia' la fila di figure, in ogni mezz'ora. Torna quando il motivo non ci sta. */
 
-.blk em .l1 s:not(.soloico) .ico{display:none}
 /* il titolo su una riga sola (classe doppia: vince sulle regole piu' sotto) */
 .blk em .l1.l1{flex-wrap:nowrap}
 .blk em .l1.l1 b{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -587,8 +586,8 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
 .blk em .l1.l1 s i{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* Nome e attività sulla stessa riga se ci stanno; se no l'attività va a capo
    da sola, invece di troncarle tutt'e due come faceva la riga forzata. */
-.blk em .l1{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px;
-  flex:0 0 auto;padding-right:24px}
+.blk em .l1{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:5px;
+  flex:0 0 auto;padding-right:16px}
 .blk em .l1 b{flex:0 1 auto;max-width:100%;padding-right:0}
 .blk em .l1 s{flex:0 1 auto;min-width:0;margin-top:0}
 .blk em span.tr{flex:1 1 0;min-height:0;margin:2px -7px 0;background-image:var(--tr);
@@ -626,7 +625,7 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
 .blk.mini em s{margin-top:0;flex:0 1 auto;min-width:0;overflow:hidden}
 .blk.mini em s i{white-space:nowrap;min-width:0}
 .blk.mini em b{flex:0 0 auto;max-width:70%}
-.blk.mini em s:not(.soloico) .ico{display:none}
+
 /* margine suo: quello della fascia orizzontale esce di sette pixel dai bordi
    per arrivare al filo del blocco, ma qui la fascia sta di fianco al testo e
    quei sette pixel se li mangia dalla distanza dal quadratino della spunta —
@@ -1861,7 +1860,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="3 ott 2026 · e";
+const VERSIONE="3 ott 2026 · f";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5302,27 +5301,41 @@ function motivi(root){
   /* Il nome della materia viene prima: se accanto a lui l'attivita' non ci
      sta intera, l'attivita' non si scrive (lo dicono le figure), invece di
      troncarli tutti e due a "FINANZA COM… S…". */
-  (root||document).querySelectorAll(".blk em .l1").forEach(l1=>{
-    const i=l1.querySelector("s i"),b=l1.querySelector("b");
-    if(i&&(i.scrollWidth>i.clientWidth+1||(b&&b.scrollWidth>b.clientWidth+1))){
-      const ss=i.closest("s");if(ss&&!ss.classList.contains("soloico"))ss.remove();}
+  /* Il titolo e' NOME + icona + attivita', com'era nel lavoro (3 ottobre).
+     Se non ci sta tutto, prima se ne va la parola, poi l'icona: il nome
+     della materia viene sempre per primo. */
+  (root||document).querySelectorAll(".blk em .l1, .blk.mini em").forEach(l1=>{
+    const b=l1.querySelector(":scope > b"),ss=l1.querySelector(":scope > s");
+    if(!b||!ss||ss.classList.contains("soloico"))return;
+    /* basta un pixel: coi puntini "Schema" diventa "Sche…" */
+    const stretto=()=>b.scrollWidth>b.clientWidth||[...ss.querySelectorAll("i")].some(i=>i.scrollWidth>i.clientWidth);
+    if(!stretto())return;
+    const i=ss.querySelector("i");if(i)i.remove();
+    if(b.scrollWidth>b.clientWidth)ss.remove();
   });
   bl.forEach(o=>{if(o.f){o.f.classList.add("tutto");o.f.style.flex="";o.f.style.marginTop="";o.f.style.top="";o.f.style.backgroundImage="";}});
   bl.forEach(o=>{
     const r=o.b.getBoundingClientRect(),w=r.width,h=r.height;
     const [tw,th,figura]=o.d,a=o.b.dataset.att;
     if(!(w>3&&h>3)){ripiego(o);return;}
+    /* la mezz'ora da sola non ha motivo, ne' figure ne' tessuti */
+    if(!o.f||o.b.classList.contains("mini")){
+      if(o.f)o.f.style.backgroundImage="none";
+      o.b.style.setProperty("--trr","no-repeat");
+      return;
+    }
     /* anche i tessuti partono sotto le scritte */
     if(!figura&&o.f&&!o.b.classList.contains("mini")){
-      const em0=o.f.parentNode,t0=o.b.getBoundingClientRect().top;let fo=0;
-      [...em0.children].forEach(e=>{if(e===o.f)return;const q=e.getBoundingClientRect();if(q.height)fo=Math.max(fo,q.bottom-t0);});
+      const em0=o.f.parentNode,t0=o.b.getBoundingClientRect().top,fo=fondoTitolo(em0,t0);
       const kk=Math.max(1,Math.ceil((fo-1)/ROW));
       if(kk*ROW>=h-2){o.f.style.backgroundImage="none";return;}
       o.f.style.top=(kk*ROW)+"px";
     }
     if(!figura){
-      /* i tessuti — righe, quadretti, punti — a misura naturale, dall'angolo */
-      o.b.style.setProperty("--trs",tw+"px "+th+"px");
+      /* i tessuti — righe, quadretti, punti — a misura naturale, dall'angolo;
+         rimpiccioliti solo dove la fascia e' piu' bassa di un disegno */
+      const hb=o.f?o.f.getBoundingClientRect().height:h,sc=Math.min(1,hb/th);
+      o.b.style.setProperty("--trs",(tw*sc).toFixed(1)+"px "+(th*sc).toFixed(1)+"px");
       o.b.style.setProperty("--trr","repeat");
       o.b.style.setProperty("--trp","0 0");
       return;
@@ -5331,40 +5344,18 @@ function motivi(root){
     /* lo spazio vero e' quello della fascia, che si ferma prima della spunta */
     const wf=o.f?o.f.getBoundingClientRect().width:w-28;
     if(wf<FW+2){ripiego(o);return;}
-    /* la mezz'ora da sola e' diversa, e va bene cosi': una figura sola, in
-       fondo a destra prima del quadratino, accanto alle scritte */
+    /* La mezz'ora da sola non ha figure (3 ottobre: "non mi convince il
+       singolo slot"): ha il titolo come tutti gli altri blocchi, nome, icona
+       e attivita', e basta. */
     if(!o.f||o.b.classList.contains("mini")){
-      const cw=Math.ceil(FW)+2,ch=Math.max(1,Math.floor(h));
-      /* subito dopo le scritte, non sotto: se dopo il nome e l'attivita' non
-         c'e' posto per una figura intera, niente figura — l'attivita' e'
-         scritta */
-      let x=null;
-      if(o.f){
-        const em=o.f.parentNode,fr=o.f.getBoundingClientRect();
-        const nb=em.querySelector(":scope > b"),ns=em.querySelector(":scope > s");
-        const rb=nb?nb.getBoundingClientRect():null,rs=ns&&ns.textContent.trim()?ns.getBoundingClientRect():null;
-        /* nello spazio fra il nome e l'attivita', se c'e'; se no dopo */
-        const a0=(rb?rb.right:fr.left)+6-fr.left,a1=(rs?rs.left:fr.right)-6-fr.left;
-        if(a1-a0>=cw)x=Math.round((a0+a1-cw)/2);
-        else{
-          const b0=(rs?rs.right:(rb?rb.right:fr.left))+6-fr.left;
-          if(b0+cw<=fr.width)x=Math.round(b0);
-          else{o.f.style.backgroundImage="none";o.b.style.setProperty("--trr","no-repeat");return;}
-        }
-      }
-      o.b.style.setProperty("--tr",cella(a,cw,ch));
-      o.b.style.setProperty("--trs",cw+"px "+ch+"px");
+      if(o.f)o.f.style.backgroundImage="none";
       o.b.style.setProperty("--trr","no-repeat");
-      o.b.style.setProperty("--trp",x==null?"100% 50%":x+"px 50%");
       return;
     }
     /* Le figure partono dalla prima mezz'ora libera sotto le scritte, mai
        sotto il nome o l'attivita': sovrapposte, il 3 ottobre, facevano un
        pasticcio illeggibile. Da li' in giu', una fila per mezz'ora. */
-    const em=o.f.parentNode,top0=o.b.getBoundingClientRect().top;
-    let fondo=0;
-    [...em.children].forEach(e=>{if(e===o.f)return;const q=e.getBoundingClientRect();
-      if(q.height)fondo=Math.max(fondo,q.bottom-top0);});
+    const em=o.f.parentNode,top0=o.b.getBoundingClientRect().top,fondo=fondoTitolo(em,top0);
     const k0=Math.max(1,Math.ceil((fondo-1)/ROW));
     if(k0*ROW+figMisura(o.d).F>h+2){o.f.style.backgroundImage="none";o.b.style.setProperty("--trr","no-repeat");return;}
     o.f.style.top=(k0*ROW)+"px";
@@ -5374,6 +5365,19 @@ function motivi(root){
     o.b.style.setProperty("--trr","space repeat");
     o.b.style.setProperty("--trp","0 0");
   });
+}
+/* Dove finiscono le scritte: conta il nome della materia (e la nota, se
+   c'e'), non l'icona accanto. L'icona alza la riga di un pixel o due, e a
+   certe altezze di mezz'ora bastava quello a far partire le figure una
+   mezz'ora piu' in basso in un blocco e non nel suo vicino. */
+function fondoTitolo(em,top0){
+  let f=0;
+  /* l'altezza del nome piu' il margine di sopra, non dove il nome e'
+     finito: l'icona accanto lo sposta di due pixel in giu' */
+  const b=em.querySelector(".l1 > b, :scope > b");
+  if(b)f=(parseFloat(getComputedStyle(em).paddingTop)||0)+b.getBoundingClientRect().height;
+  em.querySelectorAll(":scope > u.nota").forEach(u=>{const q=u.getBoundingClientRect();if(q.height)f=Math.max(f,q.bottom-top0);});
+  return f;
 }
 /* La misura delle figure: quasi tutta la mezz'ora — a poco piu' di meta'
    (3 ottobre) "sono troppo piccoli, non riesco quasi a vederli". Mai sotto
@@ -7152,7 +7156,9 @@ window.addEventListener("afterprint",()=>{
      la densità va ricalcolata quando la pagina è davvero assestata */
   requestAnimationFrame(()=>{if(autoRow())redrawGrid();});
   if(document.fonts&&document.fonts.ready)
-    document.fonts.ready.then(()=>{if(autoRow())redrawGrid();});
+    /* sempre: coi caratteri veri le scritte sono piu' larghe, e quello che
+       ci stava col carattere di riserva puo' non starci piu' */
+    document.fonts.ready.then(()=>{autoRow();redrawGrid();});
   /* Il timer si basa sull'orario di fine: riprende anche dopo una chiusura.
      E se è scaduto mentre la pagina era chiusa la sessione è finita davvero,
      quindi vale come finita: passava false e il blocco agganciato non veniva
