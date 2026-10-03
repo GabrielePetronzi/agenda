@@ -579,10 +579,14 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
    posto. L'iconcina dell'attivita' accanto al nome non serve piu': lo dice
    gia' la fila di figure, in ogni mezz'ora. Torna quando il motivo non ci sta. */
 
-/* il titolo su una riga sola (classe doppia: vince sulle regole piu' sotto) */
-.blk em .l1.l1{flex-wrap:nowrap}
-.blk em .l1.l1 b{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.blk em .l1.l1 s{flex:0 100 auto;min-width:0;overflow:hidden}
+/* Il titolo: NOME + icona + attivita'. Su una riga se ci sta; se no icona e
+   attivita' vanno sulla riga sotto, intere, e le figure partono dopo. Tutto
+   allineato al centro: in linea di base l'icona tirava giu' il nome di due
+   pixel e le scritte sembravano storte (3 ottobre). Classe doppia: vince
+   sulle regole piu' sotto. */
+.blk em .l1.l1{flex-wrap:wrap;align-items:center;row-gap:1px}
+.blk em .l1.l1 b{flex:0 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blk em .l1.l1 s{flex:0 0 auto;min-width:0;max-width:100%;overflow:hidden}
 .blk em .l1.l1 s i{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* Nome e attività sulla stessa riga se ci stanno; se no l'attività va a capo
    da sola, invece di troncarle tutt'e due come faceva la riga forzata. */
@@ -624,7 +628,7 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
 .blk.mini em b{padding-right:0;flex:0 1 auto;max-width:56%}
 .blk.mini em s{margin-top:0;flex:0 1 auto;min-width:0;overflow:hidden}
 .blk.mini em s i{white-space:nowrap;min-width:0}
-.blk.mini em b{flex:0 0 auto;max-width:70%}
+.blk.mini em.mini-ok b, .blk.mini em b{flex:0 1 auto;max-width:none;min-width:0}
 
 /* margine suo: quello della fascia orizzontale esce di sette pixel dai bordi
    per arrivare al filo del blocco, ma qui la fascia sta di fianco al testo e
@@ -1860,7 +1864,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="3 ott 2026 · f";
+const VERSIONE="3 ott 2026 · g";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5304,7 +5308,7 @@ function motivi(root){
   /* Il titolo e' NOME + icona + attivita', com'era nel lavoro (3 ottobre).
      Se non ci sta tutto, prima se ne va la parola, poi l'icona: il nome
      della materia viene sempre per primo. */
-  (root||document).querySelectorAll(".blk em .l1, .blk.mini em").forEach(l1=>{
+  (root||document).querySelectorAll(".blk.mini em").forEach(l1=>{
     const b=l1.querySelector(":scope > b"),ss=l1.querySelector(":scope > s");
     if(!b||!ss||ss.classList.contains("soloico"))return;
     /* basta un pixel: coi puntini "Schema" diventa "Sche…" */
@@ -5314,6 +5318,16 @@ function motivi(root){
     if(b.scrollWidth>b.clientWidth)ss.remove();
   });
   bl.forEach(o=>{if(o.f){o.f.classList.add("tutto");o.f.style.flex="";o.f.style.marginTop="";o.f.style.top="";o.f.style.backgroundImage="";}});
+  /* Da che mezz'ora partono le figure: la stessa per tutti i blocchi della
+     griglia, quella che serve al titolo piu' alto. Un titolo su due righe
+     (nome lungo, attivita' a capo) e uno su una riga davano a due blocchi
+     della stessa lunghezza un numero di file diverso. */
+  let K0=1;
+  bl.forEach(o=>{
+    if(!o.f||o.b.classList.contains("mini"))return;
+    const t0=o.b.getBoundingClientRect().top;
+    K0=Math.max(K0,Math.ceil((fondoTitolo(o.f.parentNode,t0)-1)/ROW));
+  });
   bl.forEach(o=>{
     const r=o.b.getBoundingClientRect(),w=r.width,h=r.height;
     const [tw,th,figura]=o.d,a=o.b.dataset.att;
@@ -5326,8 +5340,7 @@ function motivi(root){
     }
     /* anche i tessuti partono sotto le scritte */
     if(!figura&&o.f&&!o.b.classList.contains("mini")){
-      const em0=o.f.parentNode,t0=o.b.getBoundingClientRect().top,fo=fondoTitolo(em0,t0);
-      const kk=Math.max(1,Math.ceil((fo-1)/ROW));
+      const kk=K0;
       if(kk*ROW>=h-2){o.f.style.backgroundImage="none";return;}
       o.f.style.top=(kk*ROW)+"px";
     }
@@ -5355,8 +5368,7 @@ function motivi(root){
     /* Le figure partono dalla prima mezz'ora libera sotto le scritte, mai
        sotto il nome o l'attivita': sovrapposte, il 3 ottobre, facevano un
        pasticcio illeggibile. Da li' in giu', una fila per mezz'ora. */
-    const em=o.f.parentNode,top0=o.b.getBoundingClientRect().top,fondo=fondoTitolo(em,top0);
-    const k0=Math.max(1,Math.ceil((fondo-1)/ROW));
+    const k0=K0;
     if(k0*ROW+figMisura(o.d).F>h+2){o.f.style.backgroundImage="none";o.b.style.setProperty("--trr","no-repeat");return;}
     o.f.style.top=(k0*ROW)+"px";
     const CW=Math.min(Math.floor(wf),cellaW());
@@ -5374,8 +5386,9 @@ function fondoTitolo(em,top0){
   let f=0;
   /* l'altezza del nome piu' il margine di sopra, non dove il nome e'
      finito: l'icona accanto lo sposta di due pixel in giu' */
-  const b=em.querySelector(".l1 > b, :scope > b");
-  if(b)f=(parseFloat(getComputedStyle(em).paddingTop)||0)+b.getBoundingClientRect().height;
+  const l1=em.querySelector(":scope > .l1"),b=em.querySelector(":scope > b");
+  if(l1)f=l1.getBoundingClientRect().bottom-top0;
+  else if(b)f=(parseFloat(getComputedStyle(em).paddingTop)||0)+b.getBoundingClientRect().height;
   em.querySelectorAll(":scope > u.nota").forEach(u=>{const q=u.getBoundingClientRect();if(q.height)f=Math.max(f,q.bottom-top0);});
   return f;
 }
