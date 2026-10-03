@@ -584,8 +584,13 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
    allineato al centro: in linea di base l'icona tirava giu' il nome di due
    pixel e le scritte sembravano storte (3 ottobre). Classe doppia: vince
    sulle regole piu' sotto. */
-.blk em .l1.l1{flex-wrap:wrap;align-items:center;row-gap:1px}
-.blk em .l1.l1 b{flex:0 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blk em .l1.l1{flex-wrap:nowrap;align-items:center}
+.blk em .l1.l1 b{flex:0 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:calc(var(--tb,12px) * var(--tk,1))}
+.blk em .l1.l1 s,.blk.mini em s{font-size:calc(var(--ts,11.5px) * var(--tk,1))}
+.blk.mini em > b{font-size:calc(var(--tb,12px) * var(--tk,1))}
+html[data-row="tight"] .blk{--tb:11px;--ts:10.5px}
+html[data-row="micro"] .blk{--tb:10px;--ts:9.5px}
 .blk em .l1.l1 s{flex:0 0 auto;min-width:0;max-width:100%;overflow:hidden}
 .blk em .l1.l1 s i{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* Nome e attività sulla stessa riga se ci stanno; se no l'attività va a capo
@@ -626,7 +631,7 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
    centoquarantotto pixel gli restavano dieci, cioè niente. Meglio un nome
    troncato e un'attività riconoscibile che il contrario. */
 .blk.mini em b{padding-right:0;flex:0 1 auto;max-width:56%}
-.blk.mini em s{margin-top:0;flex:0 1 auto;min-width:0;overflow:hidden}
+.blk.mini em s{margin-top:0;flex:0 0 auto;min-width:0;overflow:hidden}
 .blk.mini em s i{white-space:nowrap;min-width:0}
 .blk.mini em.mini-ok b, .blk.mini em b{flex:0 1 auto;max-width:none;min-width:0}
 
@@ -643,7 +648,8 @@ html[data-row="micro"] .blk em{padding:1px 5px 0}
 html[data-row="micro"] .blk.mini em{padding:1px 14px 0 5px}
 html[data-row="micro"] .blk em b{font-size:10px;padding-right:13px;line-height:1.15}
 html[data-row="micro"] .blk em s{font-size:9.5px}
-html[data-row="micro"] .blk.mini em s{display:none}
+/* anche a riga minima la mezz'ora ha icona e attivita', se ci stanno: lo
+   decide motivi(), che toglie prima la parola e poi l'icona */
 /* l'icona di ripiego no: è quello che resta dell'attività quando il motivo non
    ci sta, e sparire è proprio quello che non deve fare */
 html[data-row="micro"] .blk.mini em s.soloico{display:flex}
@@ -1864,7 +1870,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="3 ott 2026 · g";
+const VERSIONE="3 ott 2026 · h";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5305,17 +5311,31 @@ function motivi(root){
   /* Il nome della materia viene prima: se accanto a lui l'attivita' non ci
      sta intera, l'attivita' non si scrive (lo dicono le figure), invece di
      troncarli tutti e due a "FINANZA COM… S…". */
-  /* Il titolo e' NOME + icona + attivita', com'era nel lavoro (3 ottobre).
-     Se non ci sta tutto, prima se ne va la parola, poi l'icona: il nome
-     della materia viene sempre per primo. */
-  (root||document).querySelectorAll(".blk.mini em").forEach(l1=>{
-    const b=l1.querySelector(":scope > b"),ss=l1.querySelector(":scope > s");
-    if(!b||!ss||ss.classList.contains("soloico"))return;
-    /* basta un pixel: coi puntini "Schema" diventa "Sche…" */
-    const stretto=()=>b.scrollWidth>b.clientWidth||[...ss.querySelectorAll("i")].some(i=>i.scrollWidth>i.clientWidth);
-    if(!stretto())return;
-    const i=ss.querySelector("i");if(i)i.remove();
-    if(b.scrollWidth>b.clientWidth)ss.remove();
+  /* Il titolo e' NOME + icona + attivita', su una riga sola, in tutti i
+     blocchi (3 ottobre): su due righe, in un blocco da un'ora alle figure non
+     restava niente. Se non ci sta, le scritte si rimpiccioliscono un poco,
+     fino a tre quarti; se ancora non basta va via la parola, poi l'icona. Il
+     nome della materia resta sempre. */
+  /* Una misura sola per tutti i titoli della griglia, la piu' grande con cui
+     ci stanno quasi tutti: titoli di misure diverse uno accanto all'altro
+     sembravano un errore. */
+  const titoli=[...(root||document).querySelectorAll(".blk em .l1, .blk.mini em")].map(t=>{
+    const b=t.querySelector(":scope > b");if(!b)return null;
+    const ss=t.querySelector(":scope > s");
+    const stretto=()=>b.scrollWidth>b.clientWidth||
+      (ss&&ss.isConnected&&([...ss.querySelectorAll("i")].some(i=>i.scrollWidth>i.clientWidth)||ss.scrollWidth>ss.clientWidth));
+    return {t,b,ss,stretto};
+  }).filter(Boolean);
+  const scala=[1,.92,.85];
+  let K=1;
+  titoli.forEach(x=>{
+    for(const k of scala){x.t.style.setProperty("--tk",k);if(!x.stretto()){K=Math.min(K,k);break;}}
+  });
+  titoli.forEach(x=>{
+    x.t.style.setProperty("--tk",K);
+    if(!x.stretto()||!x.ss||x.ss.classList.contains("soloico"))return;
+    const i=x.ss.querySelector("i");if(i)i.remove();
+    if(x.stretto())x.ss.remove();
   });
   bl.forEach(o=>{if(o.f){o.f.classList.add("tutto");o.f.style.flex="";o.f.style.marginTop="";o.f.style.top="";o.f.style.backgroundImage="";}});
   /* Da che mezz'ora partono le figure: la stessa per tutti i blocchi della
