@@ -1838,7 +1838,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="3 ott 2026 · a";
+const VERSIONE="3 ott 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3899,13 +3899,17 @@ function pomAdvance(auto){
        è dentro il blocco che hai messo in piano, non fuori. Quindi finisce nel
        registro come il resto, sulla stessa materia. */
     const durP=(r.phase==="long"?c.l:c.b);
-    const restP=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
-    const minP=auto?durP:(durP*60000-restP)/60000;
+    /* Saltare la pausa vale come averla fatta tutta (3 ottobre): e' tempo
+       del blocco che hai scelto di passare studiando invece che fermo. Si
+       porta la fase alla fine, cosi' anche il conto delle mezz'ore la vede
+       intera. Saltare una sessione di lavoro invece conta solo il girato. */
+    if(r.paused!=null)r.paused=0;else r.ends=Math.min(r.ends,Date.now());
+    const minP=durP;
     logAdd(r.act,minP,linkedIds(r));
     const kp=spuntaMaturato(r);          /* stessa regola: prima si spunta */
     r.min=(r.min||0)+minP;
     if(kp)afterEdit(hrs(kp)+" segnate come fatte");
-    if(auto)pomToday().min+=durP;
+    pomToday().min+=durP;
     /* Finita la fascia, il timer si ferma: dopo tre ore di mattina si mangia,
        non si riparte con un'altra sessione che nessuno farà. */
     const ultimo=r.linked&&r.linked.length?r.linked[r.linked.length-1]:null;
@@ -5312,11 +5316,14 @@ function motivi(root){
       return;
     }
     const {F,FW}=figMisura(o.d);
-    if(w<FW+2||h<F){ripiego(o);return;}
-    /* striscia da mezz'ora: una figura sola, della misura di tutte */
+    /* striscia da mezz'ora: una figura sola, della misura di tutte — o, se
+       la striscia e' piu' stretta, la piu' grande che ci sta intera, mai
+       sotto i nove pixel */
     if(!o.f||o.b.classList.contains("mini")){
+      const Fs=Math.min(F,Math.floor(h)-1,Math.floor((w-2)*th/tw));
+      if(Fs<9){ripiego(o);return;}
       const cw=Math.min(Math.floor(w),cellaW()),ch=Math.floor(h);
-      o.b.style.setProperty("--tr",cella(a,cw,ch));
+      o.b.style.setProperty("--tr",cella(a,cw,ch,Fs));
       o.b.style.setProperty("--trs",cw+"px "+ch+"px");
       o.b.style.setProperty("--trr","no-repeat");
       o.b.style.setProperty("--trp",o.f?"50% 50%":"100% 50%");
@@ -5326,6 +5333,7 @@ function motivi(root){
        una e l'altra e' sempre quella, e quante ne stanno in fila dipende solo
        dalla larghezza della colonna — uguale per tutti i blocchi della
        settimana. */
+    if(w<FW+2||h<F){ripiego(o);return;}
     const CW=Math.min(Math.floor(w),cellaW());
     const k=Math.floor((h+1)/ROW);
     if(k>=1){
@@ -5345,10 +5353,11 @@ function motivi(root){
     }
   });
 }
-/* La misura delle figure: poco piu' di meta' della mezz'ora, mai sotto i
-   nove pixel (sotto e' una macchia) ne' sopra i sedici. */
+/* La misura delle figure: quasi tutta la mezz'ora — a poco piu' di meta'
+   (3 ottobre) "sono troppo piccoli, non riesco quasi a vederli". Mai sotto
+   gli undici pixel ne' sopra i ventidue. */
 function figMisura(d){
-  const F=Math.max(9,Math.min(16,Math.round(ROW*0.58)));
+  const F=Math.max(11,Math.min(22,Math.round(ROW*0.82)));
   return {F:F,FW:F*d[0]/d[1]};
 }
 /* La casella e' la stessa per tutte le attivita': larga poco piu' della
@@ -5357,21 +5366,24 @@ function figMisura(d){
 function cellaW(){
   const F=figMisura(TRDIM.LEZ).F;
   let max=0;Object.keys(TRDIM).forEach(a=>{const d=TRDIM[a];if(d[2])max=Math.max(max,F*d[0]/d[1]);});
-  return Math.round(max*1.6);
+  return Math.round(max*1.45);
 }
 /* La stessa figura, al centro di una casella piu' grande: si allarga la
    viewBox dell'SVG del motivo, cosi' la figura resta della sua misura e il
    vuoto intorno fa da distanza. Le caselle si tengono da parte. */
 const CELLE={};
-function cella(a,cw,ch){
-  const key=a+"|"+cw+"|"+ch+"|"+ROW;
+function cella(a,cw,ch,Fs){
+  const key=a+"|"+cw+"|"+ch+"|"+ROW+"|"+(Fs||"");
   if(CELLE[key])return CELLE[key];
   const src=ATRAMA[a],d=TRDIM[a];
   const m=src&&String(src).match(/^url\('data:image\/svg\+xml,(.*)'\)$/);
   if(!m||!d)return src;
   let svg=decodeURIComponent(m[1]);
-  const {F}=figMisura(d),k=F/d[1];
+  const F=Fs||figMisura(d).F,k=F/d[1];
   const W=cw/k,H=ch/k,x=-(W-d[0])/2,y=-(H-d[1])/2;
+  /* e un po' piu' marcate: a trenta per cento di inchiostro, su fondi
+     chiari, si vedevano appena */
+  svg=svg.replace(/(stroke|fill)-opacity='([\d.]+)'/g,(x,q,v)=>q+"-opacity='"+Math.min(.62,+v*1.6).toFixed(2)+"'");
   svg=svg.replace(/width='[^']*' height='[^']*' viewBox='[^']*'/,
     "width='"+W.toFixed(2)+"' height='"+H.toFixed(2)+"' viewBox='"+x.toFixed(2)+" "+y.toFixed(2)+" "+W.toFixed(2)+" "+H.toFixed(2)+"'");
   return CELLE[key]="url('data:image/svg+xml,"+

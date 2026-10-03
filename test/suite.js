@@ -1557,6 +1557,24 @@
     if(guai.length)return guai.join(" · ");
     return (file[5]&&file[3]&&+Object.keys(file[5])[0]-+Object.keys(file[3])[0]===2)?true:
       "da 3 a 5 mezz'ore le file non crescono di 2: "+JSON.stringify(file);});
+  /* 3 ottobre: "se salto la pausa deve essere considerata come tempo fatto" */
+  t("saltare la pausa conta la pausa intera, nel registro e nelle mezz'ore",function(){
+    return alleSette(function(){
+      pulisci();apri();
+      state.pomConf={SCH:{s:45,b:15,l:20,n:3}};
+      placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:4},0);
+      pomStart("SCH",[{date:oggi,start:MATT,lane:0}]);
+      fine();                                 /* 45 minuti: una mezz'ora */
+      var reg=function(){var n=0,k=state.year+"."+state.ctx+"."+oggi,d=(state.log||{})[k]||{};
+        Object.keys(d).forEach(function(x){n+=d[x];});return n;};
+      var prima=reg();
+      pomAdvance(false);                      /* Salta, appena cominciata la pausa */
+      var dopo=reg();
+      var q=[0,1,2,3].map(function(i){return vero(at(ck(oggi,MATT+i))[0])?"■":"□";}).join("");
+      pomStop(true);state.pomConf={};
+      if(dopo-prima!==15)return "la pausa saltata ha messo a registro "+(dopo-prima)+" minuti (attesi 15)";
+      return q==="■■□□"?true:"dopo 45 + 15 minuti il blocco e' "+q+" (atteso ■■□□)";
+    });});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
