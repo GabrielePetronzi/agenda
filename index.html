@@ -573,12 +573,10 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
    figura dell'angolo spuntava a pezzi intorno al quadratino (3 ottobre: "piccole
    sbavature ad inizio slot in alto a destra"). La stessa misura per tutte le
    file, cosi' restano uguali. */
-.blk em span.tr.tutto{position:absolute;inset:0 22px 0 6px;margin:0;flex:none;z-index:-1;min-width:0}
-.blk em span.tr.tutto.tessuto{inset:0}
-/* le scritte sopra le figure: un bordo del colore del blocco le stacca,
-   come nel lavoro dove la trama passa sotto senza disturbare */
-.blk em b,.blk em s i,.blk em u.nota{-webkit-text-stroke:3px var(--bc);paint-order:stroke fill}
-.blk em s .ico{filter:drop-shadow(0 0 1.5px var(--bc)) drop-shadow(0 0 1.5px var(--bc))}
+.blk em span.tr.tutto{position:absolute;top:0;bottom:3px;left:6px;right:22px;margin:0;flex:none;z-index:-1;min-width:0}
+.blk em span.tr.tutto.tessuto{left:0;right:0;bottom:0}
+.blk.mini em span.tr.tutto{bottom:0}
+
 .blk.mini em span.tr.tutto{display:block}
 /* Le scritte hanno un bordo pieno del colore del blocco: dove passano sopra
    una figura la coprono quanto basta a leggerle, e la figura resta al suo
@@ -1876,7 +1874,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 ott 2026 · a";
+const VERSIONE="4 ott 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5343,34 +5341,74 @@ function motivi(root){
     const i=x.ss.querySelector("i");if(i)i.remove();
     if(x.stretto())x.ss.remove();
   });
-  bl.forEach(o=>{if(o.f){o.f.classList.add("tutto");o.f.style.flex="";o.f.style.marginTop="";o.f.style.top="";o.f.style.backgroundImage="";}});
-  /* Dal 4 ottobre il motivo fa come quello del lavoro, che ti piace: copre
-     tutto il blocco, dall'alto, anche la mezz'ora del titolo e i blocchi da
-     una mezz'ora sola, leggero come una filigrana dietro alle scritte. Le
-     figure sono grandi quasi quanto la mezz'ora, una fila per mezz'ora, tutte
-     della stessa misura: "troppo piccoli". */
+  bl.forEach(o=>{if(o.f){o.f.classList.add("tutto");o.f.style.flex="";o.f.style.marginTop="";o.f.style.top="";o.f.style.left="";o.f.style.backgroundImage="";}});
+  /* 4 ottobre, seconda volta: dietro alle scritte le figure facevano "un
+     casino", e legate all'altezza della mezz'ora su una finestra bassa
+     restavano piccole. Ora le figure hanno una misura loro, grande, uguale in
+     tutta la griglia, e stanno dove le scritte non ci sono: sotto il titolo
+     nei blocchi lunghi, a destra del titolo nelle mezz'ore. Riempiono lo
+     spazio come la trama del lavoro, a file e colonne regolari. */
+  const colW=Math.min(...bl.map(o=>o.f?o.f.getBoundingClientRect().width:999).filter(x=>x>40),999);
+  const FG=figGrande(colW);
   bl.forEach(o=>{
     const r=o.b.getBoundingClientRect(),w=r.width,h=r.height;
     const [tw,th,figura]=o.d,a=o.b.dataset.att;
     if(!(w>3&&h>3)){ripiego(o);return;}
-    if(o.f){o.f.style.top="0px";o.f.classList.toggle("tessuto",!figura);}
-    if(!figura){
-      /* i tessuti — righe, quadretti, punti — come nel lavoro: a misura
-         naturale, dall'angolo, su tutto il blocco */
-      o.b.style.setProperty("--trs",tw+"px "+th+"px");
-      o.b.style.setProperty("--trr","repeat");
-      o.b.style.setProperty("--trp","0 0");
+    if(!o.f){o.b.style.setProperty("--tr","none");return;}      /* mezz'ora con la nota */
+    const fr=o.f.getBoundingClientRect();
+    const mini=o.b.classList.contains("mini");
+    o.f.classList.toggle("tessuto",!figura);
+    if(mini){
+      /* a destra delle scritte, alte quanto la striscia lascia */
+      const em=o.f.parentNode;let fine=fr.left;
+      em.querySelectorAll(":scope > b, :scope > s").forEach(e=>{const q=e.getBoundingClientRect();if(q.width)fine=Math.max(fine,q.right);});
+      const x0=Math.ceil(fine-fr.left+6);
+      o.f.style.left=(x0+6)+"px";o.f.style.top="0px";
+      const lib=fr.width-x0;
+      if(!figura){
+        if(lib<12){o.f.style.backgroundImage="none";return;}
+        o.b.style.setProperty("--trs",tw+"px "+th+"px");
+        o.b.style.setProperty("--trr","repeat");o.b.style.setProperty("--trp","0 0");return;
+      }
+      const F=Math.min(FG,Math.floor(h)-3),FW=F*tw/th,cw=Math.ceil(FW*1.35);
+      if(F<9||lib<FW+2){o.f.style.backgroundImage="none";o.b.style.setProperty("--trr","no-repeat");return;}
+      o.b.dataset.fig=F;
+      o.b.style.setProperty("--tr",cella(a,cw,Math.floor(h),F));
+      o.b.style.setProperty("--trs",cw+"px "+Math.floor(h)+"px");
+      o.b.style.setProperty("--trr",lib>=cw*2?"space no-repeat":"no-repeat");
+      o.b.style.setProperty("--trp","0 50%");
       return;
     }
-    const {FW}=figMisura(o.d);
-    const wf=o.f?o.f.getBoundingClientRect().width:w-28;
-    if(wf<FW+2){ripiego(o);return;}
-    const CW=Math.min(Math.floor(wf),cellaW());
-    o.b.style.setProperty("--tr",cella(a,CW,ROW));
-    o.b.style.setProperty("--trs",CW+"px "+ROW+"px");
-    o.b.style.setProperty("--trr","space repeat");
+    /* sotto il titolo */
+    const top0=r.top,y0=Math.ceil(fondoTitolo(o.f.parentNode,top0)+3);
+    o.f.style.left="";o.f.style.top=y0+"px";
+    const hb=h-y0-3;                 /* la fascia si ferma tre pixel sopra il fondo */
+    if(!figura){
+      if(hb<4){o.f.style.backgroundImage="none";return;}
+      o.b.style.setProperty("--trs",tw+"px "+th+"px");
+      o.b.style.setProperty("--trr","repeat");o.b.style.setProperty("--trp","0 0");return;
+    }
+    /* sotto il titolo di un blocco da un'ora resta poco: li' una fila sola,
+       un po' piu' piccola, ma mai sotto i nove pixel */
+    const F=hb>=FG+1?FG:Math.floor(hb-1),FW=F*tw/th,CW=Math.round(cellaG(FG)*F/FG),CH=hb>=FG+1?F+6:Math.floor(hb);
+    if(F<9||fr.width<FW+2){o.f.style.backgroundImage="none";o.b.style.setProperty("--trr","no-repeat");return;}
+    o.b.dataset.fig=F;
+    o.b.style.setProperty("--tr",cella(a,Math.min(CW,Math.floor(fr.width)),CH,F));
+    o.b.style.setProperty("--trs",Math.min(CW,Math.floor(fr.width))+"px "+CH+"px");
+    o.b.style.setProperty("--trr",hb>=CH*2?"space space":"space no-repeat");
     o.b.style.setProperty("--trp","0 0");
   });
+}
+/* La misura delle figure grandi: venti pixel, o meno se la colonna e'
+   stretta — in una colonna ne devono stare almeno tre per fila. */
+function figGrande(colW){
+  let maxR=0;Object.keys(TRDIM).forEach(a=>{const d=TRDIM[a];if(d[2])maxR=Math.max(maxR,d[0]/d[1]);});
+  const daCol=Math.floor((colW)/(3*1.3*maxR));
+  return Math.max(10,Math.min(22,daCol));
+}
+function cellaG(F){
+  let maxR=0;Object.keys(TRDIM).forEach(a=>{const d=TRDIM[a];if(d[2])maxR=Math.max(maxR,d[0]/d[1]);});
+  return Math.round(F*maxR*1.3);
 }
 /* Dove finiscono le scritte: conta il nome della materia (e la nota, se
    c'e'), non l'icona accanto. L'icona alza la riga di un pixel o due, e a

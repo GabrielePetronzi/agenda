@@ -418,7 +418,8 @@
         mal.push(b.dataset.att+" "+(r.height/n[1]).toFixed(2)+" file in verticale");
       /* le figure stanno al centro di una casella piu' grande: conta la
          figura, non la casella */
-      var fh=d[2]?figMisura(d).F:n[1],fw=d[2]?figMisura(d).FW:n[0];
+      var F0=+b.dataset.fig||figMisura(d).F;
+      var fh=d[2]?F0:n[1],fw=d[2]?F0*d[0]/d[1]:n[0];
       var rb=b.getBoundingClientRect();
       if(fh>Math.min(r.height,rb.height)+.6)
         mal.push(b.dataset.att+" alta "+fh.toFixed(1)+" in "+Math.round(Math.min(r.height,rb.height)));
@@ -1556,7 +1557,7 @@
   t("i motivi hanno tutti la stessa misura, e una fila per ogni mezz'ora",function(){
     pulisci();apri();
     var A=["SCH","LEZ","VID","RIP","NAS"];
-    for(var g=0;g<5;g++){placeRun(G[g],H0+2,{i:it[g%3].id,a:A[g],len:3},0);placeRun(G[g],H0+8,{i:it[g%3].id,a:A[(g+1)%5],len:5},0);}
+    for(var g=0;g<5;g++){placeRun(G[g],H0+2,{i:it[g%3].id,a:A[g],len:3},0);placeRun(G[g],H0+8,{i:it[g%3].id,a:A[(g+1)%5],len:8},0);}
     render();
     var misure={},file={},guai=[];
     document.querySelectorAll(".blk[data-att]").forEach(function(b){
@@ -1564,17 +1565,19 @@
       var r=runAt(b.dataset.date,+b.dataset.start,+b.dataset.lane),f=b.querySelector("em > span.tr");
       if(!f||f.style.display==="none")return;
       misure[getComputedStyle(b).getPropertyValue("--trs").trim()]=1;
-      var n=Math.round(f.getBoundingClientRect().height/ROW);
+      var ts=getComputedStyle(b).getPropertyValue("--trs").trim().split(/\s+/).map(parseFloat);
+      var n=Math.max(1,Math.floor((f.getBoundingClientRect().height+0.5)/ts[1]));
       (file[r.len]=file[r.len]||{})[n]=1;
     });
     var m=Object.keys(misure);
-    if(m.length!==1)return "misure diverse: "+m.join(" | ");
+    /* la misura grande e' una sola; piu' piccola solo dove sotto il titolo
+       non c'e' posto per lei (i blocchi corti) */
+    if(m.length>2)return "misure diverse: "+m.join(" | ");
     var lunghe=Object.keys(file);
     for(var i=0;i<lunghe.length;i++)if(Object.keys(file[lunghe[i]]).length!==1)guai.push(lunghe[i]+" mezz'ore: "+Object.keys(file[lunghe[i]]).join(" o ")+" file");
     if(guai.length)return guai.join(" · ");
-    /* una fila per ogni mezz'ora sotto il titolo: due mezz'ore in piu', due
-       file in piu' */
-    return (file[5]&&file[3]&&+Object.keys(file[5])[0]-+Object.keys(file[3])[0]===2)?true:
+    /* piu' mezz'ore, piu' file */
+    return (file[8]&&file[3]&&+Object.keys(file[8])[0]>+Object.keys(file[3])[0])?true:
       "le file non sono una per mezz'ora: "+JSON.stringify(file);});
   /* 3 ottobre: "se salto la pausa deve essere considerata come tempo fatto" */
   t("saltare la pausa conta la pausa intera, nel registro e nelle mezz'ore",function(){
@@ -1772,23 +1775,23 @@
 
 
   /* ---------- il motivo si deve vedere ---------- */
-  t("a mezz'ora la fascia del motivo è larga almeno trenta pixel",function(){
+  /* 4 ottobre: le figure stanno dove le scritte non ci sono. Nella mezz'ora
+     a destra del titolo, mai sotto le lettere. */
+  t("a mezz'ora il motivo non passa sotto le scritte",function(){
     pulisci();apri();
     var lungo=items().filter(function(x){return /dichiar/i.test(x.name||"");})[0]||it[2];
     state.span=7;state.from=0;state.to=6;applySpan();
     var G7=[];document.querySelectorAll("td.c").forEach(function(x){
       if(G7.indexOf(x.dataset.date)<0)G7.push(x.dataset.date);});
-    G7.slice(0,5).forEach(function(d){
-      placeRun(d,HOURS[6],{i:lungo.id,a:"SCH",len:1},0);});
+    G7.slice(0,5).forEach(function(d,k){
+      placeRun(d,HOURS[6],{i:(k%2?lungo:it[0]).id,a:"SCH",len:1},0);});
     render();
-    /* in proporzione, non in pixel: su una colonna da settantotto trenta pixel
-       non ci sono, e il controllo direbbe una cosa falsa */
-    var q=[].map.call(document.querySelectorAll(".blk.mini"),function(b){
-      var tr=b.querySelector("span.tr");if(!tr)return 100;
-      return Math.round(tr.getBoundingClientRect().width/b.getBoundingClientRect().width*100);});
-    if(!q.length)return "nessun blocco da mezz'ora";
-    var min=Math.min.apply(null,q);
-    return min>=20?true:"il motivo occupa solo il "+min+"% della larghezza (prima era il 7%)";});
+    var male=[].filter.call(document.querySelectorAll(".blk.mini"),function(b){
+      var tr=b.querySelector("span.tr");if(!tr||getComputedStyle(tr).backgroundImage==="none")return false;
+      var R=tr.getBoundingClientRect(),fine=0;
+      b.querySelectorAll("em > b, em > s").forEach(function(e){var q=e.getBoundingClientRect();if(q.width)fine=Math.max(fine,q.right);});
+      return R.left<fine-0.5;});
+    return male.length?male.length+" mezz'ore col motivo sotto le scritte":true;});
   t("a un'ora la fascia del motivo è alta almeno ventidue pixel",function(){
     pulisci();apri();
     var lungo=items().filter(function(x){return /dichiar/i.test(x.name||"");})[0]||it[2];
