@@ -594,16 +594,17 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
 .blk em .l1.l1{flex-wrap:nowrap;align-items:center}
 .blk em .l1.l1 b{flex:0 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   font-size:calc(var(--tb,12px) * var(--tk,1))}
-.blk em .l1.l1 s,.blk.mini em s{font-size:calc(var(--ts,11.5px) * var(--tk,1))}
+/* l'attivita' un poco piu' piccola del nome: e' il nome che deve stare */
+.blk em .l1.l1 s,.blk.mini em s{font-size:calc(var(--ts,10.5px) * var(--tk,1));gap:3px}
 .blk.mini em > b{font-size:calc(var(--tb,12px) * var(--tk,1))}
-html[data-row="tight"] .blk{--tb:11px;--ts:10.5px}
-html[data-row="micro"] .blk{--tb:10px;--ts:9.5px}
+html[data-row="tight"] .blk{--tb:11px;--ts:10px}
+html[data-row="micro"] .blk{--tb:10px;--ts:9px}
 .blk em .l1.l1 s{flex:0 0 auto;min-width:0;overflow:visible}
 .blk em .l1.l1 s i{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* Nome e attività sulla stessa riga se ci stanno; se no l'attività va a capo
    da sola, invece di troncarle tutt'e due come faceva la riga forzata. */
-.blk em .l1{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:5px;
-  flex:0 0 auto;padding-right:16px}
+.blk em .l1{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:4px;
+  flex:0 0 auto;padding-right:14px}
 .blk em .l1 b{flex:0 1 auto;max-width:100%;padding-right:0}
 .blk em .l1 s{flex:0 1 auto;min-width:0;margin-top:0}
 .blk em span.tr{flex:1 1 0;min-height:0;margin:2px -7px 0;background-image:var(--tr);
@@ -1889,7 +1890,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 ott 2026 · e";
+const VERSIONE="4 ott 2026 · g";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5323,19 +5324,34 @@ function motivi(root){
       (ss&&[...ss.querySelectorAll("i")].some(i=>i.scrollWidth>i.clientWidth));
     return {t,b,ss,stretto};
   }).filter(Boolean);
-  /* prima il nome: intero ("LINGUAGGI, INTERPRETI E COMPILATORI") se ci sta
-     con icona e attivita', se no quello corto */
-  titoli.forEach(x=>{
-    const L=x.b.dataset.lungo,C=x.b.dataset.corto;if(!L||L===C)return;
-    x.t.style.setProperty("--tk",1);
-    x.b.textContent=L;
-    if(x.stretto())x.b.textContent=C;
-  });
   let K=1;
   titoli.forEach(x=>{
     for(const k of [1,.94]){x.t.style.setProperty("--tk",k);K=Math.min(K,k);if(!x.stretto())break;}
   });
   titoli.forEach(x=>x.t.style.setProperty("--tk",K));
+  /* Poi il nome, il piu' lungo che ci sta. Prima con l'attivita' intera; se
+     cosi' il nome dovrebbe scendere sotto quello corto scritto a mano, si
+     accorcia l'attivita' ("Videolezione" -> "Video") e si riprova; solo dopo
+     il nome va oltre il corto. */
+  titoli.forEach(x=>{
+    const L=x.b.dataset.lungo,C=x.b.dataset.corto;if(!L)return;
+    const cs=getComputedStyle(x.t),gap=parseFloat(cs.columnGap)||0,cb=getComputedStyle(x.b);
+    const font=cb.fontWeight+" "+cb.fontSize+" "+cb.fontFamily;
+    const base=x.t.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0)-
+      (parseFloat(cb.paddingLeft)||0)-(parseFloat(cb.paddingRight)||0)-1;
+    const wi=x.ss&&x.ss.isConnected?x.ss.querySelector("i"):null;
+    const at0=x.t.closest(".blk").dataset.att;
+    const forme=wi?[wi.textContent,ATTCORTA[at0],ATTCORTISSIMA[at0]].filter((v,i,a)=>v&&a.indexOf(v)===i):[null];
+    const posto=()=>base-(x.ss&&x.ss.isConnected?x.ss.getBoundingClientRect().width+gap:0);
+    const cand=nomiCandidati(L,C),wc=larghezzaTesto(C||L,font);
+    for(const f of forme){
+      if(wi&&f)wi.textContent=f;
+      const pp=posto();
+      const ok=cand.find(n=>larghezzaTesto(n,font)<=pp&&larghezzaTesto(n,font)>=wc-0.5);
+      if(ok){x.b.textContent=ok;return;}
+    }
+    x.b.textContent=nomeMigliore(L,C,posto(),font);
+  });
   bl.forEach(o=>{if(o.f){o.f.classList.add("tutto");o.f.style.flex="";o.f.style.marginTop="";o.f.style.top="";o.f.style.left="";o.f.style.backgroundImage="";}});
   /* 4 ottobre, terza volta, come l'hai chiesto: la prima mezz'ora di ogni
      blocco e' il titolo — NOME, icona, attivita' — e ogni mezz'ora dopo ha
@@ -5384,6 +5400,92 @@ function cellaG(F){
   let maxR=0;Object.keys(TRDIM).forEach(a=>{const d=TRDIM[a];if(d[2])maxR=Math.max(maxR,d[0]/d[1]);});
   return Math.round(F*maxR*1.3);
 }
+/* ---------- il nome che ci sta ----------
+   Il titolo di un blocco mostra il nome della materia piu' lungo che ci sta
+   nello spazio che lascia l'attivita' (4 ottobre: "serve una regola per
+   ottimizzare al meglio il nome mostrato e lo spazio", per tutte le materie
+   dei due piani). Si parte dal nome intero e si accorcia una parola alla
+   volta, dall'ultima alla prima, tenendo l'inizio fino alla prima consonante
+   dopo la quarta lettera ("COMPILATORI" -> "COMPIL.", "INTERPRETI" ->
+   "INTER."); poi vanno via le parole di raccordo (di, e, per...); poi il nome
+   corto scritto a mano; poi i puntini. Le larghezze si misurano col
+   carattere vero, senza ridisegnare. */
+/* l'attivita' in breve, quando il nome della materia ha bisogno di posto */
+const ATTCORTA={VID:"Video",ESE:"Eserc.",LAB:"Lab.",PRO:"Prog.",LET:"Lettura",LEZ:"Lezione",SCH:"Schema",RIP:"Ripasso",
+  LAV:"Lavoro",NAS:"NASPI",PAI:"PAI"};
+const ATTCORTISSIMA={VID:"Video",ESE:"Es.",LAB:"Lab.",PRO:"Prog.",LET:"Lett.",LEZ:"Lez.",SCH:"Sch.",RIP:"Rip.",
+  LAV:"Lav.",NAS:"NASPI",PAI:"PAI"};
+const RACCORDI=new Set(["E","ED","DI","DEL","DELLO","DELLA","DEI","DEGLI","DELLE","A","AL","ALLO","ALLA","AI","AGLI","ALLE",
+  "DA","DAL","DALLA","IN","NEL","NELLO","NELLA","NEI","NEGLI","NELLE","CON","SU","SUL","SULLA","PER","TRA","FRA",
+  "IL","LO","LA","I","GLI","LE","UN","UNA","PRESSO","VERSO","SENZA","AND","OF","THE","FOR","TO","—","-"]);
+function abbrevia(w){
+  const m=w.match(/^([A-Za-zÀ-ÿ']+)(.*)$/);if(!m)return w;
+  let p=m[1];const resto=m[2];
+  let pre="";const ap=p.lastIndexOf("'");
+  if(ap>=0){pre=p.slice(0,ap+1);p=p.slice(ap+1);}
+  if(p.length<7)return w;
+  const voc=c=>"AEIOUÀÈÉÌÒÙaeiouàèéìòù".indexOf(c)>=0;
+  let k=4;while(k<p.length&&k<7&&voc(p[k-1]))k++;
+  if(k>=p.length-1)return w;
+  return pre+p.slice(0,k)+"."+resto.replace(/^\.+/,"");
+}
+const CANDIDATI={};
+function nomiCandidati(L,C){
+  const key=L+"|"+C;if(CANDIDATI[key])return CANDIDATI[key];
+  const out=[],metti=x=>{x=x.replace(/\s+/g," ").replace(/\s+,/g,",").replace(/,$/,"").trim();if(x&&out.indexOf(x)<0)out.push(x);};
+  metti(L);
+  const base=L.replace(/\s*\([^)]*\)/g,"").replace(/\s+—.*$/,"");
+  metti(base);
+  let w=base.split(" ");
+  for(let i=w.length-1;i>=0;i--){
+    if(RACCORDI.has(w[i].replace(/[,.;:]/g,"")))continue;
+    const a=abbrevia(w[i]);if(a!==w[i]){w=w.slice();w[i]=a;metti(w.join(" "));}
+  }
+  /* via le parole di raccordo, anche quelle attaccate con l'apostrofo
+     ("DELL'INCLUSIONE" -> "INCLUSIONE") */
+  const piene=w.map((x,i)=>i===0?x:x.replace(/^(DELL|DALL|NELL|ALL|SULL|L|D|UN|QUELL)['’]/i,""))
+    .filter((x,i)=>x&&(i===0||!RACCORDI.has(x.replace(/[,.;:]/g,""))));
+  metti(piene.join(" "));
+  if(C)metti(C);
+  /* le ultime risorse prima dei puntini: la prima parola intera, poi le
+     prime due accorciate, poi la prima accorciata */
+  /* La prima parola da sola, solo se nessun'altra materia del piano comincia
+     cosi': "SOCIOLOGIA" da solo, fra quattro sociologie, non dice quale. */
+  const p0=base.split(" ")[0].replace(/,$/,"");
+  const sola=!primeParole()[p0]||primeParole()[p0]<2;
+  if(sola)metti(p0);
+  if(piene.length>1)metti(abbrevia(piene[0]).replace(/,$/,"")+" "+abbrevia(piene[1]).replace(/,$/,""));
+  if(sola||piene.length<2)metti(abbrevia(p0));
+  /* dal piu' lungo al piu' corto: il nome corto scritto a mano finisce al
+     suo posto, prima delle sigle piu' strette di lui */
+  /* il corto scritto a mano vale un terzo in piu' della sua lunghezza: fra
+     "ALGORITMI IA" e "ALGOR. INTEL." e' meglio il primo */
+  const peso=x=>x===C?x.length*1.3:x.length;
+  out.sort((a,b)=>peso(b)-peso(a));
+  return CANDIDATI[key]=out;
+}
+/* quante materie del piano aperto cominciano con la stessa parola */
+let PRIME=null,PRIMEK="";
+function primeParole(){
+  const k=state.piano+"|"+items().length;
+  if(PRIME&&PRIMEK===k)return PRIME;
+  PRIME={};PRIMEK=k;
+  items().filter(o=>o.kind==="c").forEach(o=>{const w=o.name.toUpperCase().split(/[ ,]/)[0];PRIME[w]=(PRIME[w]||0)+1;});
+  for(const x in CANDIDATI)delete CANDIDATI[x];
+  return PRIME;
+}
+let misuraCtx=null;
+function larghezzaTesto(t,font){
+  if(!misuraCtx)misuraCtx=document.createElement("canvas").getContext("2d");
+  misuraCtx.font=font;return misuraCtx.measureText(t).width;
+}
+function nomeMigliore(L,C,posto,font){
+  const c=nomiCandidati(L,C);
+  for(const x of c)if(larghezzaTesto(x,font)<=posto)return x;
+  /* nemmeno il piu' corto: quello, e lo tagliano i puntini */
+  return c.reduce((a,x)=>larghezzaTesto(x,font)<larghezzaTesto(a,font)?x:a,c[0]);
+}
+
 /* Dove finiscono le scritte: conta il nome della materia (e la nota, se
    c'e'), non l'icona accanto. L'icona alza la riga di un pixel o due, e a
    certe altezze di mezz'ora bastava quello a far partire le figure una
@@ -7180,6 +7282,17 @@ window.addEventListener("afterprint",()=>{
   ripBar(true);
   fileAvvio();
   fattoDaLink();
+  /* Sabato 3 ottobre l'hai fatto tutto, e il link per segnarlo non ha
+     funzionato due volte (4 ottobre: "ti ho detto che mi devi spuntare gli
+     slot di ieri"). Lo fa l'app da sola, una volta, all'apertura. */
+  (function(){
+    const K="piano-6272-sabato-3-ottobre";
+    try{if(localStorage.getItem(K))return;}catch(e){}
+    if(!Object.keys(state.cells||{}).length)return;     /* piano non ancora caricato */
+    const n=segnaGiornoFatto("2026-10-03",null);
+    try{localStorage.setItem(K,"1");}catch(e){}
+    if(n)setTimeout(()=>toast(hrs(n)+" di sabato 3 ottobre segnate come fatte"),1200);
+  })();
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
   if(fuori)setTimeout(()=>toast(hrs(fuori)+" fuori dalla fascia "+dayFrom()+"–"+dayTo()),900);

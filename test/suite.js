@@ -357,7 +357,9 @@
     var b=document.querySelector('.blk.mini');
     if(!b)return "nessun blocco mini";
     var nb=b.querySelector("em > b"),s2=b.querySelector("em > s");
-    if(!nb||nb.textContent.indexOf(it[0].short.toUpperCase())<0)return "manca il nome: "+b.textContent;
+    /* il nome c'e', anche accorciato: comincia come quello intero */
+    var nn=nb?nb.textContent.replace(/[.…]/g,"").split(" ")[0]:"";
+    if(!nn||it[0].name.toUpperCase().indexOf(nn)!==0)return "manca il nome: "+b.textContent;
     var largo=b.getBoundingClientRect().width>=160;
     if(largo&&!(s2&&s2.querySelector(".ico")))return "in una colonna larga manca l'icona dell'attivita'";
     return true;});
@@ -3099,4 +3101,12 @@
   /* i controlli rinviati fanno giri con attese vere (file, gist): 400 ms
      bastavano ai primi, non a quelli che rimettono un piano e ridisegnano
      tutto su una finestra piccola */
-  if(rinviati.length)setTimeout(verdetto,4000);else verdetto();
+  /* i rinviati fanno giri con attese vere: si aspetta finche' hanno finito,
+     fino a quindici secondi */
+  if(rinviati.length){
+    var t0=Date.now();
+    (function aspetta(){
+      var pronti=rinviati.every(function(x){var r=x.poi();return !(typeof r==="string"&&/non ha finito in tempo/.test(r));});
+      if(pronti||Date.now()-t0>15000)verdetto();else setTimeout(aspetta,300);
+    })();
+  }else verdetto();
