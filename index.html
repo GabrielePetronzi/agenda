@@ -573,7 +573,10 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
    figura dell'angolo spuntava a pezzi intorno al quadratino (3 ottobre: "piccole
    sbavature ad inizio slot in alto a destra"). La stessa misura per tutte le
    file, cosi' restano uguali. */
-.blk em span.tr.tutto{position:absolute;top:0;bottom:0;left:6px;right:22px;margin:0;flex:none;z-index:-1;min-width:0}
+/* da un bordo all'altro: le figure stanno sotto il titolo, e li' il
+   quadratino della spunta non c'e' (4 ottobre: "devono occupare dall'inizio
+   alla fine") */
+.blk em span.tr.tutto{position:absolute;top:0;bottom:0;left:4px;right:4px;margin:0;flex:none;z-index:-1;min-width:0}
 .blk em span.tr.tutto.tessuto{left:0;right:0;bottom:0}
 .blk.mini em span.tr.tutto{bottom:0}
 
@@ -914,6 +917,18 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
 .gscala{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:11px;color:var(--tx3)}
 .gscala i{display:inline-block;width:12px;height:12px;border-radius:3px}
 .gscala .gs0{display:inline-flex;align-items:center;gap:6px;margin-left:14px}
+/* 3 — quante ore salti: una riga per materia */
+.gsal{display:flex;flex-direction:column;gap:9px}
+.gsr{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr) auto;align-items:center;gap:12px}
+.gsn{display:flex;align-items:center;gap:8px;min-width:0;font-size:12.5px;color:var(--tx2)}
+.gsn i{flex:0 0 auto;width:9px;height:9px;border-radius:2px}
+.gsn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gsb{display:flex;align-items:center;gap:8px;min-width:0}
+.gsb i{position:relative;display:block;height:12px;min-width:3px;border-radius:0 4px 4px 0;flex:0 0 auto}
+.gsb i::after{content:"";position:absolute;left:0;right:0;top:-7px;bottom:-7px}
+.gsb b{font-size:12.5px;font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums;white-space:nowrap}
+.gss{font-size:11.5px;color:var(--tx3);white-space:nowrap}
+@media (max-width:620px){.gsr{grid-template-columns:minmax(0,110px) minmax(0,1fr)}.gss{display:none}}
 /* il fumetto: prima il valore, poi di cosa e' */
 #gtip{position:fixed;z-index:95;pointer-events:none;display:none;flex-direction:column;gap:2px;
   padding:7px 10px;border-radius:8px;background:var(--raised);border:1px solid var(--line);
@@ -1874,7 +1889,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 ott 2026 · c";
+const VERSIONE="4 ott 2026 · e";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2075,7 +2090,11 @@ function save(msg,sfondo){
        Un gesto tuo vince sempre; una scheda che si sveglia da sola no. */
     const c=lsDati();
     const mie=Object.keys(state.cells||{}).length;
-    if(sfondo&&c&&(c.ts||0)>prima&&Object.keys(c.cells||{}).length>mie){
+    /* Basta che quella in memoria sia piu' recente: prima serviva anche che
+       avesse piu' mezz'ore, e una scheda rimasta aperta, svegliandosi per
+       spuntare una lezione, riscriveva il piano di prima sopra a un giorno
+       appena segnato fatto — stesse mezz'ore, spunte diverse. */
+    if(sfondo&&c&&(c.ts||0)>prima){
       sv.ts=prima;allineaSeServe();return;
     }
     if(lsSet(p)){sv.localSaved=b;copiaSalva(p,mie);sv.pieno=false;}
@@ -4515,7 +4534,7 @@ function semSummary(){
   const preAnno=(state.piano&&state.piano!==PIANO_BASE?state.piano+".":"")+state.year+".";
   grafMezz=oggi+"."+ora;
   const perGiorno={},qui={},futuro={},primo={},ultimo={},cal={},superati=state.pass||{};
-  const sett={},amano={};
+  const sett={},amano={},salt={};
   let pianoTot=0;
   Object.keys(state.cells).forEach(k=>{
     const p=k.split("."),dt=p[p.length-2],sl=+p[p.length-1];
@@ -4544,6 +4563,7 @@ function semSummary(){
       /* saltata: la sua ora e' passata e non e' fatta davvero */
       const passata=dt<oggi||(dt===oggi&&sl<ora);
       if(passata&&!q){
+        const sd=salt[v.i]=salt[v.i]||{};sd[dt]=(sd[dt]||0)+1;
         const ls=iso(monday(parse(dt)));
         const s=sett[ls]=sett[ls]||{};s[v.i]=(s[v.i]||0)+1;
         if(v.done)amano[ls]=(amano[ls]||0)+1;
@@ -4575,66 +4595,35 @@ function semSummary(){
   /* 2 — la costanza: il semestre giorno per giorno */
   h+=calendario(cal,oggi);
 
-  /* 3 — quante ore salti, settimana per settimana e di quali materie */
-  const lunOra=iso(monday(new Date()));
-  const settPiano=[...new Set(Object.keys(state.cells).filter(k=>k.indexOf(pre)===0)
-    .map(k=>{const p=k.split(".");return iso(monday(parse(p[p.length-2])));}))].sort();
-  const vis=[];
-  if(settPiano.length&&settPiano[0]<=lunOra){
-    for(let d=parse(settPiano[0]);iso(d)<=lunOra;d=addDays(d,7))vis.push(iso(d));
-  }
-  const settVis=vis.slice(-12);
+  /* 3 — quante ore salti. Dal 4 ottobre una barra per materia, come una
+     classifica: quante ore dell'ultimo mese sono passate senza farle, la
+     materia che salti di piu' in cima. Le colonne a fette per settimana
+     "non erano chiare". */
+  const oggiD2=parse(oggi),d30=iso(addDays(oggiD2,-29)),lun7=iso(monday(oggiD2));
+  const righeS=Object.keys(salt).filter(id=>m[id]&&qui[id]).map(id=>{
+    let mese=0,sett7=0;
+    Object.keys(salt[id]).forEach(dt=>{if(dt>=d30)mese+=salt[id][dt];if(dt>=lun7)sett7+=salt[id][dt];});
+    return {id:id,o:m[id],mese:mese/PERQ,sett:sett7/PERQ};
+  }).filter(x=>x.mese>0).sort((a,b)=>b.mese-a.mese);
   h+='<div class="graf"><h4>Quante ore salti</h4>'+
-    '<p class="gsub">Settimana per settimana, le ore in piano la cui ora è passata senza farle, per materia</p>';
-  if(settVis.length){
-    const ordine=items().map(o=>o.id);
-    const chi=[...new Set(settVis.flatMap(w=>Object.keys(sett[w]||{})))]
-      .sort((a,b)=>ordine.indexOf(a)-ordine.indexOf(b));
-    const totW=w=>Object.values(sett[w]||{}).reduce((a,b)=>a+b,0)/PERQ;
-    const max=Math.max(1,...settVis.map(totW));
-    const tk=tacche(max),top=tk[tk.length-1];
-    const ogni=Math.max(1,Math.ceil(settVis.length/6));
-    if(chi.length)h+='<div class="gleg">'+chi.map(id=>'<span><i class="k" style="background:'+m[id].color+'"></i>'+
-      esc(m[id].short||m[id].name)+"</span>").join("")+"</div>";
-    h+='<div class="gwk"><div class="gy">'+
-        tk.map(v=>'<span style="bottom:'+(v/top*100).toFixed(2)+'%">'+v+"</span>").join("")+
-      '</div><div class="gpl">'+
-        tk.map(v=>'<s style="bottom:'+(v/top*100).toFixed(2)+'%"></s>').join("")+
-        settVis.map(w=>{
-          const s=sett[w]||{},tot=totW(w),ora=w===lunOra;
-          const et=ora?"questa settimana":"settimana del "+fmt(parse(w));
-          const pezzi=chi.filter(id=>s[id]);
-          return '<span class="gc'+(ora?" ora":"")+'">'+
-            (tot?'<u class="gtot" style="bottom:calc('+(tot/top*100).toFixed(2)+'% + 3px)">'+num1(tot)+"</u>":"")+
-            '<span class="gst" style="height:'+(tot/top*100).toFixed(2)+'%">'+
-            pezzi.map((id,i)=>'<i class="'+(i===pezzi.length-1?"cima":"")+'" style="flex:'+s[id]+
-              ' 1 0;background:'+m[id].color+'"'+
-              tip(hrs(s[id])+" saltate",(m[id].short||m[id].name)+" · "+et)+"></i>").join("")+
-            "</span></span>";
-        }).join("")+
-      '</div><div class="gx">'+
-        settVis.map((w,i)=>{
-          const ult=i===settVis.length-1,mostra=ult||(i%ogni===0&&settVis.length-1-i>=ogni);
-          return '<span class="'+(i===0?"a0":(ult?"a1":""))+'">'+(mostra?(w===lunOra?"questa":fmt(parse(w))):"")+"</span>";
-        }).join("")+
-      "</div></div>";
-    /* a parole: questa settimana, e le ultime quattro */
-    const dettaglio=w=>chi.filter(id=>(sett[w]||{})[id]).sort((a,b)=>sett[w][b]-sett[w][a])
-      .map(id=>esc(m[id].short||m[id].name)+" "+hrs(sett[w][id])).join(", ");
-    const ult4=settVis.slice(-5,-1),t4=ult4.reduce((a,w)=>a+totW(w),0);
-    const per4={};ult4.forEach(w=>Object.keys(sett[w]||{}).forEach(id=>per4[id]=(per4[id]||0)+sett[w][id]));
-    const peggio=Object.keys(per4).sort((a,b)=>per4[b]-per4[a])[0];
-    const mano=settVis.reduce((a,w)=>a+(amano[w]||0),0);
-    const tq=totW(lunOra);
-    h+='<p class="gnota">'+
-      (tq?"Questa settimana finora ne hai saltate <b>"+num1(tq)+" h</b>: "+dettaglio(lunOra)+"."
-         :"Questa settimana finora non hai saltato niente.")+
-      (ult4.length?(t4?" Nelle "+(ult4.length===1?"settimana prima":ult4.length+" settimane prima")+" <b>"+num1(t4)+" h</b>, soprattutto "+
-        esc(m[peggio].short||m[peggio].name)+" ("+hrs(per4[peggio])+").":" Nelle settimane prima niente di saltato."):"")+
-      (mano?" Di queste, "+hrs(mano)+" le hai spuntate a mano senza timer: non contano come fatte.":"")+
-      "</p>";
+    '<p class="gsub">Le ore in piano negli ultimi 30 giorni passate senza farle, per materia</p>';
+  if(righeS.length){
+    const maxS=Math.max(...righeS.map(x=>x.mese));
+    const tot=righeS.reduce((a,x)=>a+x.mese,0),totS=righeS.reduce((a,x)=>a+x.sett,0);
+    h+='<div class="gsal">'+righeS.map(x=>
+      '<div class="gsr"><span class="gsn"><i style="background:'+x.o.color+'"></i>'+esc(x.o.name)+'</span>'+
+        '<span class="gsb"><i style="width:calc((100% - 52px) * '+(x.mese/maxS).toFixed(4)+');background:'+x.o.color+'"'+
+          tip(num1(x.mese)+" h saltate",x.o.name+" · ultimi 30 giorni"+(x.sett?" · "+num1(x.sett)+" h questa settimana":""))+'></i>'+
+        '<b>'+num1(x.mese)+' h</b></span>'+
+        '<span class="gss">'+(x.sett?num1(x.sett)+" h questa settimana":"")+'</span></div>').join("")+'</div>';
+    const mano=Object.keys(amano).reduce((a,w)=>a+(w>=iso(monday(parse(d30)))?amano[w]:0),0);
+    h+='<p class="gnota">In tutto <b>'+num1(tot)+' h</b> saltate nell’ultimo mese'+
+      (totS?", di cui <b>"+num1(totS)+" h</b> questa settimana":", nessuna questa settimana")+". "+
+      "Le salti di più in <b>"+esc(righeS[0].o.name)+"</b>."+
+      (mano?" "+hrs(mano)+" le hai spuntate a mano senza timer: non contano come fatte.":"")+
+      " Si recuperano col timer o con Sposta avanti.</p>";
   }else{
-    h+='<p class="gnota">Nessuna settimana ancora cominciata: il grafico si riempie coi giorni.</p>';
+    h+='<p class="gnota">Nell’ultimo mese non hai saltato niente.</p>';
   }
   h+="</div>";
   box.innerHTML=h;
@@ -4758,9 +4747,12 @@ function corsa(r,giorni,primoG,ultimoG,inPiano){
      gonfiava i primi giorni: sei ore fra sabato e domenica diventavano
      "ne stai facendo 21 a settimana", e il grafico diceva di rallentare
      (27 settembre). Una settimana non ancora finita vale una settimana. */
-  const fin=Math.min(28,iOggi+1);
-  let ult=0;for(let g=iOggi-fin+1;g<=iOggi;g++)ult+=(giorni[iso(addDays(inizio,g))]||0)/PERQ;
-  const alGiorno=ult/Math.max(7,fin),aSett=alGiorno*7;
+  /* Dal 4 ottobre il ritmo e' quello dell'ultimo mese intero: le ore fatte
+     negli ultimi trenta giorni, divise per trenta. Con le sole settimane da
+     quando hai cominciato era "troppo breve": due settimane buone o cattive
+     facevano il ritmo di tutto il semestre. */
+  let ult=0;for(let g=0;g<30;g++)ult+=(giorni[iso(addDays(oggiD,-g))]||0)/PERQ;
+  const alGiorno=ult/30,aSett=alGiorno*7;
   const fineProiez=conData?nEsame:(passato?null:n);
   const proiez=fineProiez!=null?(g=>ora+alGiorno*(g-iOggi)):null;
   const dovresti=conData||passato?(g=>Math.min(tgt,tgt*Math.max(0,g)/Math.max(1,nEsame))):null;
@@ -5331,6 +5323,14 @@ function motivi(root){
       (ss&&[...ss.querySelectorAll("i")].some(i=>i.scrollWidth>i.clientWidth));
     return {t,b,ss,stretto};
   }).filter(Boolean);
+  /* prima il nome: intero ("LINGUAGGI, INTERPRETI E COMPILATORI") se ci sta
+     con icona e attivita', se no quello corto */
+  titoli.forEach(x=>{
+    const L=x.b.dataset.lungo,C=x.b.dataset.corto;if(!L||L===C)return;
+    x.t.style.setProperty("--tk",1);
+    x.b.textContent=L;
+    if(x.stretto())x.b.textContent=C;
+  });
   let K=1;
   titoli.forEach(x=>{
     for(const k of [1,.94]){x.t.style.setProperty("--tk",k);K=Math.min(K,k);if(!x.stretto())break;}
@@ -5404,7 +5404,7 @@ function fondoTitolo(em,top0){
 function figMisura(d){
   /* e mai piu' alta della mezz'ora meno quattro pixel: la striscia da
      mezz'ora e' alta la mezz'ora meno due, e la figura ci deve stare intera */
-  const F=Math.max(9,Math.min(26,ROW-4));
+  const F=Math.max(9,Math.min(28,ROW-2));
   return {F:F,FW:F*d[0]/d[1]};
 }
 /* La casella e' la stessa per tutte le attivita': larga poco piu' della
@@ -5413,7 +5413,7 @@ function figMisura(d){
 function cellaW(){
   const F=figMisura(TRDIM.LEZ).F;
   let max=0;Object.keys(TRDIM).forEach(a=>{const d=TRDIM[a];if(d[2])max=Math.max(max,F*d[0]/d[1]);});
-  return Math.round(max*1.25);
+  return Math.round(max*1.15);
 }
 /* La stessa figura, al centro di una casella piu' grande: si allarga la
    viewBox dell'SVG del motivo, cosi' la figura resta della sua misura e il
@@ -5546,7 +5546,9 @@ function drawDay(dateIso,scope){
           nota='<u class="nota" style="-webkit-line-clamp:'+righe+'">'+nt+"</u>";
         }
       }
-      const testa='<b>'+o.short.toUpperCase()+"</b>"+corpo;
+      /* il nome intero dove ci sta, se no quello corto (motivi() decide) */
+      const lungo=o.name.toUpperCase(),corto=o.short.toUpperCase();
+      const testa='<b data-lungo="'+lungo.replace(/"/g,"&quot;")+'" data-corto="'+corto.replace(/"/g,"&quot;")+'">'+corto+"</b>"+corpo;
       bl.innerHTML='<span class="tick" role="button" aria-label="Segna come fatto"></span>'+
         "<em>"+(striscia?testa
                 :'<span class="l1">'+testa+"</span>"+nota+'<span class="tr"></span>')+
@@ -6567,7 +6569,18 @@ function fattoDaLink(){
   const f=q.get("fatto");if(!f)return;
   try{history.replaceState(null,"",location.pathname+location.hash);}catch(e){}
   const [d,a]=f.split("..");
-  segnaGiornoFatto(d,t=>confirm(t),a||d,q.get("materia"));
+  /* La domanda sta in una barra in cima, non in una finestrella del browser:
+     quella si chiudeva con un tocco qualunque, o non compariva, e il giorno
+     restava com'era (4 ottobre: "non mi ha spuntato gli slot di sabato"). */
+  segnaGiornoFatto(d,t=>{
+    const box=document.getElementById("ripbar");if(!box){return confirm(t);}
+    box.className="latebar ripbar on";
+    box.innerHTML='<b>'+esc(t)+'</b><button data-r="si" class="rip-si">Sì, segnale fatte</button><button data-r="no">No</button>';
+    box.querySelector('[data-r="si"]').onclick=()=>{box.className="latebar ripbar";box.innerHTML="";
+      segnaGiornoFatto(d,null,a||d,q.get("materia"));ripBar(true);};
+    box.querySelector('[data-r="no"]').onclick=()=>{box.className="latebar ripbar";box.innerHTML="";ripBar(true);};
+    return false;
+  },a||d,q.get("materia"));
 }
 
 /* ---------- il backup su un file del Mac ----------

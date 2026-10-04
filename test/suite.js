@@ -517,7 +517,7 @@
     placeRun(futura,H0,{i:it[0].id,a:"LET",len:2},0);   /* mai spuntata */
     state.semOpen=true;semSummary();
     var gg=document.querySelectorAll("#semBody .graf"),nota=gg[gg.length-1].querySelector(".gnota").textContent;
-    return nota.indexOf("Nessuna settimana ancora cominciata")>=0?true:
+    return nota.indexOf("non hai saltato niente")>=0?true:
       "dice: "+nota;});
 
   /* ---------- niente trabocca ---------- */
@@ -1192,17 +1192,20 @@
     tmp.remove();state.over={};
     if(!riga)return "manca la riga dell'esito";
     return (c!==rosso&&c!==verde)?true:"la riga dell'esito e' scritta nel colore "+c;});
-  t("le settimane arrivano fino a questa, e l'ultima si chiama questa",function(){
+  /* dal 4 ottobre le ore saltate sono una riga per materia, ultimi 30 giorni,
+     la piu' saltata in cima; il futuro e quello di piu' di un mese fa no */
+  t("le ore saltate: una riga per materia, in ordine, solo l'ultimo mese",function(){
     pulisci();apri();
-    var o=items()[0];
-    for(var w=0;w<=3;w++)
-      placeRun(iso(addDays(monday(new Date()),-7*w)),HOURS[2],{i:o.id,a:"LET",len:2},0);
-    placeRun(iso(addDays(monday(new Date()),14)),HOURS[2],{i:o.id,a:"LET",len:2},0);   /* futura */
-    state.semOpen=true;semSummary();
-    var col=document.querySelectorAll("#semBody .gwk .gc").length;
-    var et=[].map.call(document.querySelectorAll("#semBody .gwk .gx span"),function(e){return e.textContent;});
-    if(col!==4)return "colonne "+col+" (attese 4: tre passate e questa, non la futura)";
-    return et[et.length-1]==="questa"?true:"l'ultima etichetta e' "+et[et.length-1];});
+    var a=it[0],b=it[1];
+    placeRun(iso(addDays(new Date(),-2)),HOURS[2],{i:a.id,a:"LET",len:2},0);
+    placeRun(iso(addDays(new Date(),-3)),HOURS[2],{i:b.id,a:"LET",len:6},0);
+    placeRun(iso(addDays(new Date(),-40)),HOURS[2],{i:a.id,a:"LET",len:8},0);   /* troppo vecchia */
+    placeRun(iso(addDays(new Date(),14)),HOURS[2],{i:a.id,a:"LET",len:2},0);    /* futura */
+    semSummary();
+    var r=[].map.call(document.querySelectorAll("#semBody .gsr"),function(e){
+      return e.querySelector(".gsn").textContent+"="+e.querySelector(".gsb b").textContent;});
+    var atteso=[b.name+"=3 h",a.name+"=1 h"].join(",");
+    return r.join(",")===atteso?true:"righe: "+r.join(" | ")+" (attese "+atteso+")";});
   t("il fumetto dice valore e cosa, e il mirino segue il giorno",function(){
     pulisci();apri();
     var o=items()[0];
@@ -1212,8 +1215,8 @@
       placeRun(iso(addDays(monday(new Date()),-7*w-6)),HOURS[2],{i:o.id,a:"SCH",len:2},0);   /* saltate */
     }
     semSummary();
-    var segno=document.querySelector("#semBody .gwk .gst i");
-    if(!segno)return "le ore saltate non hanno le loro fette";
+    var segno=document.querySelector("#semBody .gsb i");
+    if(!segno)return "le ore saltate non hanno la loro barra";
     segno.dispatchEvent(new FocusEvent("focusin",{bubbles:true}));
     var f=document.getElementById("gtip"),t1=f&&f.classList.contains("on")?f.textContent:"";
     segno.dispatchEvent(new FocusEvent("focusout",{bubbles:true}));
@@ -1223,7 +1226,7 @@
     mirino(pl,r.left+r.width*0.1,r.top+r.height/2);
     var t2=f.classList.contains("on")?f.textContent:"";
     fumettoVia();state.over={};
-    if(!/h saltate/.test(t1)||!/settimana/.test(t1))return "sulla fetta il fumetto dice: "+t1;
+    if(!/h saltate/.test(t1)||!/30 giorni/.test(t1))return "sulla barra il fumetto dice: "+t1;
     return /fatte: /.test(t2)&&/dovresti essere a: /.test(t2)?true:"il mirino dice: "+t2;});
 
   /* 27 settembre: "aggiornalo all'ultimo giorno, non a fine settimana" */
@@ -1255,7 +1258,8 @@
     var t=document.querySelector("#semBody .gritmo").textContent;
     state.over={};
     var r=(t.match(/ne stai facendo ([\d,]+)/)||[])[1];
-    return r==="6"?true:"dice: "+t;});
+    /* sei ore nell'ultimo mese: 6/30*7 = 1,4 a settimana, non 21 */
+    return r==="1,4"?true:"dice: "+t;});
   t("il tempo che manca e' detto anche in mesi",function(){
     pulisci();apri();
     var o=items()[0];
@@ -1271,7 +1275,7 @@
      devono contarlo. */
   t("passata l'ora di un blocco non fatto, i grafici lo contano da soli",function(){
     pulisci();apri();
-    var somma=function(){return [].reduce.call(document.querySelectorAll("#semBody .gwk .gtot"),
+    var somma=function(){return [].reduce.call(document.querySelectorAll("#semBody .gsr .gsb b"),
       function(a,e){return a+parseFloat(e.textContent.replace(",","."));},0);};
     var ferma=function(ora,f){
       var Vero=Date,fisso=new Vero();fisso.setHours(ora,0,0,0);
@@ -1338,7 +1342,7 @@
     semSummary();
     var nomi=[].map.call(document.querySelectorAll("#semBody .gp .gph b"),function(e){return e.textContent;});
     var leg=[].map.call(document.querySelectorAll("#semBody .gleg span"),function(e){return e.textContent;}).join("|");
-    var tot=[].reduce.call(document.querySelectorAll("#semBody .gwk .gtot"),function(x,e){return x+parseFloat(e.textContent.replace(",","."));},0);
+    var tot=[].reduce.call(document.querySelectorAll("#semBody .gsr .gsb b"),function(x,e){return x+parseFloat(e.textContent.replace(",","."));},0);
     var c=" · "+DSH[(parse(ieri).getDay()+6)%7]+" "+fmt(parse(ieri));
     var q=[].find.call(document.querySelectorAll("#semBody .gcal i[data-tip]"),function(e){return e.getAttribute("aria-label").indexOf(c)>=0;});
     state.pass={};
@@ -1623,7 +1627,7 @@
     [HOURS[6],HOURS[16]].forEach(function(sl){var a=at(ck(ieri,sl)).slice();if(a[0]){delete a[0].done;a[0].nd=1;setAt(ck(ieri,sl),a);}});
     semSummary();
     var leg=[].map.call(document.querySelectorAll("#semBody .gleg span"),function(e){return e.textContent;}).join(" ");
-    var tot=[].reduce.call(document.querySelectorAll("#semBody .gwk .gtot"),function(a,e){return a+parseFloat(e.textContent.replace(",","."));},0);
+    var tot=[].reduce.call(document.querySelectorAll("#semBody .gsr .gsb b"),function(a,e){return a+parseFloat(e.textContent.replace(",","."));},0);
     if(/Lavoro|NASPI/.test(leg))return "fra le materie delle ore saltate c'e': "+leg;
     return tot===1?true:"ore saltate contate: "+tot+" (attesa 1: la lettura; lavoro e NASPI no)";});
 
