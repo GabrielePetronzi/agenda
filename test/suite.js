@@ -1266,8 +1266,10 @@
     var t=document.querySelector("#semBody .gp").textContent;
     state.over={};
     var r=ritmoLetto();
-    /* sei ore nell'ultimo mese: 6/30*7 = 1,4 a settimana, non 21 */
-    return r==="1,4"?true:"dice: "+t;});
+    /* sei ore fatte fra ieri e oggi: al massimo sei a settimana (se il
+       periodo e' cominciato da una settimana o meno), mai ventuno */
+    var v=r?parseFloat(r.replace(",",".")):NaN;
+    return (v>0&&v<=6.01)?true:"ritmo "+r+" — dice: "+t;});
   t("il tempo che manca e' detto anche in mesi",function(){
     pulisci();apri();
     var o=items()[0];
@@ -1644,6 +1646,19 @@
     if(tacche1<10)return "fino all'esame le tacche dei mesi sono "+tacche1;
     if(!c2||c2.n>31)return "la vista del mese dura "+(c2&&c2.n)+" giorni";
     return /Questo mese/.test(t2)?true:"i riquadri del mese dicono: "+t2;});
+  /* 4 ottobre: "il calcolo e' sbagliato, devi partire dal 21 settembre". Due
+     ore al giorno dall'inizio del periodo fanno quattordici a settimana,
+     comunque sia lungo il periodo finora. */
+  t("il ritmo conta i giorni dall'inizio del periodo, non trenta fissi",function(){
+    pulisci();apri();
+    var o=items()[0],st=parse(CTX[state.ctx].start),oggiD=parse(iso(new Date()));
+    if(oggiD<st)return true;                     /* periodo non ancora cominciato */
+    for(var d=new Date(st);d<=oggiD;d=addDays(d,1))placeRun(iso(d),HOURS[2],{i:o.id,a:"SCH",len:4,done:1},0);
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),60))};
+    semSummary();
+    var r=ritmoLetto(),c=corse[o.id];state.over={};
+    if(iso(c.inizio)!==CTX[state.ctx].start)return "il grafico parte dal "+iso(c.inizio)+" invece che dall'inizio del periodo";
+    return r==="14"?true:"due ore al giorno danno un ritmo di "+r+" h a settimana (atteso 14)";});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));

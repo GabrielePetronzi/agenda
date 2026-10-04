@@ -1909,7 +1909,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 ott 2026 · i";
+const VERSIONE="4 ott 2026 · l";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4765,24 +4765,37 @@ function corsa(r,giorni,primoG,ultimoG,inPiano){
   const vista=conData&&vistaCorsa[o.id]!=="mese"?"esame":"mese";
   const dd=(a,b)=>Math.round((b-a)/86400000);
   const MESI=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
-  /* il ritmo: ultimi trenta giorni diviso trenta */
-  let ult=0;for(let g=0;g<30;g++)ult+=(giorni[iso(addDays(oggiD,-g))]||0)/PERQ;
-  const alGiorno=ult/30,aSett=alGiorno*7,aMese=alGiorno*30.44;
+  /* Tutto parte dall'inizio del periodo in cui la materia comincia — il 21
+     settembre per il primo semestre (4 ottobre: "devi partire dal 21
+     settembre"). Il ritmo e' quello dell'ultimo mese, ma mai di giorni prima
+     di quell'inizio: dividere per trenta quando i giorni di studio erano
+     tredici dava un ritmo di meno della meta' — "il calcolo e' sbagliato".
+     Mai meno di una settimana, perche' i primi giorni non gonfino tutto. */
+  const pStart=(()=>{const rif=primoG||iso(oggiD);
+    const st=Object.keys(CTX).map(k=>CTX[k].start).filter(x=>x&&x<=rif).sort();
+    return parse(st.length?st[st.length-1]:rif);})();
+  const giorniRitmo=Math.max(7,Math.min(30,dd(pStart,oggiD)+1));
+  let ult=0;for(let g=0;g<giorniRitmo;g++)ult+=(giorni[iso(addDays(oggiD,-g))]||0)/PERQ;
+  const alGiorno=ult/giorniRitmo,aSett=alGiorno*7,aMese=alGiorno*30.44;
   /* tutte le ore fatte fino a oggi */
   let ora=0;Object.keys(giorni).forEach(d=>{if(d<=iso(oggiD))ora+=giorni[d]/PERQ;});
   const manca=Math.max(0,tgt-ora),giorniRest=conData?Math.max(0,r.gg):null;
   const serveG=conData&&giorniRest?manca/giorniRest:null;      /* ore al giorno che servono */
   let inizio,n,nEsame=null,base0=0,fineProiez,dovresti=null,linea=null,lineaEt="";
   if(vista==="esame"){
-    inizio=primoG?parse(primoG):oggiD;if(inizio>oggiD)inizio=oggiD;
+    inizio=pStart>oggiD?oggiD:pStart;
     nEsame=dd(inizio,parse(o.date));
     n=Math.max(7,nEsame+Math.max(2,Math.round(nEsame*0.04)));
     fineProiez=nEsame;
     dovresti=g=>Math.min(tgt,tgt*Math.max(0,g)/Math.max(1,nEsame));
     linea=tgt;lineaEt="obiettivo "+tgt+" h";
   }else{
-    inizio=new Date(oggiD.getFullYear(),oggiD.getMonth(),1);
-    const fineM=new Date(oggiD.getFullYear(),oggiD.getMonth()+1,0);
+    /* il mese di studio: dal 21 al 20 del mese dopo, contando dall'inizio
+       del periodo, non dal primo del mese di calendario */
+    let k=0;const meseDa=x=>new Date(pStart.getFullYear(),pStart.getMonth()+x,pStart.getDate());
+    while(meseDa(k+1)<=oggiD)k++;
+    inizio=meseDa(k);
+    const fineM=addDays(meseDa(k+1),-1);
     n=dd(inizio,fineM);fineProiez=n;
     /* nel mese si conta da zero: le ore fatte prima del primo non ci sono */
     Object.keys(giorni).forEach(d=>{if(d<iso(inizio))base0+=giorni[d]/PERQ;});
@@ -4854,11 +4867,11 @@ function corsa(r,giorni,primoG,ultimoG,inPiano){
     riq=q("Mancano",num1(manca)+" h","su "+tgt+" h · fatte "+num1(ora))+
       q("All’esame",giorniRest?tempo(giorniRest):"oggi",giorniRest>=21?inMesi(giorniRest):fmt(parse(o.date)))+
       q("Servono",serveG!=null?num1(serveG*7)+" h/sett.":"—",serveG!=null?"circa "+Math.round(serveG*30.44)+" h al mese":"")+
-      q("Il tuo ritmo",num1(aSett)+" h/sett.","circa "+Math.round(aMese)+" h al mese");
+      q("Il tuo ritmo",num1(aSett)+" h/sett.","circa "+Math.round(aMese)+" h al mese · ultimi "+giorniRitmo+" g");
   }else{
-    riq=q("Questo mese",num1(oraV)+" h","fatte a "+MESI[oggiD.getMonth()])+
+    riq=q("Questo mese",num1(oraV)+" h","dal "+fmt(inizio)+" al "+fmt(addDays(inizio,n)))+
       q("A fine mese",num1(arrivo)+" h","col tuo ritmo")+
-      q("Il tuo ritmo",num1(aSett)+" h/sett.","circa "+Math.round(aMese)+" h al mese")+
+      q("Il tuo ritmo",num1(aSett)+" h/sett.","circa "+Math.round(aMese)+" h al mese · ultimi "+giorniRitmo+" g")+
       (serveG!=null?q("Servono",Math.round(serveG*30.44)+" h al mese",num1(serveG*7)+" h a settimana")
         :q("Mancano",num1(manca)+" h","su "+tgt+" h"));
   }
