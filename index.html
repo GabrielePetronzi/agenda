@@ -574,6 +574,12 @@ tbody tr:last-child td.c{border-bottom:1px solid var(--line-soft)}
    sbavature ad inizio slot in alto a destra"). La stessa misura per tutte le
    file, cosi' restano uguali. */
 .blk em span.tr.tutto{position:absolute;inset:0 22px 0 6px;margin:0;flex:none;z-index:-1;min-width:0}
+.blk em span.tr.tutto.tessuto{inset:0}
+/* le scritte sopra le figure: un bordo del colore del blocco le stacca,
+   come nel lavoro dove la trama passa sotto senza disturbare */
+.blk em b,.blk em s i,.blk em u.nota{-webkit-text-stroke:3px var(--bc);paint-order:stroke fill}
+.blk em s .ico{filter:drop-shadow(0 0 1.5px var(--bc)) drop-shadow(0 0 1.5px var(--bc))}
+.blk.mini em span.tr.tutto{display:block}
 /* Le scritte hanno un bordo pieno del colore del blocco: dove passano sopra
    una figura la coprono quanto basta a leggerle, e la figura resta al suo
    posto. L'iconcina dell'attivita' accanto al nome non serve piu': lo dice
@@ -1870,7 +1876,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="3 ott 2026 · h";
+const VERSIONE="4 ott 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5338,59 +5344,27 @@ function motivi(root){
     if(x.stretto())x.ss.remove();
   });
   bl.forEach(o=>{if(o.f){o.f.classList.add("tutto");o.f.style.flex="";o.f.style.marginTop="";o.f.style.top="";o.f.style.backgroundImage="";}});
-  /* Da che mezz'ora partono le figure: la stessa per tutti i blocchi della
-     griglia, quella che serve al titolo piu' alto. Un titolo su due righe
-     (nome lungo, attivita' a capo) e uno su una riga davano a due blocchi
-     della stessa lunghezza un numero di file diverso. */
-  let K0=1;
-  bl.forEach(o=>{
-    if(!o.f||o.b.classList.contains("mini"))return;
-    const t0=o.b.getBoundingClientRect().top;
-    K0=Math.max(K0,Math.ceil((fondoTitolo(o.f.parentNode,t0)-1)/ROW));
-  });
+  /* Dal 4 ottobre il motivo fa come quello del lavoro, che ti piace: copre
+     tutto il blocco, dall'alto, anche la mezz'ora del titolo e i blocchi da
+     una mezz'ora sola, leggero come una filigrana dietro alle scritte. Le
+     figure sono grandi quasi quanto la mezz'ora, una fila per mezz'ora, tutte
+     della stessa misura: "troppo piccoli". */
   bl.forEach(o=>{
     const r=o.b.getBoundingClientRect(),w=r.width,h=r.height;
     const [tw,th,figura]=o.d,a=o.b.dataset.att;
     if(!(w>3&&h>3)){ripiego(o);return;}
-    /* la mezz'ora da sola non ha motivo, ne' figure ne' tessuti */
-    if(!o.f||o.b.classList.contains("mini")){
-      if(o.f)o.f.style.backgroundImage="none";
-      o.b.style.setProperty("--trr","no-repeat");
-      return;
-    }
-    /* anche i tessuti partono sotto le scritte */
-    if(!figura&&o.f&&!o.b.classList.contains("mini")){
-      const kk=K0;
-      if(kk*ROW>=h-2){o.f.style.backgroundImage="none";return;}
-      o.f.style.top=(kk*ROW)+"px";
-    }
+    if(o.f){o.f.style.top="0px";o.f.classList.toggle("tessuto",!figura);}
     if(!figura){
-      /* i tessuti — righe, quadretti, punti — a misura naturale, dall'angolo;
-         rimpiccioliti solo dove la fascia e' piu' bassa di un disegno */
-      const hb=o.f?o.f.getBoundingClientRect().height:h,sc=Math.min(1,hb/th);
-      o.b.style.setProperty("--trs",(tw*sc).toFixed(1)+"px "+(th*sc).toFixed(1)+"px");
+      /* i tessuti — righe, quadretti, punti — come nel lavoro: a misura
+         naturale, dall'angolo, su tutto il blocco */
+      o.b.style.setProperty("--trs",tw+"px "+th+"px");
       o.b.style.setProperty("--trr","repeat");
       o.b.style.setProperty("--trp","0 0");
       return;
     }
     const {FW}=figMisura(o.d);
-    /* lo spazio vero e' quello della fascia, che si ferma prima della spunta */
     const wf=o.f?o.f.getBoundingClientRect().width:w-28;
     if(wf<FW+2){ripiego(o);return;}
-    /* La mezz'ora da sola non ha figure (3 ottobre: "non mi convince il
-       singolo slot"): ha il titolo come tutti gli altri blocchi, nome, icona
-       e attivita', e basta. */
-    if(!o.f||o.b.classList.contains("mini")){
-      if(o.f)o.f.style.backgroundImage="none";
-      o.b.style.setProperty("--trr","no-repeat");
-      return;
-    }
-    /* Le figure partono dalla prima mezz'ora libera sotto le scritte, mai
-       sotto il nome o l'attivita': sovrapposte, il 3 ottobre, facevano un
-       pasticcio illeggibile. Da li' in giu', una fila per mezz'ora. */
-    const k0=K0;
-    if(k0*ROW+figMisura(o.d).F>h+2){o.f.style.backgroundImage="none";o.b.style.setProperty("--trr","no-repeat");return;}
-    o.f.style.top=(k0*ROW)+"px";
     const CW=Math.min(Math.floor(wf),cellaW());
     o.b.style.setProperty("--tr",cella(a,CW,ROW));
     o.b.style.setProperty("--trs",CW+"px "+ROW+"px");
@@ -5418,7 +5392,7 @@ function fondoTitolo(em,top0){
 function figMisura(d){
   /* e mai piu' alta della mezz'ora meno quattro pixel: la striscia da
      mezz'ora e' alta la mezz'ora meno due, e la figura ci deve stare intera */
-  const F=Math.max(9,Math.min(22,Math.round(ROW*0.82),ROW-4));
+  const F=Math.max(9,Math.min(26,ROW-3));
   return {F:F,FW:F*d[0]/d[1]};
 }
 /* La casella e' la stessa per tutte le attivita': larga poco piu' della
@@ -5427,7 +5401,7 @@ function figMisura(d){
 function cellaW(){
   const F=figMisura(TRDIM.LEZ).F;
   let max=0;Object.keys(TRDIM).forEach(a=>{const d=TRDIM[a];if(d[2])max=Math.max(max,F*d[0]/d[1]);});
-  return Math.round(max*1.3);
+  return Math.round(max*1.25);
 }
 /* La stessa figura, al centro di una casella piu' grande: si allarga la
    viewBox dell'SVG del motivo, cosi' la figura resta della sua misura e il
@@ -5444,7 +5418,6 @@ function cella(a,cw,ch,Fs){
   const W=cw/k,H=ch/k,x=-(W-d[0])/2,y=-(H-d[1])/2;
   /* e un po' piu' marcate: a trenta per cento di inchiostro, su fondi
      chiari, si vedevano appena */
-  svg=svg.replace(/(stroke|fill)-opacity='([\d.]+)'/g,(x,q,v)=>q+"-opacity='"+Math.min(.62,+v*1.6).toFixed(2)+"'");
   svg=svg.replace(/width='[^']*' height='[^']*' viewBox='[^']*'/,
     "width='"+W.toFixed(2)+"' height='"+H.toFixed(2)+"' viewBox='"+x.toFixed(2)+" "+y.toFixed(2)+" "+W.toFixed(2)+" "+H.toFixed(2)+"'");
   return CELLE[key]="url('data:image/svg+xml,"+
