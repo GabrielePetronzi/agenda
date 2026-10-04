@@ -1576,8 +1576,9 @@
     var lunghe=Object.keys(file);
     for(var i=0;i<lunghe.length;i++)if(Object.keys(file[lunghe[i]]).length!==1)guai.push(lunghe[i]+" mezz'ore: "+Object.keys(file[lunghe[i]]).join(" o ")+" file");
     if(guai.length)return guai.join(" · ");
-    /* piu' mezz'ore, piu' file */
-    return (file[8]&&file[3]&&+Object.keys(file[8])[0]>+Object.keys(file[3])[0])?true:
+    /* una fila per ogni mezz'ora dopo quella del titolo: cinque mezz'ore in
+       piu', cinque file in piu' */
+    return (file[8]&&file[3]&&+Object.keys(file[8])[0]-+Object.keys(file[3])[0]===5)?true:
       "le file non sono una per mezz'ora: "+JSON.stringify(file);});
   /* 3 ottobre: "se salto la pausa deve essere considerata come tempo fatto" */
   t("saltare la pausa conta la pausa intera, nel registro e nelle mezz'ore",function(){
@@ -1597,6 +1598,22 @@
       if(dopo-prima!==15)return "la pausa saltata ha messo a registro "+(dopo-prima)+" minuti (attesi 15)";
       return q==="■■□□"?true:"dopo 45 + 15 minuti il blocco e' "+q+" (atteso ■■□□)";
     });});
+  /* 4 ottobre: "NOME IN GRASSETTO + motivo (l'icona) + nome attivita'", in
+     ogni blocco, anche da una mezz'ora */
+  t("ogni titolo ha nome, icona e attivita'",function(){
+    pulisci();apri();
+    var lungo=items().filter(function(x){return /dichiar/i.test(x.name||"");})[0]||it[2];
+    state.span=7;state.from=0;state.to=6;applySpan();
+    var G7=[];document.querySelectorAll("td.c").forEach(function(x){if(G7.indexOf(x.dataset.date)<0)G7.push(x.dataset.date);});
+    G7.slice(0,5).forEach(function(d,k){
+      placeRun(d,HOURS[2],{i:lungo.id,a:"VID",len:1+k%3},0);
+      placeRun(d,HOURS[10],{i:it[0].id,a:"SCH",len:1},0);});
+    render();
+    var male=[].filter.call(document.querySelectorAll(".blk[data-att]"),function(b){
+      var nb=b.querySelector("em b"),ic=b.querySelector("em s .ico"),pa=b.querySelector("em s i");
+      return !(nb&&ic&&pa&&pa.textContent.trim()&&pa.scrollWidth<=pa.clientWidth);});
+    return male.length?male.length+" titoli senza nome, icona o attivita' intera: "+
+      [].map.call(male,function(b){return b.textContent.trim();}).slice(0,3).join(" | "):true;});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));
@@ -1847,13 +1864,11 @@
     var b=l1.querySelector("b");
     var bl=l1.closest(".blk").getBoundingClientRect(),r=l1.getBoundingClientRect();
     if(r.bottom>bl.bottom+1)return "la prima riga esce dal blocco: "+Math.round(r.bottom-bl.bottom)+" px";
-    /* il nome della materia viene prima: intero, mai coi puntini per far
-       posto all'attivita' */
-    var nb=l1.querySelector("b");
-    /* troncato si', ma solo se da solo non ci sta: mai per far posto
-       all'attivita' */
-    var tronco=nb.scrollWidth>nb.clientWidth+1,conParola=!!l1.querySelector("s i");
-    return (tronco&&conParola)?"il nome della materia e' troncato per far posto all'attivita'":true;});
+    /* dal 4 ottobre il titolo ha sempre nome, icona e attivita' intera: se
+       non ci stanno si accorcia il nome coi puntini, mai l'attivita' */
+    var pa=l1.querySelector("s i"),ic=l1.querySelector("s .ico");
+    if(!ic||!pa)return "nel titolo mancano l'icona o l'attivita'";
+    return pa.scrollWidth<=pa.clientWidth?true:"l'attivita' e' troncata";});
 
   /* La data d'esame si mette dalla riga della materia, che e' dove uno la
      cerca appena aggiunta una materia. Prima stava dentro un pannello in
