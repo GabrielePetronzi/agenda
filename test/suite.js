@@ -1989,6 +1989,22 @@
     state.custom=[];state.exams=[];render();
     if(ex.length!==1)return "scadenze collegate: "+ex.length;
     return pulito?true:"il campo della data e' rimasto pieno";});
+  t("aggiungi materia: il pulsante accanto al titolo apre il modulo e dopo l'aggiunta si richiude",function(){
+    var pn=document.getElementById("addPanel"),bt=document.getElementById("addToggle");
+    if(document.querySelector("details.fold"))return "c'e' ancora la piega in fondo";
+    if(!bt.closest(".sechead"))return "il pulsante non sta nel titolo delle materie";
+    if(!pn.hidden)return "il modulo parte gia' aperto";
+    bt.click();
+    if(pn.hidden)return "il pulsante non apre";
+    if(pn.getBoundingClientRect().height<40)return "il modulo aperto non si vede";
+    var su=pn.getBoundingClientRect().top<document.getElementById("picklist").getBoundingClientRect().top;
+    state.custom=[];
+    document.getElementById("newName").value="Prova chiude";
+    document.getElementById("addBtn").click();
+    var chiuso=pn.hidden;
+    state.custom=[];render();apriAggiungi(false);
+    if(!su)return "il modulo non sta sopra l'elenco";
+    return chiuso?true:"dopo l'aggiunta resta aperto";});
   t("nel modulo non ci sono piu' ripristina, chiudi e in sessione",function(){
     rigaMateria();
     document.querySelector("#picklist .prow em.dat").onclick({stopPropagation:function(){}});

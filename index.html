@@ -150,6 +150,11 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 
 /* sezioni della colonna strumenti */
 .sec{margin-bottom:20px}
+.secadd{margin-left:auto;border:1px solid var(--line);background:var(--raised);color:var(--tx2);
+  border-radius:var(--r-sm);padding:3px 9px;font-size:11.5px;cursor:pointer;flex:0 0 auto}
+.secadd:hover,.secadd.on{color:var(--tx);border-color:var(--tx3)}
+.addpanel{margin:2px 0 12px;padding:10px 11px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.addpanel[hidden]{display:none}
 .sechead{display:flex;align-items:center;justify-content:space-between;gap:12px;
   margin-bottom:8px}
 .sechead .lbl{margin:0}
@@ -180,16 +185,7 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .prow.fatta .pnm{color:var(--tx2)}
 .prow.fatta .swatch{box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
 
-/* apri/chiudi le sezioni secondarie */
-.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
-  padding:8px 0;border-top:1px solid var(--line-soft)}
-.fold>summary::-webkit-details-marker{display:none}
-.fold>summary .lbl{margin:0;flex:1}
-.fold>summary .cv{display:flex;align-items:center;color:var(--tx3);
-  transition:transform .16s}
-.fold>summary:hover .lbl,.fold>summary:hover .cv{color:var(--tx2)}
-.fold[open]>summary .cv{transform:rotate(90deg)}
-.fold .inner{padding:4px 0 16px}
+
 
 /* campi */
 /* aggiungere una materia e modificarla devono avere la stessa faccia, se no
@@ -1224,22 +1220,12 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
     </div>
 
     <div class="sec">
-      <div class="sechead"><p class="lbl" data-ico="BKS">Materie</p><span class="pinfo" id="pickinfo"></span></div>
-      <div class="cfubar" id="cfubar"></div>
-      <div class="searchbox">
-        <input id="q" type="search" placeholder="Cerca in tutto il piano" aria-label="Cerca una materia">
-        <button id="qClear" title="Azzera la ricerca">✕</button>
-      </div>
-      <div class="picklist" id="picklist"></div>
-      <!-- I promemoria che non sono l'esame di nessuna materia: restano qui
-           sotto le materie, si cambiano sul posto e non hanno un pannello
-           tutto loro. Se non ce ne sono, non c'e' niente da vedere. -->
-      <div id="exList"></div>
-    </div>
-
-    <details class="fold">
-      <summary><span class="cv">›</span><span class="lbl" data-ico="PLS">Aggiungi una materia</span></summary>
-      <div class="inner">
+      <!-- "Aggiungi una materia" stava in fondo alla colonna, dopo l'elenco
+           (4 ottobre: "non mi convince li' sotto"). Ora e' un pulsante
+           accanto al titolo, e il modulo si apre subito sotto. -->
+      <div class="sechead"><p class="lbl" data-ico="BKS">Materie</p><span class="pinfo" id="pickinfo"></span>
+        <button class="secadd" id="addToggle" aria-expanded="false" title="Aggiungi una materia, un tirocinio, un lavoro…">+ Aggiungi</button></div>
+      <div class="addpanel" id="addPanel" hidden>
         <div class="vform">
           <div class="vrow">
             <label class="vf"><span>nome</span>
@@ -1255,7 +1241,19 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
         </div>
         <div class="tools" id="voci" style="margin-top:9px"></div>
       </div>
-    </details>
+
+      <div class="cfubar" id="cfubar"></div>
+      <div class="searchbox">
+        <input id="q" type="search" placeholder="Cerca in tutto il piano" aria-label="Cerca una materia">
+        <button id="qClear" title="Azzera la ricerca">✕</button>
+      </div>
+      <div class="picklist" id="picklist"></div>
+      <!-- I promemoria che non sono l'esame di nessuna materia: restano qui
+           sotto le materie, si cambiano sul posto e non hanno un pannello
+           tutto loro. Se non ce ne sono, non c'e' niente da vedere. -->
+      <div id="exList"></div>
+    </div>
+
 
   </aside>
 
@@ -1930,7 +1928,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 ott 2026 · m";
+const VERSIONE="4 ott 2026 · n";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -7093,7 +7091,18 @@ document.getElementById("addBtn").onclick=()=>{
   if(dt.value)setDataEsame(id,dt.value,"");
   state.brush=id;state.erase=false;
   i.value="";cf.value="";dt.value="";save("Materia aggiunta");commit();render();
+  apriAggiungi(false);
 };
+/* il modulo per aggiungere: si apre e si chiude dal pulsante accanto al titolo */
+function apriAggiungi(on){
+  const pn=document.getElementById("addPanel"),bt=document.getElementById("addToggle");
+  if(on==null)on=pn.hidden;
+  pn.hidden=!on;bt.setAttribute("aria-expanded",on);bt.classList.toggle("on",on);
+  bt.textContent=on?"Chiudi":"+ Aggiungi";
+  if(on)setTimeout(()=>document.getElementById("newName").focus(),0);
+}
+document.getElementById("addToggle").onclick=()=>apriAggiungi();
+document.getElementById("newName").addEventListener("keydown",e=>{if(e.key==="Escape")apriAggiungi(false);});
 document.getElementById("newName").addEventListener("keydown",e=>{
   if(e.key==="Enter")document.getElementById("addBtn").click();
 });
@@ -7318,7 +7327,6 @@ function iconify(){
   document.querySelectorAll(".lbl[data-ico]").forEach(e=>{
     e.innerHTML=icon(e.dataset.ico,11)+"<span>"+e.textContent.trim()+"</span>";
   });
-  document.querySelectorAll(".fold>summary .cv").forEach(e=>{e.innerHTML=icon("CHR",11);});
   document.querySelectorAll(".sumtoggle .chev").forEach(e=>{e.innerHTML=icon("CHR",11);});
   const sb=document.querySelector(".searchbox");
   if(sb)sb.insertAdjacentHTML("afterbegin",'<span class="sico">'+icon("SRC",13)+"</span>");
