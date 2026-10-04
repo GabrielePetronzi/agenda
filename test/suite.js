@@ -984,13 +984,19 @@
     /* 150 h da fare in 10 settimane = 15 h a settimana */
     return riga.textContent.indexOf("15 h a settimana")>=0?true:
       "dice: "+riga.textContent;});
+  /* il ritmo sta nel riquadro "Il tuo ritmo" (4 ottobre) */
+  function ritmoLetto(){
+    var q=[].find.call(document.querySelectorAll("#semBody .gq div"),function(d){return /tuo ritmo/i.test(d.querySelector("span").textContent);});
+    return q?(q.querySelector("b").textContent.match(/([\d,]+)/)||[])[1]:null;
+  }
   t("senza data d'esame dice comunque il ritmo che tieni",function(){
     pulisci();apri();
     placeRun(G[0],H0,{i:items()[0].id,a:"LET",len:4},0);
     state.semOpen=true;semSummary();
-    var r=document.querySelector("#semBody .gritmo");
-    return (r&&/il tuo ritmo/i.test(r.textContent))?true:
-      "dice: "+(r?r.textContent:"niente");});
+    /* senza data: la vista del mese, col riquadro del ritmo */
+    var r=ritmoLetto(),v=document.querySelector("#semBody .gp .gvis");
+    if(v)return "senza data c'e' la scelta della vista, che serve solo con la data";
+    return r!=null?true:"manca il riquadro del ritmo";});
   t("avvisa una volta sola, e solo se il blocco è vicino",function(){
     /* La prossima mezz'ora può essere fra un minuto o fra ventinove, secondo
        l'orario in cui gira il banco: controllo la regola, non l'orologio. */
@@ -1238,10 +1244,10 @@
     state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),60))};
     for(var g=1;g<=14;g++)placeRun(iso(addDays(new Date(),-g)),HOURS[2],{i:o.id,a:"LET",len:2,done:1},0);
     semSummary();
-    var prima=(document.querySelector("#semBody .gritmo").textContent.match(/ne stai facendo ([\d,]+)/)||[])[1];
+    var prima=ritmoLetto();
     placeRun(TODAY,HOURS[6],{i:o.id,a:"LET",len:4,done:1},0);   /* due ore fatte oggi */
     semSummary();
-    var dopo=(document.querySelector("#semBody .gritmo").textContent.match(/ne stai facendo ([\d,]+)/)||[])[1];
+    var dopo=ritmoLetto();
     state.over={};
     if(!prima||!dopo)return "la riga non dice il ritmo";
     return parseFloat(dopo.replace(",","."))>parseFloat(prima.replace(",","."))?true:
@@ -1257,9 +1263,9 @@
     placeRun(iso(addDays(new Date(),-1)),HOURS[2],{i:o.id,a:"SCH",len:6,done:1},0);
     placeRun(TODAY,HOURS[10],{i:o.id,a:"SCH",len:6,done:1},0);
     semSummary();
-    var t=document.querySelector("#semBody .gritmo").textContent;
+    var t=document.querySelector("#semBody .gp").textContent;
     state.over={};
-    var r=(t.match(/ne stai facendo ([\d,]+)/)||[])[1];
+    var r=ritmoLetto();
     /* sei ore nell'ultimo mese: 6/30*7 = 1,4 a settimana, non 21 */
     return r==="1,4"?true:"dice: "+t;});
   t("il tempo che manca e' detto anche in mesi",function(){
@@ -1620,6 +1626,24 @@
       return !(nb&&ic&&pa&&pa.textContent.trim()&&pa.scrollWidth<=pa.clientWidth);});
     return male.length?male.length+" titoli senza nome, icona o attivita' intera: "+
       [].map.call(male,function(b){return b.textContent.trim();}).slice(0,3).join(" | "):true;});
+  /* 4 ottobre: con la data d'esame la corsa va fino all'esame, anche fra un
+     anno, e si puo' passare al mese; senza data e' il mese. L'asse ha le tacche. */
+  t("la corsa: fino all'esame o il mese, con le tacche del tempo",function(){
+    pulisci();apri();
+    var o=items()[0];
+    state.over[o.id]={n:o.name,c:6,d:iso(addDays(new Date(),360))};
+    placeRun(iso(addDays(new Date(),-3)),HOURS[2],{i:o.id,a:"SCH",len:4,done:1},0);
+    semSummary();
+    var c1=corse[o.id],tacche1=document.querySelectorAll("#semBody .gp .gx .gtk").length;
+    var b=document.querySelector('#semBody .gvis [data-vista="mese"]');
+    if(!b){state.over={};return "con la data manca il pulsante del mese";}
+    b.click();
+    var c2=corse[o.id],t2=document.querySelector("#semBody .gq").textContent;
+    vistaCorsa[o.id]=null;state.over={};
+    if(!c1||c1.n<350)return "la vista dell'esame non arriva all'esame fra un anno: "+(c1&&c1.n)+" giorni";
+    if(tacche1<10)return "fino all'esame le tacche dei mesi sono "+tacche1;
+    if(!c2||c2.n>31)return "la vista del mese dura "+(c2&&c2.n)+" giorni";
+    return /Questo mese/.test(t2)?true:"i riquadri del mese dicono: "+t2;});
   t("il lavoro e la NASPI non contano nei grafici",function(){
     pulisci();apri();
     var ieri=iso(addDays(new Date(),-1));

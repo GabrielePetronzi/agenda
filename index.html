@@ -865,6 +865,11 @@ html[data-theme="light"] .gdot{background:color-mix(in srgb,var(--c) 68%,#000)}
 .gcorsa .gx,.gwk .gx{grid-column:2;position:relative;height:16px;margin-top:5px;font-size:10.5px;color:var(--tx3)}
 .gcorsa .gx span{position:absolute;top:0;white-space:nowrap}
 .gcorsa .gx .oggi{transform:translateX(-50%);color:var(--tx2)}
+/* le tacche del tempo: una righina che sale dall'asse e la data sotto */
+.gsvg .gtv{stroke:var(--line-soft);stroke-width:1}
+.gcorsa .gx .gtk{transform:translateX(-50%);color:var(--tx3);padding-top:4px}
+.gcorsa .gx .gtk::before{content:"";position:absolute;left:50%;top:-5px;width:1px;height:5px;background:var(--tx3)}
+.gcorsa .gx .gtk.muta{color:transparent}
 .gritmo{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:12.5px;
   line-height:1.45;color:var(--tx2)}
 .gritmo b{color:var(--tx);font-weight:600}
@@ -918,6 +923,20 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
 .gscala{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:11px;color:var(--tx3)}
 .gscala i{display:inline-block;width:12px;height:12px;border-radius:3px}
 .gscala .gs0{display:inline-flex;align-items:center;gap:6px;margin-left:14px}
+/* i numeri della corsa, in riquadri */
+.gq{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+.gq div{display:flex;flex-direction:column;gap:1px;padding:8px 10px;border-radius:var(--r-sm);
+  background:var(--raised);border:1px solid var(--line-soft);min-width:0}
+.gq span{font-size:11px;color:var(--tx3)}
+.gq b{font-family:"Familjen Grotesk",sans-serif;font-size:17px;font-weight:600;color:var(--tx);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gq i{font-style:normal;font-size:11px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:760px){.gq{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.gpn2{color:var(--tx3)}
+.gvis{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;flex:0 0 auto}
+.gvis button{border:0;background:none;color:var(--tx3);font-size:11px;padding:3px 8px;cursor:pointer}
+.gvis button.on{background:var(--raised);color:var(--tx)}
+.gvis button:hover{color:var(--tx)}
 /* 3 — quante ore salti: una riga per materia */
 .gsal{display:flex;flex-direction:column;gap:9px}
 .gsr{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr) auto;align-items:center;gap:12px}
@@ -1890,7 +1909,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 ott 2026 · h";
+const VERSIONE="4 ott 2026 · i";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4498,6 +4517,10 @@ function gTip(){
     const el=e.target.closest&&e.target.closest("[data-tip]");
     if(el)segno(el,e.clientX,e.clientY);else fumettoVia();
   });
+  box.addEventListener("click",e=>{
+    const v=e.target.closest&&e.target.closest("[data-vista]");if(!v)return;
+    vistaCorsa[v.dataset.id]=v.dataset.vista;semSummary();
+  });
   box.addEventListener("pointerleave",()=>{fumettoVia();box.querySelectorAll(".gmir").forEach(m=>m.style.display="none");});
   box.addEventListener("pointerout",e=>{
     const c=e.target.closest&&e.target.closest(".gplot[data-corsa]");
@@ -4726,112 +4749,146 @@ function inMesi(g){
   if(a){const r=Math.round(mm-a*12);return "circa "+a+(a===1?" anno":" anni")+(r?" e "+mesi(r,false):"");}
   return "circa "+mesi(mm,true);
 }
+/* La corsa di una materia, in due viste (4 ottobre):
+   - "Esame", se la data c'e': dal primo giorno in piano al giorno
+     dell'esame, anche se e' fra un anno;
+   - "Mese": il mese di adesso, dal primo all'ultimo giorno. E' la vista di
+     chi la data non ce l'ha, e resta a portata di un clic per chi ce l'ha.
+   Le linee: fatte (piena), col tuo ritmo (tratteggio: le ore degli ultimi
+   trenta giorni divise per trenta), dove dovresti essere (grigia). Sotto,
+   i numeri in quattro riquadri invece che in una frase lunga, e l'esito in
+   una riga sola. */
+const vistaCorsa={};
 function corsa(r,giorni,primoG,ultimoG,inPiano){
   const o=r.o,tgt=r.tgt,oggiD=parse(iso(new Date()));
   const conData=r.gg!=null&&r.gg>=0,passato=r.gg!=null&&r.gg<0;
-  let inizio=primoG?parse(primoG):oggiD;if(inizio>oggiD)inizio=oggiD;
+  const vista=conData&&vistaCorsa[o.id]!=="mese"?"esame":"mese";
   const dd=(a,b)=>Math.round((b-a)/86400000);
-  const iOggi=dd(inizio,oggiD);
-  /* fin dove: il giorno dell'esame e un poco oltre, perche' la sua riga si
-     veda; senza data, l'ultimo giorno in piano o quattro settimane */
-  let fine;
-  if(r.gg!=null)fine=parse(o.date);
-  else{fine=ultimoG?parse(ultimoG):oggiD;if(dd(oggiD,fine)<28)fine=addDays(oggiD,28);}
-  let nEsame=r.gg!=null?dd(inizio,parse(o.date)):null;
-  let n=Math.max(iOggi,dd(inizio,fine));
-  n=Math.max(7,n+Math.max(2,Math.round(n*0.04)));
-  /* le ore fatte, giorno per giorno fino a oggi */
-  const fatte=[];let cum=0;
-  for(let g=0;g<=iOggi;g++){cum+=(giorni[iso(addDays(inizio,g))]||0)/PERQ;fatte.push(cum);}
-  const ora=cum;
-  /* Il ritmo: le ore fatte nelle ultime quattro settimane (o da quando hai
-     cominciato la materia, se e' meno), divise per le settimane — ma mai per
-     meno di una. Dividere per i giorni passati e moltiplicare per sette
-     gonfiava i primi giorni: sei ore fra sabato e domenica diventavano
-     "ne stai facendo 21 a settimana", e il grafico diceva di rallentare
-     (27 settembre). Una settimana non ancora finita vale una settimana. */
-  /* Dal 4 ottobre il ritmo e' quello dell'ultimo mese intero: le ore fatte
-     negli ultimi trenta giorni, divise per trenta. Con le sole settimane da
-     quando hai cominciato era "troppo breve": due settimane buone o cattive
-     facevano il ritmo di tutto il semestre. */
+  const MESI=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+  /* il ritmo: ultimi trenta giorni diviso trenta */
   let ult=0;for(let g=0;g<30;g++)ult+=(giorni[iso(addDays(oggiD,-g))]||0)/PERQ;
-  const alGiorno=ult/30,aSett=alGiorno*7;
-  const fineProiez=conData?nEsame:(passato?null:n);
-  const proiez=fineProiez!=null?(g=>ora+alGiorno*(g-iOggi)):null;
-  const dovresti=conData||passato?(g=>Math.min(tgt,tgt*Math.max(0,g)/Math.max(1,nEsame))):null;
-  const arrivo=proiez?proiez(fineProiez):ora;
-  const yMax=Math.max(tgt,arrivo,ora)*1.06;
+  const alGiorno=ult/30,aSett=alGiorno*7,aMese=alGiorno*30.44;
+  /* tutte le ore fatte fino a oggi */
+  let ora=0;Object.keys(giorni).forEach(d=>{if(d<=iso(oggiD))ora+=giorni[d]/PERQ;});
+  const manca=Math.max(0,tgt-ora),giorniRest=conData?Math.max(0,r.gg):null;
+  const serveG=conData&&giorniRest?manca/giorniRest:null;      /* ore al giorno che servono */
+  let inizio,n,nEsame=null,base0=0,fineProiez,dovresti=null,linea=null,lineaEt="";
+  if(vista==="esame"){
+    inizio=primoG?parse(primoG):oggiD;if(inizio>oggiD)inizio=oggiD;
+    nEsame=dd(inizio,parse(o.date));
+    n=Math.max(7,nEsame+Math.max(2,Math.round(nEsame*0.04)));
+    fineProiez=nEsame;
+    dovresti=g=>Math.min(tgt,tgt*Math.max(0,g)/Math.max(1,nEsame));
+    linea=tgt;lineaEt="obiettivo "+tgt+" h";
+  }else{
+    inizio=new Date(oggiD.getFullYear(),oggiD.getMonth(),1);
+    const fineM=new Date(oggiD.getFullYear(),oggiD.getMonth()+1,0);
+    n=dd(inizio,fineM);fineProiez=n;
+    /* nel mese si conta da zero: le ore fatte prima del primo non ci sono */
+    Object.keys(giorni).forEach(d=>{if(d<iso(inizio))base0+=giorni[d]/PERQ;});
+    if(serveG!=null){const tot=serveG*(n+1);dovresti=g=>tot*Math.max(0,g)/n;linea=tot;
+      lineaEt="servono "+Math.round(tot)+" h nel mese";}
+    if(conData){const ge=dd(inizio,parse(o.date));if(ge<=n)nEsame=ge;}
+  }
+  const iOggi=dd(inizio,oggiD);
+  const fatte=[];let cum=0;
+  for(let g=0;g<=iOggi;g++){cum+=(giorni[iso(addDays(inizio,g))]||0)/PERQ;fatte.push(vista==="esame"?cum:cum);}
+  if(vista==="esame"){/* dall'inizio della materia */}
+  const oraV=cum;
+  const proiez=passato&&vista==="esame"?null:(g=>oraV+alGiorno*(g-iOggi));
+  const arrivo=proiez?proiez(fineProiez):oraV;
+  const yMax=Math.max(linea||0,arrivo,oraV,1)*1.08;
   const tk=tacche(yMax),top=tk[tk.length-1];
   const W=1000,H=100,X=g=>(g/n*W).toFixed(1),Y=v=>(H-v/top*H).toFixed(2);
   corse[o.id]={inizio:inizio,n:n,oggi:iOggi,fatte:fatte,dovresti:dovresti,
     proiez:proiez&&(g=>g<=fineProiez?proiez(g):null),esame:nEsame};
   const via=a=>a.map(p=>X(p[0])+","+Y(p[1])).join(" ");
   const pFatte=fatte.map((v,g)=>[g,v]);
-  const pProiez=proiez&&fineProiez>=iOggi?[[iOggi,ora],[fineProiez,arrivo]]:null;
-  const pDov=dovresti?[[0,0],[nEsame,tgt]]:null;
-  /* il colore della materia sulla linea; nel tema chiaro un passo piu' scuro,
-     perche' i colori chiari sul fondo chiaro reggerebbero poco */
+  const pProiez=proiez&&fineProiez>=iOggi?[[iOggi,oraV],[fineProiez,arrivo]]:null;
+  const pDov=dovresti?[[0,0],[vista==="esame"?nEsame:n,dovresti(vista==="esame"?nEsame:n)]]:null;
   const col='style="--c:'+o.color+'"';
-  let svg='<svg class="gsvg" viewBox="0 0 '+W+" "+H+'" preserveAspectRatio="none" aria-hidden="true">'+
+  /* L'asse del tempo con le tacche (4 ottobre): l'inizio di ogni mese se il
+     grafico copre piu' di due mesi, se no ogni lunedi'. Le scritte che
+     cadrebbero addosso a "oggi", all'inizio o alla fine si saltano; la
+     tacca resta. */
+  const MESIB=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+  const tacT=[];
+  for(let g=1;g<n;g++){
+    const d=addDays(inizio,g);
+    if(n>62?d.getDate()===1:d.getDay()===1)
+      tacT.push({g:g,et:n>62?MESIB[d.getMonth()]+(d.getMonth()===0?" "+d.getFullYear():""):d.getDate()+" "+MESIB[d.getMonth()]});
+  }
+  const lontano=g=>Math.abs(g-iOggi)/n>0.07&&g/n>0.08&&g/n<0.9&&(nEsame==null||Math.abs(g-nEsame)/n>0.09);
+  const svg='<svg class="gsvg" viewBox="0 0 '+W+" "+H+'" preserveAspectRatio="none" aria-hidden="true">'+
     tk.map(v=>'<line class="ggr" x1="0" x2="'+W+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/>').join("")+
-    '<line class="gmt" x1="0" x2="'+W+'" y1="'+Y(tgt)+'" y2="'+Y(tgt)+'"/>'+
+    tacT.map(t=>'<line class="gtv" x1="'+X(t.g)+'" x2="'+X(t.g)+'" y1="0" y2="'+H+'"/>').join("")+
+    (linea!=null?'<line class="gmt" x1="0" x2="'+W+'" y1="'+Y(linea)+'" y2="'+Y(linea)+'"/>':"")+
     '<line class="gog" x1="'+X(iOggi)+'" x2="'+X(iOggi)+'" y1="0" y2="'+H+'"/>'+
     (nEsame!=null?'<line class="ges" x1="'+X(nEsame)+'" x2="'+X(nEsame)+'" y1="0" y2="'+H+'"/>':"")+
     (pDov?'<polyline class="gdv" points="'+via(pDov)+'"/>':"")+
     (pProiez?'<polyline class="gpr" '+col+' points="'+via(pProiez)+'"/>':"")+
     '<polyline class="gft" '+col+' points="'+via(pFatte)+'"/>'+
     "</svg>";
-  const pc=(g)=>(g/n*100).toFixed(2)+"%",pv=v=>(v/top*100).toFixed(2)+"%";
-  /* etichette dirette, fuori dall'svg perche' il testo non si stiri */
+  const pc=g=>(g/n*100).toFixed(2)+"%",pv=v=>(v/top*100).toFixed(2)+"%";
   const etichette=
-    '<span class="gdot" style="--c:'+o.color+';left:'+pc(iOggi)+';bottom:'+pv(ora)+'"></span>'+
-    '<span class="glb" style="left:'+pc(iOggi)+';bottom:calc('+pv(ora)+' + 8px)">'+num1(ora)+" h</span>"+
-    '<span class="glb gmtl" style="left:4px;bottom:calc('+pv(tgt)+' + 3px)">obiettivo '+tgt+" h</span>"+
+    '<span class="gdot" style="--c:'+o.color+';left:'+pc(iOggi)+';bottom:'+pv(oraV)+'"></span>'+
+    '<span class="glb" style="left:'+pc(iOggi)+';bottom:calc('+pv(oraV)+' + 8px)">'+num1(oraV)+" h</span>"+
+    (linea!=null?'<span class="glb gmtl" style="left:4px;bottom:calc('+pv(linea)+' + 3px)">'+lineaEt+"</span>":"")+
     (pProiez&&fineProiez>iOggi?'<span class="glb gprl" style="left:'+pc(fineProiez)+';bottom:calc('+pv(arrivo)+' + 6px)">arrivi a '+num1(arrivo)+" h</span>":"");
+  const fineEt=vista==="esame"?null:new Date(oggiD.getFullYear(),oggiD.getMonth()+1,0);
   const grafico='<div class="gcorsa"><div class="gy">'+
       tk.map(v=>'<span style="bottom:'+pv(v)+'">'+v+"</span>").join("")+
     '</div><div class="gplot" data-corsa="'+esc(o.id)+'">'+svg+etichette+'<i class="gmir"></i></div>'+
     '<div class="gx"><span style="left:0">'+fmt(inizio)+"</span>"+
-      (iOggi/n>0.12&&(nEsame==null||Math.abs(nEsame-iOggi)/n>0.16)?'<span class="oggi" style="left:'+pc(iOggi)+'">oggi</span>':"")+
-      /* la data d'esame sull'asse, sotto la sua riga */
+      tacT.map(t=>'<span class="gtk'+(lontano(t.g)?"":" muta")+'" style="left:'+pc(t.g)+'">'+t.et+"</span>").join("")+
+      (iOggi/n>0.12&&iOggi/n<0.85&&(nEsame==null||Math.abs(nEsame-iOggi)/n>0.16)?'<span class="oggi" style="left:'+pc(iOggi)+'">oggi</span>':"")+
       (nEsame!=null?'<span class="esame" style="left:'+pc(nEsame)+'">esame '+fmt(parse(o.date))+"</span>":"")+
+      (fineEt&&nEsame==null?'<span class="esame" style="left:100%">'+fmt(fineEt)+"</span>":"")+
     "</div></div>";
-  /* quanto manca, a parole */
-  const manca=Math.max(0,tgt-ora),giorniRest=conData?Math.max(0,r.gg):null;
+  /* i numeri, in riquadri */
   const tempo=g=>{const s=Math.floor(g/7),x=g%7;
-    const w=(s?s+(s===1?" settimana":" settimane"):"")+(s&&x?" e ":"")+(x?x+(x===1?" giorno":" giorni"):"")||"oggi";
-    return g>=21?w+" ("+inMesi(g)+")":w;};
-  /* le ore a settimana dette anche al mese: una settimana e' un quarto
-     abbondante di mese (4,35) */
-  const alMese=v=>" (circa "+Math.round(v*4.35)+" h al mese)";
+    return (s?s+(s===1?" sett.":" sett."):"")+(s&&x?" e ":"")+(x?x+(x===1?" giorno":" giorni"):"")||"oggi";};
+  const q=(etichetta,valore,sotto)=>'<div><span>'+etichetta+"</span><b>"+valore+"</b>"+(sotto?"<i>"+sotto+"</i>":"")+"</div>";
+  let riq="";
+  if(vista==="esame"){
+    riq=q("Mancano",num1(manca)+" h","su "+tgt+" h · fatte "+num1(ora))+
+      q("All’esame",giorniRest?tempo(giorniRest):"oggi",giorniRest>=21?inMesi(giorniRest):fmt(parse(o.date)))+
+      q("Servono",serveG!=null?num1(serveG*7)+" h/sett.":"—",serveG!=null?"circa "+Math.round(serveG*30.44)+" h al mese":"")+
+      q("Il tuo ritmo",num1(aSett)+" h/sett.","circa "+Math.round(aMese)+" h al mese");
+  }else{
+    riq=q("Questo mese",num1(oraV)+" h","fatte a "+MESI[oggiD.getMonth()])+
+      q("A fine mese",num1(arrivo)+" h","col tuo ritmo")+
+      q("Il tuo ritmo",num1(aSett)+" h/sett.","circa "+Math.round(aMese)+" h al mese")+
+      (serveG!=null?q("Servono",Math.round(serveG*30.44)+" h al mese",num1(serveG*7)+" h a settimana")
+        :q("Mancano",num1(manca)+" h","su "+tgt+" h"));
+  }
   let esito,testo;
   if(passato){esito="nd";testo="Esame passato: "+num1(ora)+" h fatte su "+tgt+".";}
   else if(!manca){esito="ok";testo="<b>Obiettivo raggiunto</b>: "+num1(ora)+" h su "+tgt+".";}
   else if(!conData){
     esito="nd";
-    testo="Mancano <b>"+num1(manca)+" h</b>. Il tuo ritmo è <b>"+num1(aSett)+" h a settimana</b>"+
-      alMese(aSett)+
-      (aSett>0?": ci arrivi in "+tempo(Math.ceil(manca/alGiorno))+".":".")+
-      " Metti la data d’esame per sapere se basta.";
-  }else if(!giorniRest){
-    esito="ko";testo="L’esame è oggi: mancano "+num1(manca)+" h all’obiettivo.";
-  }else{
-    const serve=manca/(giorniRest/7),diff=aSett-serve;
+    testo=aSett>0?"Col tuo ritmo arrivi all’obiettivo in <b>"+inMesi(Math.ceil(manca/alGiorno))+"</b>. Metti la data d’esame per sapere se basta."
+      :"Nell’ultimo mese niente di fatto. Metti la data d’esame per sapere quanto serve.";
+  }else if(!giorniRest){esito="ko";testo="L’esame è oggi: mancano "+num1(manca)+" h all’obiettivo.";}
+  else{
+    const diff=aSett-serveG*7;
     esito=diff>=0?"ok":"ko";
-    testo="Mancano <b>"+num1(manca)+" h</b> in "+tempo(giorniRest)+": servono <b>"+num1(serve)+
-      " h a settimana</b>"+alMese(serve)+", ne stai facendo "+num1(aSett)+alMese(aSett)+". "+
-      (diff>=0?(diff<0.05?"Sei esattamente al passo.":"Puoi rallentare fino a "+num1(serve)+" h a settimana.")
-        :"Devi aumentare di <b>"+num1(-diff)+" h a settimana</b>"+alMese(-diff)+".");
+    testo=diff>=0?(diff<0.05?"<b>Sei esattamente al passo.</b>":"<b>Ci arrivi.</b> Puoi rallentare fino a "+num1(serveG*7)+" h a settimana.")
+      :"<b>Così non ci arrivi.</b> Devi aumentare di <b>"+num1(-diff)+" h a settimana</b> (circa "+Math.round(-diff/7*30.44)+" h al mese).";
   }
   const vuoto=Math.max(0,manca-inPiano);
+  const sw=conData?'<span class="gvis" role="group" aria-label="Vista">'+
+      '<button data-vista="esame" data-id="'+esc(o.id)+'"'+(vista==="esame"?' class="on"':"")+'>Fino all’esame</button>'+
+      '<button data-vista="mese" data-id="'+esc(o.id)+'"'+(vista==="mese"?' class="on"':"")+'>Mese</button></span>':"";
   return '<div class="gp"><div class="gph"><b>'+esc(o.name)+"</b>"+
-      (r.gg!=null?"<em>"+(r.gg>=0?"esame fra "+r.gg+" g"+(r.gg>=21?" · "+inMesi(r.gg):""):"esame passato")+"</em>":"")+
-      "<u>"+num1(ora)+" / "+tgt+" h</u></div>"+grafico+
+      (r.gg!=null?"<em>"+(r.gg>=0?"esame "+fmt(parse(o.date)):"esame passato")+"</em>":"<em>senza data d’esame</em>")+
+      sw+"<u>"+num1(ora)+" / "+tgt+" h</u></div>"+grafico+
+    '<div class="gq">'+riq+"</div>"+
     '<div class="gritmo"><span class="gesito '+esito+'" aria-hidden="true">'+
-      (esito==="ok"?"✓":(esito==="ko"?"!":"–"))+"</span><span>"+testo+"</span></div>"+
-    (manca&&!passato?'<div class="gpn">In piano ne hai già '+num1(inPiano)+" h"+
-      (vuoto?"; "+num1(vuoto)+" h non sono ancora da nessuna parte.":": bastano, se le fai.")+"</div>":"")+
-    "</div>";
+      (esito==="ok"?"✓":(esito==="ko"?"!":"–"))+"</span><span>"+testo+
+      (manca&&!passato?' <span class="gpn2">In piano ne hai già '+num1(inPiano)+" h"+
+        (vuoto?", "+num1(vuoto)+" h non sono ancora da nessuna parte.":": bastano, se le fai.")+"</span>":"")+
+    "</span></div></div>";
 }
 
 /* ---------- giorno intero: copia, incolla, svuota ---------- */
