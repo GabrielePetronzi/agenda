@@ -1890,7 +1890,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 ott 2026 · g";
+const VERSIONE="4 ott 2026 · h";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2815,7 +2815,9 @@ const LIBERE={RIP:GENID,LAV:WORKID,NAS:NASPIID,PAI:PAIID};
 function brushNow(){return state.brush||LIBERE[state.act]||null;}
 function items(){
   const all=allCourses().concat(voci());
-  all.push({id:GENID,name:"Ripasso libero",short:"Ripasso",cfu:0,date:"",kind:"g"});
+  /* "Ripasso", senza "libero" (4 ottobre): col nome intero nel titolo dei
+     blocchi si leggeva RIPASSO LIBERO */
+  all.push({id:GENID,name:"Ripasso",short:"Ripasso",cfu:0,date:"",kind:"g"});
   all.push({id:WORKID,name:"Lavoro",short:"Lavoro",cfu:0,date:"",kind:"g"});
   all.push({id:NASPIID,name:"NASPI",short:"NASPI",cfu:0,date:"",kind:"g"});
   all.push({id:PAIID,name:"Master PAI",short:"Master PAI",cfu:0,date:"",kind:"g"});
@@ -3325,7 +3327,7 @@ function status(){
     "Cancella, E o Esc per uscire"+clip;return;}
   if(!state.brush||!m[state.brush]){
     el.innerHTML=state.act==="RIP"
-      ? "<b>RIPASSO LIBERO</b> · senza materia, in grigio"+clip
+      ? "<b>RIPASSO</b> · senza materia, in grigio"+clip
       : (state.act==="LAV"
         ? "<b>LAVORO</b> · senza materia, in oliva"+clip
         : state.act==="NAS"
