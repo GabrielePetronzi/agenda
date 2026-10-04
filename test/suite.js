@@ -1924,7 +1924,7 @@
     picklist();
     var r=document.querySelector("#picklist .prow");
     if(!r)return null;
-    var nome=r.querySelector(".pnm").childNodes[0].nodeValue;
+    var nome=(r.querySelector(".pnn")||r.querySelector(".pnm").childNodes[0]).textContent;
     _mat=items().filter(function(o){return o.name===nome;})[0];
     return r;
   }

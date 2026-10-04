@@ -123,6 +123,23 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
     overflow-y:auto;padding-right:4px;scrollbar-width:thin}
 }
 .sidebar{padding:16px 0 8px}
+/* gli strumenti in cima restano fermi mentre l'elenco delle materie scorre */
+.sidetop{padding:0 0 10px;margin:0 0 6px;border-bottom:1px solid var(--line-soft)}
+/* fermi solo quando la colonna sta di fianco alla griglia e scorre da sola */
+@media (min-width:1060px){.sidetop{position:sticky;top:0;z-index:6;background:var(--bg)}}
+.sidetop .sec{margin-bottom:10px}
+.sidetop .sec:last-child{margin-bottom:0}
+#tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+#tools .tool{justify-content:flex-start;gap:4px;padding:6px 5px;font-size:11px;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tools .tool .acdot{display:none}
+#tools .tool svg{flex:0 0 auto}
+/* la riga della materia: il nome su una riga, sotto la barra e le date */
+.prow .pnm{display:flex;flex-direction:column;gap:3px;min-width:0}
+.prow .pnn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .pmeta{display:flex;align-items:center;gap:4px 6px;min-width:0;flex-wrap:wrap}
+.prow .pmeta .bar{flex:1 1 60px;min-width:40px;margin:0}
+.prow .pmeta em{flex:0 0 auto;margin:0}
 .canvas{min-width:0;padding-top:0}
 /* colonna singola: prima la settimana, gli strumenti sotto — così la fascia
    si vede appena apri, senza dover scorrere oltre l'elenco materie */
@@ -1192,6 +1209,20 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
 
   <aside class="sidebar" id="sidebar">
 
+    <!-- In cima e fissi, gli strumenti per dipingere e il pomodoro (4
+         ottobre: la colonna era "scomoda"): l'attivita' stava sotto le
+         materie e Avvia in fondo, fuori dallo schermo. -->
+    <div class="sidetop">
+      <div class="sec">
+        <p class="lbl" data-ico="GRD">Attività</p>
+        <div class="tools" id="tools"></div>
+      </div>
+      <div class="sec">
+        <p class="lbl" data-ico="POM">Pomodoro</p>
+        <div class="tools" id="pomtools"></div>
+      </div>
+    </div>
+
     <div class="sec">
       <div class="sechead"><p class="lbl" data-ico="BKS">Materie</p><span class="pinfo" id="pickinfo"></span></div>
       <div class="cfubar" id="cfubar"></div>
@@ -1225,16 +1256,6 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
         <div class="tools" id="voci" style="margin-top:9px"></div>
       </div>
     </details>
-
-    <div class="sec">
-      <p class="lbl" data-ico="GRD">Attività</p>
-      <div class="tools" id="tools"></div>
-    </div>
-
-    <div class="sec">
-      <p class="lbl" data-ico="POM">Pomodoro</p>
-      <div class="tools" id="pomtools"></div>
-    </div>
 
   </aside>
 
@@ -1909,7 +1930,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 ott 2026 · l";
+const VERSIONE="4 ott 2026 · m";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3047,11 +3068,11 @@ function picklist(){
     b.title=tgt?(hrs(h)+" in piano su "+tgt+" h · "+hrs(fh)+" già fatte"):"";
     b.innerHTML='<span class="swatch'+(cl?" clash":"")+'" style="background:'+o.color+'"'+
       (cl?' title="Stesso colore di '+cl.name.replace(/"/g,"")+'"':"")+"></span>"+
-      '<span class="pnm">'+o.name+tag+
+      '<span class="pnm"><span class="pnn">'+o.name+'</span><span class="pmeta">'+
         (tgt?'<span class="bar"><i style="width:'+Math.max(h?2:0,pct)+"%;background:"+o.color+
           ';opacity:.3"></i><i class="dn" style="width:'+
           Math.min(100,(fh/PERQ)/tgt*100)+"%;background:"+o.color+'"></i><u class="mid"></u></span>':"")+
-      "</span>"+
+        tag+"</span></span>"+
       /* Il numero grande è quanto hai messo in piano rispetto al monte ore:
          è quello che si muove mentre pianifichi, ed è la domanda che ci si fa
          guardando l'elenco. Le ore fatte — quelle spuntate — stanno sotto e
