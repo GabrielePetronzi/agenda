@@ -91,6 +91,14 @@
     F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
     try{window.Date=F;return f();}finally{window.Date=Vero;}
   }
+  /* come alleSette, a un'ora qualunque: serve a provare la sera */
+  function allOra(h,f){
+    var Vero=Date,fisso=new Vero();fisso.setHours(h,0,0,0);
+    function F(){if(arguments.length===0)return new Vero(fisso.getTime());
+      return new (Function.prototype.bind.apply(Vero,[null].concat([].slice.call(arguments))))();}
+    F.now=function(){return fisso.getTime();};F.parse=Vero.parse;F.UTC=Vero.UTC;F.prototype=Vero.prototype;
+    try{window.Date=F;return f();}finally{window.Date=Vero;}
+  }
   pulisci();apri();
   /* Due ancore diverse, e la differenza conta.
      ORA e' la mezz'ora in cui siamo adesso: serve solo ai tre controlli che
@@ -1612,6 +1620,69 @@
       if(dopo-prima!==15)return "la pausa saltata ha messo a registro "+(dopo-prima)+" minuti (attesi 15)";
       return q==="■■□□"?true:"dopo 45 + 15 minuti il blocco e' "+q+" (atteso ■■□□)";
     });});
+  /* 24 ottobre: lo stesso, col tasto Salta vero della barra del timer */
+  t("il tasto Salta nella pausa mette a registro la pausa intera",function(){
+    return alleSette(function(){
+      pulisci();apri();
+      state.pomConf={SCH:{s:45,b:12,l:20,n:2}};state.log={};
+      placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:4},0);
+      pomStart("SCH",[{date:oggi,start:MATT,lane:0}]);
+      fine();
+      var b=document.querySelector('#pombar [data-p="skip"],[data-p="skip"]');
+      if(!b){pomStop(true);state.pomConf={};return "nella pausa non c'e' il tasto Salta";}
+      b.click();
+      var n=0,k=state.year+"."+state.ctx+"."+oggi,d=(state.log||{})[k]||{};
+      Object.keys(d).forEach(function(x){n+=d[x];});
+      var fase=state.pomRun&&state.pomRun.phase;
+      pomStop(true);state.pomConf={};
+      if(n!==57)return "dopo 45 di sessione e la pausa saltata il registro ha "+n+" minuti (attesi 57)";
+      return fase==="work"?true:"dopo Salta la fase e' "+fase;
+    });});
+  /* 24 ottobre: la mattina schema di Big Data, il pomeriggio schema di
+     dichiarativa, tutti e due da fare. La sera scegli Big Data e schema:
+     Avvia deve prendere Big Data della mattina, non dichiarativa. */
+  t("Avvia prende il blocco della materia scelta, non solo dell'attivita'",function(){
+    return allOra(21,function(){
+      pulisci();apri();
+      var pennello=state.brush,att=state.act;
+      placeRun(oggi,9*PERQ,{i:it[0].id,a:"SCH",len:4},0);
+      placeRun(oggi,15*PERQ,{i:it[1].id,a:"SCH",len:4},0);
+      state.act="SCH";state.brush=it[0].id;
+      var g=bloccoDaAvviare();
+      state.brush=null;
+      var senza=bloccoDaAvviare();
+      state.brush=it[0].id;pomPanel();
+      var scritta=(document.querySelector("#pomtools .pomgo")||{}).textContent||"";
+      var nome=(map()[it[0].id].short||map()[it[0].id].name);
+      /* e la sessione, finito Big Data, non va a spuntare dichiarativa */
+      state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+      pomStart("SCH",[]);
+      var r=state.pomRun,mat=r&&r.mat;
+      for(var i=0;i<6;i++){r.ends=Date.now()-1;pomAdvance(true);if(!state.pomRun)break;}
+      var dich=[0,1,2,3].some(function(j){return vero(at(ck(oggi,15*PERQ+j))[0]);});
+      pomStop(true);state.pomConf={};state.brush=pennello;state.act=att;pomPanel();
+      if(!g||g.start!==9*PERQ)return "con Big Data scelta prende il blocco delle "+(g?slotTime(g.start):"nessuno");
+      if(!senza||senza.start!==15*PERQ)return "senza materia scelta dovrebbe restare il piu' recente, le 15";
+      if(scritta.indexOf(nome)<0)return "il pulsante non dice la materia: "+scritta;
+      if(mat!==it[0].id)return "la sessione non sa di che materia e'";
+      return dich?"finito Big Data il timer ha spuntato dichiarativa":true;
+    });});
+  t("il giorno segnato fatto con &ore: solo le prime ore, in ordine",function(){
+    pulisci();apri();
+    var d=iso(addDays(new Date(),-1)),K="piano-6272-fatto-"+d+"-"+it[0].id+"-2",prima=null;
+    try{prima=localStorage.getItem(K);localStorage.removeItem(K);}catch(e){}
+    placeRun(d,HOURS[10],{i:it[0].id,a:"SCH",len:4},0);
+    placeRun(d,HOURS[2],{i:it[0].id,a:"SCH",len:4},0);
+    placeRun(d,HOURS[2],{i:it[1].id,a:"SCH",len:4},1);
+    var n=segnaGiornoFatto(d,null,null,it[0].id,1);
+    var q=function(sl,l){return vero(at(ck(d,sl))[l||0])?"■":"□";};
+    var mat=[0,1,2,3].map(function(j){return q(HOURS[2]+j);}).join("")+"|"+
+            [0,1,2,3].map(function(j){return q(HOURS[10]+j);}).join("");
+    var altra=[0,1,2,3].some(function(j){return q(HOURS[2]+j,1)==="■";});
+    try{if(prima!=null)localStorage.setItem(K,prima);else localStorage.removeItem(K);}catch(e){}
+    if(n!==2)return "segnate "+n+" mezz'ore (attese 2)";
+    if(altra)return "ha toccato un'altra materia";
+    return mat==="■■□□|□□□□"?true:"segnate nel posto sbagliato: "+mat;});
   /* 4 ottobre: "NOME IN GRASSETTO + motivo (l'icona) + nome attivita'", in
      ogni blocco, anche da una mezz'ora */
   t("ogni titolo ha nome, icona e attivita'",function(){

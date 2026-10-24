@@ -1928,7 +1928,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 ott 2026 · n";
+const VERSIONE="24 ott 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3718,7 +3718,7 @@ function pomFromCell(dateIso,slot,lane){
        sposta qui, senza buttare via i minuti gia' fatti. Un aggancio scelto
        da te invece non si tocca: li' ricominci una sessione nuova. */
     giro.linked=[{date:r.date,start:r.start,lane:r.lane}];
-    giro.autoAg=0;
+    giro.autoAg=0;giro.mat=r.i;
     save();pomRender();redrawLinked();tools();status();
     toast("Agganciato a "+slotTime(r.start)+"–"+slotTime(r.start+r.len));
     return true;
@@ -3746,15 +3746,25 @@ function askNotify(){
    dell'attivita' con cui lo avvii. Il 26 settembre per qualche ora pescava
    anche fra le altre attivita', e un pomodoro di lettura finiva a spuntare
    uno schema: "l'attivita' deve corrispondere al blocco che spunta". */
+/* E della materia che hai scelto, se ne hai scelta una. Il 24 ottobre: la
+   mattina Big Data, il pomeriggio Programmazione dichiarativa, tutti e due
+   schema, non fatti. La sera scegli Big Data e schema, e il timer si
+   prendeva lo schema di dichiarativa, perche' guardava solo l'attivita' e
+   fra i due era quello cominciato piu' di recente. "Avrebbe dovuto
+   riconoscere dalla materia e dall'attivita' che si doveva spuntare Big
+   Data della mattina." La materia scelta pero' resta accesa anche dopo che
+   hai dipinto: se oggi non ha blocchi di quell'attivita', vale come prima. */
 function bloccoDaAvviare(){
-  return daSola(state.act)?null:slotDiOggi(state.act);
+  return daSola(state.act)?null:slotDiOggi(state.act,state.brush);
 }
-function slotDiOggi(act){
+/* solo: la materia non e' una preferenza ma un vincolo */
+function slotDiOggi(act,mat,solo){
   const d=iso(new Date()),n=new Date();
   const ora=n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
   const tutti=runsOf(d).filter(r=>(act?r.v.a===act:!daSola(r.v.a))&&!vero(r.v))
     .sort((a,b)=>a.start-b.start||a.lane-b.lane);
-  const rs=tutti;
+  const suoi=mat?tutti.filter(r=>r.v.i===mat):tutti;
+  const rs=(suoi.length||solo)?suoi:tutti;
   if(!rs.length)return null;
   /* Prima quello che copre adesso. Se non c'e', quello cominciato piu' di
      recente: se sono le dieci di sera e in giornata ci sono due letture non
@@ -3766,7 +3776,7 @@ function slotDiOggi(act){
   const r=rs.find(x=>ora>=x.start&&ora<x.start+x.len)||
           passati[passati.length-1]||
           rs.find(x=>x.start>=ora)||rs[0];
-  return {date:d,start:r.start,lane:r.lane,len:r.len,a:r.v.a};
+  return {date:d,start:r.start,lane:r.lane,len:r.len,a:r.v.a,i:r.v.i};
 }
 /* Il timer si cerca il blocco da solo: uno di questa attivita', oggi, con
    ancora qualcosa da fare. Prima questa ricerca stava in un punto solo, la
@@ -3780,18 +3790,26 @@ function agganciaDaSolo(r){
   r=r||state.pomRun;
   if(!r)return 0;
   if((r.linked||[]).some(b=>restaDelBlocco(b)))return 0;
-  const g=slotDiOggi(r.act);
+  /* la materia della sessione, una volta presa, e' un vincolo; prima del
+     primo aggancio conta la materia scelta, come per Avvia */
+  const g=r.mat?slotDiOggi(r.act,r.mat,true):slotDiOggi(r.act,state.brush);
   if(!g)return 0;
   r.linked=[{date:g.date,start:g.start,lane:g.lane}];
+  r.mat=g.i;
   r.autoAg=1;              /* scelto dal timer, non da te: si puo' cambiare */
   return 1;
 }
+/* La materia della sessione: quella del blocco a cui e' agganciata. Il
+   timer, quando si cerca un blocco da solo, resta dentro questa materia:
+   finito Big Data non passa a spuntare un'altra materia solo perche' ha la
+   stessa attivita'. */
 function pomStart(act,linked){
   logPartial(state.pomRun);
   const c=pomConf(act);
+  const b0=linked&&linked.length?at(ck(linked[0].date,linked[0].start))[linked[0].lane]:null;
   state.pomRun={act:act,phase:"work",cycle:1,base:0,
     ends:Date.now()+c.s*60000,paused:null,linked:linked||null,
-    autoAg:(linked&&linked.length)?0:1};
+    autoAg:(linked&&linked.length)?0:1,mat:(b0&&b0.i)||null};
   agganciaDaSolo(state.pomRun);
   save();pomRender();pomLoop();redrawLinked();
   toast(actOf(act).n+" · "+c.s+" min");
@@ -3845,7 +3863,7 @@ function spuntaMaturato(r){
     const resti=r.linked.map(b=>restaDelBlocco(b)).filter(Boolean);
     if(resti.length)r.linked=resti;
     else{
-      const g=slotDiOggi(r.act);
+      const g=slotDiOggi(r.act,r.mat,!!r.mat);
       if(g)r.linked=[{date:g.date,start:g.start,lane:g.lane}];
     }
   }
@@ -4215,11 +4233,14 @@ function pomPanel(){
   }
   const go=document.createElement("button");
   go.className="tool pomgo";
+  /* il pulsante dice anche di che materia e' il blocco: e' li' che il 24
+     ottobre si sarebbe visto subito che stava per prendere quello sbagliato */
+  const mo=dopo?map()[dopo.i]:null;
   go.innerHTML=icon(act,15)+"Avvia "+c.s+" min"+
-    (dopo?" · "+actOf(act).n.toLowerCase()+" "+slotTime(dopo.start):"");
+    (dopo?" · "+(mo?esc(mo.short||mo.name)+" ":"")+actOf(act).n.toLowerCase()+" "+slotTime(dopo.start):"");
   go.title=sel.length
     ? "Al termine segna come fatti i "+sel.length+" blocchi selezionati"
-    : (dopo?"Prende da solo il blocco di "+actOf(act).n.toLowerCase()+" delle "+
+    : (dopo?"Prende da solo il blocco di "+actOf(act).n.toLowerCase()+(mo?" di "+mo.name:"")+" delle "+
         slotTime(dopo.start)+" e a fine sessione lo spunta"
       :"Oggi non c'e' un blocco di "+actOf(act).n.toLowerCase()+" da fare: parte senza aggancio");
   go.onclick=()=>{
@@ -6724,7 +6745,9 @@ function ripBar(ricalcola){
    che di solito non contano. Una volta per giorno, mai per un giorno che
    deve ancora venire. Non cambia la regola: la spunta a mano continua a non
    contare. */
-function segnaGiornoFatto(d,chiedi,a,materia){
+/* &ore=N (24 ottobre: "spuntami la prima ora di Big Data"): solo le prime N
+   ore ancora da fare, in ordine di orario, invece di tutta la giornata. */
+function segnaGiornoFatto(d,chiedi,a,materia,ore){
   a=a||d;
   const ok=x=>/^\d{4}-\d{2}-\d{2}$/.test(x);
   if(!ok(d)||!ok(a)||a<d||d>iso(new Date()))return 0;
@@ -6737,17 +6760,23 @@ function segnaGiornoFatto(d,chiedi,a,materia){
     if(!o.length){toast("Nessuna materia che si chiami “"+materia+"”");return 0;}
     ids=new Set(o.map(x=>x.id));nome=o.map(x=>x.name).join(", ");
   }
-  const K="piano-6272-fatto-"+d+(a!==d?".."+a:"")+(materia?"-"+materia:"");
+  const quante=ore>0?Math.round(ore*PERQ):0;
+  const K="piano-6272-fatto-"+d+(a!==d?".."+a:"")+(materia?"-"+materia:"")+(quante?"-"+quante:"");
   try{if(localStorage.getItem(K))return 0;}catch(e){}
   const pre=PRE();
+  const pos=k=>{const x=k.slice(pre.length).split(".");return [x[0],+x[1]];};
   const chiavi=Object.keys(state.cells).filter(k=>{
     if(k.indexOf(pre)!==0)return false;
-    const dt=k.slice(pre.length).split(".")[0];return dt>=d&&dt<=a;});
-  const conta=v=>v&&!vero(v)&&(!ids||ids.has(v.i));
+    const dt=pos(k)[0];return dt>=d&&dt<=a;})
+    .sort((x,y)=>{const p=pos(x),q=pos(y);return p[0]<q[0]?-1:p[0]>q[0]?1:p[1]-q[1];});
+  let resta=quante||Infinity;
+  const conta0=v=>v&&!vero(v)&&(!ids||ids.has(v.i));
+  const conta=v=>{if(!conta0(v)||resta<=0)return false;resta--;return true;};
   let n=0;chiavi.forEach(k=>at(k).forEach(v=>{if(conta(v))n++;}));
+  resta=quante||Infinity;
   const quando=a===d?"del "+fmt(parse(d)):"dal "+fmt(parse(d))+" al "+fmt(parse(a));
   if(!n){toast((nome?nome+": ":"")+"è già tutto fatto "+quando);return 0;}
-  if(chiedi&&!chiedi("Segno come fatte le "+hrs(n)+" ancora da fare "+(nome?"di "+nome+" ":"")+quando+
+  if(chiedi&&!chiedi("Segno come fatte "+(quante?"le prime ":"le ")+hrs(n)+" ancora da fare "+(nome?"di "+nome+" ":"")+quando+
       "? Contano come fatte davvero, solo per questa volta."))return 0;
   chiavi.forEach(k=>{const arr=at(k).slice();
     arr.forEach(v=>{if(conta(v)){v.done=1;delete v.m;delete v.nd;}});setAt(k,arr);});
@@ -6756,7 +6785,7 @@ function segnaGiornoFatto(d,chiedi,a,materia){
   return n;
 }
 /* ?fatto=AAAA-MM-GG oppure ?fatto=AAAA-MM-GG..AAAA-MM-GG, e &materia=nome
-   (basta un pezzo del nome) per una materia sola */
+   (basta un pezzo del nome) per una materia sola, &ore=N per le prime N ore */
 function fattoDaLink(){
   const q=new URLSearchParams(location.search||"");
   const f=q.get("fatto");if(!f)return;
@@ -6770,10 +6799,10 @@ function fattoDaLink(){
     box.className="latebar ripbar on";
     box.innerHTML='<b>'+esc(t)+'</b><button data-r="si" class="rip-si">Sì, segnale fatte</button><button data-r="no">No</button>';
     box.querySelector('[data-r="si"]').onclick=()=>{box.className="latebar ripbar";box.innerHTML="";
-      segnaGiornoFatto(d,null,a||d,q.get("materia"));ripBar(true);};
+      segnaGiornoFatto(d,null,a||d,q.get("materia"),+q.get("ore")||0);ripBar(true);};
     box.querySelector('[data-r="no"]').onclick=()=>{box.className="latebar ripbar";box.innerHTML="";ripBar(true);};
     return false;
-  },a||d,q.get("materia"));
+  },a||d,q.get("materia"),+q.get("ore")||0);
 }
 
 /* ---------- il backup su un file del Mac ----------
@@ -7393,6 +7422,20 @@ window.addEventListener("afterprint",()=>{
     const n=segnaGiornoFatto("2026-10-03",null);
     try{localStorage.setItem(K,"1");}catch(e){}
     if(n)setTimeout(()=>toast(hrs(n)+" di sabato 3 ottobre segnate come fatte"),1200);
+  })();
+  /* 24 ottobre: "spuntami la prima ora di Big Data" — quella della mattina,
+     che il timer della sera non aveva preso — e "spuntami anche il blocco di
+     programmazione dichiarativa di martedi' che lo avevo fatto". Come per
+     sabato 3 ottobre, una volta sola, all'apertura. */
+  (function(){
+    const K="piano-6272-24-ottobre";
+    try{if(localStorage.getItem(K))return;}catch(e){}
+    if(!Object.keys(state.cells||{}).length)return;
+    const a=segnaGiornoFatto("2026-10-24",null,null,"big data",1);
+    const b=segnaGiornoFatto("2026-10-20",null,null,"dichiar");
+    try{localStorage.setItem(K,"1");}catch(e){}
+    const detto=[a?hrs(a)+" di Big Data di oggi":"",b?hrs(b)+" di dichiarativa di martedì":""].filter(Boolean);
+    if(detto.length)setTimeout(()=>toast(detto.join(" e ")+" segnate come fatte"),1400);
   })();
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
