@@ -224,10 +224,10 @@
     return secondo===0?true:"ha gia' spuntato "+secondo+" mezz'ore del blocco dopo";});});
   t("la mezz'ora scatta quando la compi, non a fine fase",function(){
     return alleSette(function(){
-    /* Su un blocco lungo il conto deve scorrere: dopo sessione e pausa sono 57
-       minuti e una mezz'ora sola; tre minuti dentro la sessione dopo sono
-       sessanta, e la seconda mezz'ora deve scattare lì — non alla fine di
-       quella sessione, quarantacinque minuti più in là. */
+    /* Su un blocco lungo il conto deve scorrere. Dopo sessione e pausa sono
+       57 minuti: la pausa chiude la seconda mezz'ora (25 ottobre). La terza
+       arriva a novanta, trentatre' minuti dentro la sessione dopo — non alla
+       fine di quella sessione, dodici minuti piu' in la'. */
     pulisci();apri();
     state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
     placeRun(oggi,MATT,{i:it[0].id,a:"SCH",len:6},0);      /* tre ore */
@@ -238,12 +238,15 @@
     fine();fine();                    /* 45 + 12 = 57 */
     var a57=conta();
     var c=pomConf("SCH");
-    state.pomRun.ends=Date.now()+(c.s-3)*60000;           /* tre minuti dentro */
+    state.pomRun.ends=Date.now()+(c.s-32)*60000;          /* 89 minuti */
     spuntaMaturato(state.pomRun);
-    var a60=conta();
+    var a89=conta();
+    state.pomRun.ends=Date.now()+(c.s-33)*60000;          /* 90 minuti */
+    spuntaMaturato(state.pomRun);
+    var a90=conta();
     state.pomRun=null;state.pomConf={};
-    return (a57===1&&a60===2)?true:
-      "a 57 minuti "+a57+"/6, a 60 minuti "+a60+"/6 (attesi 1 e 2)";});});
+    return (a57===2&&a89===2&&a90===3)?true:
+      "a 57 minuti "+a57+"/6, a 89 "+a89+"/6, a 90 "+a90+"/6 (attesi 2, 2 e 3)";});});
   t("il blocco si chiude a fine sessione, senza aspettare la pausa",function(){
     return alleSette(function(){
     /* un'ora di studio: dopo i 45 minuti resta mezz'ora, meno di una sessione,
@@ -1637,6 +1640,27 @@
       pomStop(true);state.pomConf={};
       if(n!==57)return "dopo 45 di sessione e la pausa saltata il registro ha "+n+" minuti (attesi 57)";
       return fase==="work"?true:"dopo Salta la fase e' "+fase;
+    });});
+  /* 25 ottobre: "ho premuto salta nella pausa e non mi ha oscurato il
+     relativo slot". 45 + 12 fa 57: la pausa cade nella seconda mezz'ora e
+     la chiude, saltata o finita da sola. Lettura, 27 + 8 = 35: no. */
+  t("a fine pausa la mezz'ora in cui cade si oscura, senza regalare l'ora",function(){
+    return alleSette(function(){
+      var q=function(n){return [0,1,2,3].slice(0,n).map(function(i){return vero(at(ck(oggi,MATT+i))[0])?"■":"□";}).join("");};
+      var giro=function(act,conf,len,salta){
+        pulisci();apri();
+        var c={};c[act]=conf;state.pomConf=c;
+        placeRun(oggi,MATT,{i:it[0].id,a:act,len:len},0);
+        pomStart(act,[{date:oggi,start:MATT,lane:0}]);
+        fine();
+        if(salta)document.querySelector('[data-p="skip"]').click();else fine();
+        var esito=q(len);pomStop(true);state.pomConf={};return esito;};
+      var saltata=giro("SCH",{s:45,b:12,l:20,n:2},4,true);
+      var finita=giro("SCH",{s:45,b:12,l:20,n:2},4,false);
+      var lettura=giro("LET",{s:27,b:8,l:20,n:3},4,true);
+      if(saltata!=="■■□□")return "schema, pausa saltata: "+saltata+" (atteso ■■□□)";
+      if(finita!=="■■□□")return "schema, pausa finita da sola: "+finita+" (atteso ■■□□)";
+      return lettura==="■□□□"?true:"lettura 27 + 8: "+lettura+" (atteso ■□□□, 35 minuti non sono un'ora)";
     });});
   /* 24 ottobre: la mattina schema di Big Data, il pomeriggio schema di
      dichiarativa, tutti e due da fare. La sera scegli Big Data e schema:

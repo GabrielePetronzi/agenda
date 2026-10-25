@@ -1928,7 +1928,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="24 ott 2026 · a";
+const VERSIONE="25 ott 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4020,7 +4020,16 @@ function pomAdvance(auto){
     if(r.paused!=null)r.paused=0;else r.ends=Math.min(r.ends,Date.now());
     const minP=durP;
     logAdd(r.act,minP,linkedIds(r));
-    const kp=spuntaMaturato(r);          /* stessa regola: prima si spunta */
+    let kp=spuntaMaturato(r);            /* stessa regola: prima si spunta */
+    /* La pausa chiude la mezz'ora in cui cade (25 ottobre: "ho premuto salta
+       nella pausa e non mi ha oscurato il relativo slot"). Schema, 45 + 12:
+       a fine pausa sono 57 minuti, e la seconda mezz'ora scattava solo a 60,
+       tre minuti dentro la sessione dopo. Si regala quello che manca, ma solo
+       se e' meno della pausa stessa: lettura, 27 + 8, fa 35 minuti, e
+       oscurare l'ora intera dopo 35 minuti sarebbe tornare a contare piu'
+       di quello che hai fatto. */
+    const avanzoP=maturato(r)-(r.spesi||0)*(60/PERQ);
+    if(!kp&&avanzoP>0&&(60/PERQ)-avanzoP<durP)kp+=spuntaUnaSola(r);
     r.min=(r.min||0)+minP;
     if(kp)afterEdit(hrs(kp)+" segnate come fatte");
     pomToday().min+=durP;
