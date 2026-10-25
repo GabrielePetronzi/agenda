@@ -1662,6 +1662,25 @@
       if(finita!=="■■□□")return "schema, pausa finita da sola: "+finita+" (atteso ■■□□)";
       return lettura==="■□□□"?true:"lettura 27 + 8: "+lettura+" (atteso ■□□□, 35 minuti non sono un'ora)";
     });});
+  /* 25 ottobre, la schermata: Big Data schema 9:30-12:00, recuperato alle
+     quattro del pomeriggio con Avvia. Dopo 45 + 12 doveva essere oscurata
+     anche 10:00-10:30, ed era ferma alla prima mezz'ora. */
+  t("recuperando il pomeriggio, la pausa chiude la seconda mezz'ora",function(){
+    return allOra(16,function(){
+      pulisci();apri();
+      var pennello=state.brush,att=state.act;
+      state.pomConf={SCH:{s:45,b:12,l:20,n:2}};
+      placeRun(oggi,19,{i:it[0].id,a:"SCH",len:5},0);
+      state.act="SCH";state.brush=it[0].id;pomPanel();
+      document.querySelector("#pomtools .pomgo").click();
+      var q=function(){return [0,1,2,3,4].map(function(i){return vero(at(ck(oggi,19+i))[0])?"■":"□";}).join("");};
+      fine();var dopoSess=q();
+      var b=document.querySelector('[data-p="skip"]');if(b)b.click();
+      var dopoPausa=q(),fase=state.pomRun&&state.pomRun.phase;
+      pomStop(true);state.pomConf={};state.brush=pennello;state.act=att;pomPanel();
+      if(dopoSess!=="■□□□□")return "dopo la sessione "+dopoSess+" (atteso ■□□□□)";
+      return dopoPausa==="■■□□□"?true:"dopo la pausa saltata "+dopoPausa+" (atteso ■■□□□), fase "+fase;
+    });});
   /* 24 ottobre: la mattina schema di Big Data, il pomeriggio schema di
      dichiarativa, tutti e due da fare. La sera scegli Big Data e schema:
      Avvia deve prendere Big Data della mattina, non dichiarativa. */
