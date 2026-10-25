@@ -1928,7 +1928,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="25 ott 2026 · a";
+const VERSIONE="25 ott 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -7445,6 +7445,16 @@ window.addEventListener("afterprint",()=>{
     try{localStorage.setItem(K,"1");}catch(e){}
     const detto=[a?hrs(a)+" di Big Data di oggi":"",b?hrs(b)+" di dichiarativa di martedì":""].filter(Boolean);
     if(detto.length)setTimeout(()=>toast(detto.join(" e ")+" segnate come fatte"),1400);
+  })();
+  /* 25 ottobre: "spunta i blocchi di sabato come fatti, che mi sono scordato
+     di usare l'app". Tutto sabato 24, una volta sola, all'apertura. */
+  (function(){
+    const K="piano-6272-sabato-24-ottobre";
+    try{if(localStorage.getItem(K))return;}catch(e){}
+    if(!Object.keys(state.cells||{}).length)return;
+    const n=segnaGiornoFatto("2026-10-24",null);
+    try{localStorage.setItem(K,"1");}catch(e){}
+    if(n)setTimeout(()=>toast(hrs(n)+" di sabato 24 ottobre segnate come fatte"),1800);
   })();
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
