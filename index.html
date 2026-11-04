@@ -182,6 +182,16 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 /* materia a scelta: si vede subito che non è dovuta */
 .pnm em.opz{color:var(--tx3);border:1px solid var(--line);border-radius:3px;
   padding:0 4px;letter-spacing:.04em}
+/* propedeuticita': "dopo X" finche' X non e' superato, "sblocca Y" su X */
+.pnm em.prop{color:var(--warn);border:1px solid var(--warn);border-radius:3px;
+  padding:0 4px;letter-spacing:.04em}
+.pnm em.prop.rischio{color:var(--late);border-color:var(--late);font-weight:600}
+.pnm em.sbl{color:var(--action);border:1px solid var(--action);border-radius:3px;
+  padding:0 4px;letter-spacing:.04em}
+.propinfo{font-family:"DM Mono",monospace;font-size:10.5px;line-height:1.5;color:var(--tx3);
+  margin:-4px 0 10px;padding:0 2px}
+.propinfo b{color:var(--warn);font-weight:500}
+.propinfo .ok{color:var(--done)}
 .prow.fatta .pnm{color:var(--tx2)}
 .prow.fatta .swatch{box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
 
@@ -1243,6 +1253,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
       </div>
 
       <div class="cfubar" id="cfubar"></div>
+      <p class="propinfo" id="propinfo"></p>
       <div class="searchbox">
         <input id="q" type="search" placeholder="Cerca in tutto il piano" aria-label="Cerca una materia">
         <button id="qClear" title="Azzera la ricerca">✕</button>
@@ -1860,6 +1871,11 @@ const PIANI={
        23 febbraio) spostate di un anno: da controllare col calendario
        2026/2027. */
     nome:"Ingegneria Gestionale · IA (L-9)",cfu:180,
+    /* propedeuticita' obbligatorie, [prima, dopo]: dal Manifesto DISTI
+       2025/2026, p. 37 — "Geometria è propedeutica a Metodi e modelli per
+       la gestione". E' l'unica. I piani senza questa voce non le hanno
+       ancora verificate: la colonna lo dice. */
+    prop:[["IG-geom","IG-mmg"]],
     ctx:{
       "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-17"},
       "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"},
@@ -2032,7 +2048,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · f";
+const VERSIONE="4 nov 2026 · g";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3150,7 +3166,7 @@ function picklist(){
   const scad=q?(state.exams||[]).filter(x=>x.t.toLowerCase().indexOf(q)>=0):[];
   box.classList.toggle("grow",!!q);
 
-  cfuBar();
+  cfuBar();propInfo();
   const distingue=pianoCfu().due;
   const info=document.getElementById("pickinfo");
   info.textContent=q?(list.length+scad.length)+" risultati in tutto il piano":"";
@@ -3171,6 +3187,7 @@ function picklist(){
       /* dal manifesto: quelle senza ob sono a scelta, e vale la pena saperlo
          guardando l'elenco, non aprendo l'editor */
       (o.kind==="c"&&!o.ob&&distingue?'<em class="opz">a scelta</em>':"")+
+      propTag(o)+
       (fatta?'<em style="color:var(--done)">superato · '+o.cfu+' CFU</em>':"")+
       (note[o.id]?'<em style="color:var(--action)">'+note[o.id]+" in nota</em>":"")+
       /* La data d'esame sta qui, attaccata alla materia: e' la prima cosa che
@@ -3282,6 +3299,60 @@ function picklist(){
 /* Quanti CFU sono in cassa. Le due barre hanno larghezza proporzionale a
    quanto pesano nel titolo, così l'occhio legge il rapporto vero fra la parte
    dovuta e quella a scelta invece di due barre uguali che mentono. */
+/* ---------- propedeuticita' ----------
+   4 novembre: "voglio che mi indichi visivamente per ogni piano se ci sono
+   esami che vincolano altri e quindi devo stare attento alle
+   propedeuticita'". I dati stanno nel piano (prop: [prima, dopo]). Nella
+   colonna delle materie: "dopo X" sulla materia vincolata finche' X non e'
+   superato, rosso se la sua data d'esame non viene dopo quella di X;
+   "sblocca Y" sulla materia che ne vincola altre. Sotto la barra dei CFU,
+   l'elenco di tutte quelle del piano, qualunque anno tu stia guardando. */
+function propPiano(){return pianoAttivo().prop;}
+function propDi(id){
+  const L=propPiano()||[];
+  return {prima:L.filter(x=>"c:"+x[1]===id).map(x=>"c:"+x[0]),
+          sblocca:L.filter(x=>"c:"+x[0]===id).map(x=>"c:"+x[1])};
+}
+function nomeCorso(id){
+  const o=allCourses().find(x=>x.id===id);return o?(o.short||o.name):id;
+}
+/* l'esame di "dopo" cade prima (o insieme) di quello di "prima", o "prima"
+   non ha ancora una data mentre "dopo" si' */
+function propRischio(a,b){
+  const m={};allCourses().forEach(o=>m[o.id]=o);
+  const p=state.pass||{},A=m[a],B=m[b];
+  if(!A||!B||p[a]||!B.date)return false;
+  return !A.date||A.date>=B.date;
+}
+function propTag(o){
+  if(o.kind!=="c")return "";
+  const p=state.pass||{},d=propDi(o.id);
+  const manca=d.prima.filter(a=>!p[a]);
+  let t="";
+  if(manca.length&&!p[o.id]){
+    const r=manca.some(a=>propRischio(a,o.id));
+    t+='<em class="prop'+(r?" rischio":"")+'" title="Propedeuticità: prima devi superare '+
+      manca.map(nomeCorso).join(", ")+(r?". L'esame di questa materia non viene dopo il suo":"")+
+      '">dopo '+esc(manca.map(nomeCorso).join(", "))+"</em>";
+  }
+  if(d.sblocca.length&&!p[o.id])
+    t+='<em class="sbl" title="È propedeutica a '+d.sblocca.map(nomeCorso).join(", ")+
+      ': finché non la superi, quelle non si possono dare">sblocca '+esc(d.sblocca.map(nomeCorso).join(", "))+"</em>";
+  return t;
+}
+function propInfo(){
+  const el=document.getElementById("propinfo");if(!el)return;
+  const L=propPiano();
+  if(L===undefined){el.textContent="Propedeuticità: non ancora inserite per questo piano";return;}
+  if(!L.length){el.textContent="Propedeuticità: nessuna";return;}
+  const p=state.pass||{};
+  el.innerHTML="Propedeuticità · "+L.map(x=>{
+    const a="c:"+x[0],b="c:"+x[1];
+    const ok=!!p[a],r=propRischio(a,b);
+    return (ok?'<span class="ok">'+esc(nomeCorso(a))+" ✓</span>":"<b>"+esc(nomeCorso(a))+"</b>")+
+      " → "+esc(nomeCorso(b))+(r?' <b title="L\'esame di '+esc(nomeCorso(b))+' non viene dopo quello di '+esc(nomeCorso(a))+'">⚠</b>':"");
+  }).join(" · ");
+}
 function cfuBar(){
   const box=document.getElementById("cfubar");if(!box)return;
   const f=cfuFatti(),P=f.piano;
