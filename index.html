@@ -188,10 +188,25 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .pnm em.prop.rischio{color:var(--late);border-color:var(--late);font-weight:600}
 .pnm em.sbl{color:var(--action);border:1px solid var(--action);border-radius:3px;
   padding:0 4px;letter-spacing:.04em}
-.propinfo{font-family:"DM Mono",monospace;font-size:10.5px;line-height:1.5;color:var(--tx3);
-  margin:-4px 0 10px;padding:0 2px}
-.propinfo b{color:var(--warn);font-weight:500}
-.propinfo .ok{color:var(--done)}
+/* il riquadro delle propedeuticita', sotto la barra dei CFU */
+.propinfo{margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:var(--r-sm);background:var(--surface)}
+.propinfo .pt{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);margin:0 0 6px}
+.propinfo .vuoto{font-size:12px;color:var(--tx3);margin:0}
+.propinfo .pr{padding:8px 0 2px;border-top:1px solid var(--line-soft)}
+.propinfo .pt+.pr{border-top:0;padding-top:2px}
+.propinfo .pc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--tx)}
+.propinfo .pc i{font-style:normal;color:var(--tx3)}
+.propinfo .pc .a{font-weight:600}
+.propinfo .ps{display:block;font-family:"DM Mono",monospace;font-size:10.5px;
+  line-height:1.45;color:var(--tx2);margin-top:3px}
+.propinfo .pr.ok .ps{color:var(--done)}
+.propinfo .pr.da .ps{color:var(--warn)}
+.propinfo .pr.rischio .ps{color:var(--late);font-weight:600}
+/* la materia bloccata si riconosce anche da lontano */
+.prow.bloccata{box-shadow:inset 3px 0 0 var(--warn)}
+.prow.bloccata.rischio{box-shadow:inset 3px 0 0 var(--late)}
 .prow.fatta .pnm{color:var(--tx2)}
 .prow.fatta .swatch{box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
 
@@ -1253,7 +1268,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
       </div>
 
       <div class="cfubar" id="cfubar"></div>
-      <p class="propinfo" id="propinfo"></p>
+      <div class="propinfo" id="propinfo"></div>
       <div class="searchbox">
         <input id="q" type="search" placeholder="Cerca in tutto il piano" aria-label="Cerca una materia">
         <button id="qClear" title="Azzera la ricerca">✕</button>
@@ -2048,7 +2063,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · g";
+const VERSIONE="4 nov 2026 · h";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3181,7 +3196,7 @@ function picklist(){
     const fatta=!!(state.pass||{})[o.id];
 
     const b=document.createElement("button");
-    b.className="prow"+(state.brush===o.id?" sel":"")+(fatta?" fatta":"");
+    b.className="prow"+(state.brush===o.id?" sel":"")+(fatta?" fatta":"")+propStato(o);
     b.setAttribute("aria-pressed",state.brush===o.id);
     const tag=((q&&o.kind==="c")?'<em>'+(ANNI_ROMANI[o.year-1]||o.year)+" · sem "+o.sem+"</em>":"")+
       /* dal manifesto: quelle senza ob sono a scelta, e vale la pena saperlo
@@ -3331,27 +3346,43 @@ function propTag(o){
   let t="";
   if(manca.length&&!p[o.id]){
     const r=manca.some(a=>propRischio(a,o.id));
-    t+='<em class="prop'+(r?" rischio":"")+'" title="Propedeuticità: prima devi superare '+
-      manca.map(nomeCorso).join(", ")+(r?". L'esame di questa materia non viene dopo il suo":"")+
-      '">dopo '+esc(manca.map(nomeCorso).join(", "))+"</em>";
+    t+='<em class="prop'+(r?" rischio":"")+'" title="Propedeuticità: non puoi dare questo esame finché non hai superato '+
+      manca.map(nomeCorso).join(", ")+(r?". Attenzione: la data d'esame di questa materia non viene dopo":"")+
+      '">'+(r?"⚠ ":"")+"serve prima: "+esc(manca.map(nomeCorso).join(", "))+"</em>";
   }
   if(d.sblocca.length&&!p[o.id])
     t+='<em class="sbl" title="È propedeutica a '+d.sblocca.map(nomeCorso).join(", ")+
-      ': finché non la superi, quelle non si possono dare">sblocca '+esc(d.sblocca.map(nomeCorso).join(", "))+"</em>";
+      ': finché non la superi, quelle non si possono dare">sblocca: '+esc(d.sblocca.map(nomeCorso).join(", "))+"</em>";
   return t;
+}
+/* per la riga della materia: bloccata (e in rischio) o no */
+function propStato(o){
+  if(o.kind!=="c"||(state.pass||{})[o.id])return "";
+  const manca=propDi(o.id).prima.filter(a=>!(state.pass||{})[a]);
+  if(!manca.length)return "";
+  return " bloccata"+(manca.some(a=>propRischio(a,o.id))?" rischio":"");
 }
 function propInfo(){
   const el=document.getElementById("propinfo");if(!el)return;
   const L=propPiano();
-  if(L===undefined){el.textContent="Propedeuticità: non ancora inserite per questo piano";return;}
-  if(!L.length){el.textContent="Propedeuticità: nessuna";return;}
+  const tit='<p class="pt">Propedeuticità</p>';
+  if(L===undefined){el.innerHTML=tit+'<p class="vuoto">Non ancora inserite per questo piano.</p>';return;}
+  if(!L.length){el.innerHTML=tit+'<p class="vuoto">Nessuna: puoi dare gli esami in qualunque ordine.</p>';return;}
+  const m={};allCourses().forEach(o=>m[o.id]=o);
   const p=state.pass||{};
-  el.innerHTML="Propedeuticità · "+L.map(x=>{
+  const nome=id=>esc(m[id]?m[id].name:id);
+  el.innerHTML=tit+L.map(x=>{
     const a="c:"+x[0],b="c:"+x[1];
     const ok=!!p[a],r=propRischio(a,b);
-    return (ok?'<span class="ok">'+esc(nomeCorso(a))+" ✓</span>":"<b>"+esc(nomeCorso(a))+"</b>")+
-      " → "+esc(nomeCorso(b))+(r?' <b title="L\'esame di '+esc(nomeCorso(b))+' non viene dopo quello di '+esc(nomeCorso(a))+'">⚠</b>':"");
-  }).join(" · ");
+    const stato=ok?"ok":(r?"rischio":"da");
+    const frase=ok?"✓ "+nome(a)+" superata: "+nome(b)+" si può dare."
+      :r?(m[a]&&m[a].date
+          ?"⚠ L'esame di "+nome(b)+" è fissato prima di quello di "+nome(a)+": va superata prima "+nome(a)+"."
+          :"⚠ Hai fissato l'esame di "+nome(b)+", ma "+nome(a)+" non ha ancora una data: va superata prima.")
+      :"Devi superare "+nome(a)+" prima di poter dare "+nome(b)+".";
+    return '<div class="pr '+stato+'"><span class="pc"><span class="a">'+nome(a)+'</span><i>→</i><span>'+nome(b)+'</span></span>'+
+      '<span class="ps">'+frase+"</span></div>";
+  }).join("");
 }
 function cfuBar(){
   const box=document.getElementById("cfubar");if(!box)return;
