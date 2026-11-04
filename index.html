@@ -1279,8 +1279,8 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
         <button class="icon sm" id="dPrev" title="Giorni precedenti" aria-label="Giorni precedenti">‹</button>
         <span class="dlab" id="dLab"></span>
         <button class="icon sm" id="dNext" title="Giorni successivi" aria-label="Giorni successivi">›</button>
-        <button class="icon sm" id="gdBtn" title="Ore mostrate e carico della giornata"
-          aria-label="Impostazioni della giornata"></button>
+        <button class="icon sm" id="gdBtn" title="Periodo e ore mostrate"
+          aria-label="Periodo e ore mostrate"></button>
       </div>
 
       <div class="grp sep">
@@ -1293,6 +1293,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
     <div class="selbar" id="selbar"></div>
     <div class="latebar ripbar" id="filebar"></div>
     <div class="latebar ripbar" id="ripbar"></div>
+    <div class="latebar ripbar" id="contobar"></div>
     <div class="latebar" id="latebar"></div>
     <div id="panels"></div>
 
@@ -1338,7 +1339,10 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
 
 <div class="modal" id="gdModal">
   <div class="sheet">
-    <div class="mhead"><b>La giornata</b><button id="gdClose">✕</button></div>
+    <div class="mhead"><b>Periodo e giornata</b><button id="gdClose">✕</button></div>
+
+    <p class="lbl" data-ico="CAL">In che periodo sei</p>
+    <div class="seg" id="gdCtx" aria-label="Periodo" style="margin:4px 0 14px;flex-wrap:wrap"></div>
 
     <p class="lbl" data-ico="CLK">Ore mostrate in griglia</p>
     <div class="pmrow" style="padding-top:2px">
@@ -1928,7 +1932,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="25 ott 2026 · b";
+const VERSIONE="4 nov 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -1953,7 +1957,17 @@ const TODAY=iso(new Date());
 
 function anchorDate(){
   const a=state.anchor[state.ctx];
-  return monday(a?parse(a):parse(CTX[state.ctx].start));
+  return monday(parse(a||inizioVista(state.ctx)));
+}
+/* Senza una settimana scelta da te, un periodo si apre sulla settimana di
+   oggi se oggi ci cade dentro, altrimenti sul suo primo giorno. Prima si
+   apriva sempre sul primo giorno: il 4 novembre, su un computer nuovo, il
+   primo semestre ripartiva dal 21 settembre e il mese dopo sembrava
+   irraggiungibile. */
+function inizioVista(k){
+  const s=CTX[k].start;
+  const dopo=Object.keys(CTX).map(x=>CTX[x].start).filter(x=>x>s).sort()[0];
+  return (TODAY>=s&&(!dopo||TODAY<dopo))?TODAY:s;
 }
 function panelStart(p){return addDays(anchorDate(),7*p);}
 function panelDates(p){
@@ -3382,8 +3396,11 @@ function weeknav(){
   const a=panelStart(0),b=addDays(panelStart(PANELS-1),6);
   document.getElementById("wRange").textContent=fmt(a)+" – "+fmt(b);
   document.getElementById("wCount").textContent=CTX[state.ctx].name+" "+b.getFullYear();
-  document.getElementById("wPrev").onclick=()=>{shift(-7);};
-  document.getElementById("wNext").onclick=()=>{shift(7);};
+  /* quattro settimane alla volta, come dicono i titoli: una freccia, il mese
+     dopo. Una settimana alla volta, per arrivare a dicembre da settembre ci
+     volevano dieci clic. */
+  document.getElementById("wPrev").onclick=()=>{shift(-7*PANELS);};
+  document.getElementById("wNext").onclick=()=>{shift(7*PANELS);};
   dayLabel();
   document.getElementById("wToday").onclick=()=>{
     state.anchor[state.ctx]=iso(monday(new Date()));
@@ -4341,6 +4358,22 @@ const PMF=[["s","sessione","Minuti di una sessione",1,180],
 /* le ore della griglia e la misura del carico governano la griglia, non il
    pomodoro: stanno nella loro finestra, aperta dalla barra della griglia */
 function daySettings(){
+  /* 4 novembre: "il simbolo a sinistra del cancella deve permettere di
+     decidere in che periodo si e'". Gli stessi periodi della barra in cima. */
+  const pc=document.getElementById("gdCtx");
+  if(pc){
+    pc.innerHTML="";
+    Object.keys(CTX).forEach(k=>{
+      const b=document.createElement("button");
+      b.textContent=CTX[k].label;b.title=CTX[k].name+" · dal "+fmt(parse(CTX[k].start));
+      b.setAttribute("aria-pressed",state.ctx===k);
+      b.onclick=()=>{
+        if(state.ctx!==k){state.ctx=k;state.brush=null;save(CTX[k].name);render();}
+        document.getElementById("gdModal").classList.remove("open");
+      };
+      pc.appendChild(b);
+    });
+  }
   const df=document.getElementById("dayFrom"),dt=document.getElementById("dayTo");
   df.value=dayFrom();dt.value=dayTo();
   const fascia=()=>{
@@ -6587,12 +6620,14 @@ function ripristina(testo,da){
   try{d=JSON.parse(testo);}catch(e){toast("Non è un file del piano");return false;}
   if(!d||typeof d!=="object"||!d.cells){toast("Nel file non c'è nessun piano");return false;}
   const n=Object.keys(d.cells).length;
-  copiaSalva(payload(),Object.keys(state.cells||{}).length);
+  const prima=Object.keys(state.cells||{}).length;
+  copiaSalva(payload(),prima);
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
   state.exams=state.exams||[];state.collapsed=state.collapsed||{};
   state.pass=state.pass||{};state.seguite=state.seguite||{};
   document.getElementById("bkModal").classList.remove("open");
   save("Rimesse "+hrs(n)+(da?" da "+da:""));histInit();render();
+  if(!prima)segnaPassatiFatti(true);   /* il piano torna in un browser vuoto */
   return true;
 }
 /* Recupero da un gist, con il solo link: un gist segreto si legge senza token
@@ -6666,6 +6701,7 @@ async function ripescaDalGist(){
     state.exams=state.exams||[];state.collapsed=state.collapsed||{};
     state.pass=state.pass||{};state.seguite=state.seguite||{};
     save("Ripreso dal gist: "+hrs(la));histInit();render();
+    if(!qua)segnaPassatiFatti(true);
     return true;
   }catch(e){return false;}
 }
@@ -6812,6 +6848,67 @@ function fattoDaLink(){
     box.querySelector('[data-r="no"]').onclick=()=>{box.className="latebar ripbar";box.innerHTML="";ripBar(true);};
     return false;
   },a||d,q.get("materia"),+q.get("ore")||0);
+}
+
+/* 4 novembre: cambiato computer, persi i dati. "Spuntami e segnami tutti i
+   blocchi che ho fatto per ora come fatti e contarmeli." Tutto quello che e'
+   gia' finito, in ogni periodo del piano aperto, fino all'ultima mezz'ora
+   passata di oggi, diventa fatto davvero; e l'app dice quanti blocchi sono.
+   Una volta sola. Ma se il piano torna dopo in un browser vuoto, dal file di
+   backup o dal gist, rifa' il giro su quello che e' tornato (fino a meta' novembre: dopo, un
+   backup rimesso non va spuntato tutto a occhi chiusi). */
+const TUTTOKEY="piano-6272-tutto-fatto-4-novembre";
+const TUTTOFINO="2026-11-15";
+function segnaPassatiFatti(forza){
+  if(forza&&iso(new Date())>TUTTOFINO)return 0;
+  try{if(!forza&&localStorage.getItem(TUTTOKEY))return 0;}catch(e){}
+  if(!Object.keys(state.cells||{}).length)return 0;
+  const n=new Date(),oggi=iso(n),ora=n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
+  const giorni={};                 /* prefisso+data -> mezz'ore passate */
+  const nuove=new Set();           /* "chiave|corsia" segnate adesso */
+  let segnate=0;
+  Object.keys(state.cells).forEach(k=>{
+    if(!daPianoAttivo(k))return;
+    const p=k.split("."),sl=+p[p.length-1],d=p[p.length-2];
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||isNaN(sl))return;
+    if(d>oggi||(d===oggi&&sl>=ora))return;        /* non ancora finita */
+    const arr=at(k).slice();let cambia=0;
+    arr.forEach((v,L)=>{if(v&&!vero(v)){v.done=1;delete v.m;delete v.nd;
+      segnate++;cambia=1;nuove.add(k+"|"+L);}});
+    if(cambia)setAt(k,arr);
+    const g=p.slice(0,-1).join(".");(giorni[g]=giorni[g]||[]).push(sl);
+  });
+  /* i blocchi: mezz'ore di fila, nella stessa corsia, della stessa voce */
+  let blocchi=0,ore=0,bNuovi=0;
+  Object.keys(giorni).forEach(g=>{
+    const sl=giorni[g].sort((a,b)=>a-b);
+    const corsie=Math.max(...sl.map(x=>at(g+"."+x).length));
+    for(let L=0;L<corsie;L++){
+      let prec=null,ps=-9,nuovo=false;
+      const chiudi=()=>{if(prec){blocchi++;if(nuovo)bNuovi++;}prec=null;nuovo=false;};
+      sl.forEach(x=>{
+        const v=at(g+"."+x)[L];
+        if(!v||!vero(v)){chiudi();return;}
+        ore++;
+        if(!(prec&&sameBlock(prec,v)&&ps===x-1))chiudi();
+        prec=v;ps=x;
+        if(nuove.has(g+"."+x+"|"+L))nuovo=true;
+      });
+      chiudi();
+    }
+  });
+  try{localStorage.setItem(TUTTOKEY,"1");}catch(e){}
+  if(segnate){save("Segnate come fatte "+hrs(segnate));render();}
+  const box=document.getElementById("contobar");
+  if(box){
+    const t=(segnate?"Segnati come fatti "+bNuovi+(bNuovi===1?" blocco":" blocchi")+" ("+hrs(segnate)+") già passati. ":
+                     "Era già tutto segnato. ")+
+      "Fino ad ora hai fatto "+blocchi+(blocchi===1?" blocco":" blocchi")+", "+hrs(ore)+" in tutto.";
+    box.className="latebar ripbar on";
+    box.innerHTML='<b>'+esc(t)+'</b><button data-r="ok">Ok</button>';
+    box.querySelector('[data-r="ok"]').onclick=()=>{box.className="latebar ripbar";box.innerHTML="";};
+  }
+  return segnate;
 }
 
 /* ---------- il backup su un file del Mac ----------
@@ -7456,6 +7553,7 @@ window.addEventListener("afterprint",()=>{
     try{localStorage.setItem(K,"1");}catch(e){}
     if(n)setTimeout(()=>toast(hrs(n)+" di sabato 24 ottobre segnate come fatte"),1800);
   })();
+  segnaPassatiFatti(false);
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
   if(fuori)setTimeout(()=>toast(hrs(fuori)+" fuori dalla fascia "+dayFrom()+"–"+dayTo()),900);
