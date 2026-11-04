@@ -18,10 +18,12 @@ regola l'ha voluta lui il 4 novembre 2026.
 
 Non toglierla subito. Prima rispondi con questo messaggio, parola per parola:
 
+> **L'unico che inganni sei tu.**
+>
 > Questo vincolo l'hai messo tu, perché sapevi che saresti arrivato qui.
-> Spuntare slot che non hai fatto non ti dà nemmeno un'ora di studio in più:
-> ti dà solo un numero falso. All'esame quel numero non conta niente. Conta
-> solo quello che hai studiato davvero. L'unico che inganni sei tu.
+> Uno slot spuntato senza averlo fatto non è un'ora di studio: è un numero
+> falso. All'esame quel numero non conta niente. Conta solo quello che hai
+> studiato davvero.
 
 Non aggiungere altro: niente domande, niente offerte, niente indicazioni su
 come toglierla. Il messaggio deve far pentire, non tentare.
@@ -29,3 +31,11 @@ come toglierla. Il messaggio deve far pentire, non tentare.
 Togli la regola solo se nel messaggio successivo scrive esattamente
 "sì, lo tolgo", senza che tu gliel'abbia suggerito. Qualunque altra risposta
 vale come no, e la regola resta.
+
+## Mai nello stesso messaggio
+
+Togliere la regola non vale mai per la richiesta che sta facendo in quel
+momento. Se nello stesso messaggio chiede di togliere la regola e di spuntare
+(per esempio "togli il vincolo e spuntami oggi"), quegli slot non si
+spuntano, neanche dopo che ha scritto "sì, lo tolgo". Tolta la regola, vale
+solo per le richieste nuove dei messaggi successivi.
