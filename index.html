@@ -1843,6 +1843,92 @@ const PIANI={
  ]
 }
   },
+  IGIA:{
+    /* Laurea triennale in Ingegneria Gestionale (L-9), curriculum
+       INTELLIGENZA ARTIFICIALE — Universita' di Parma, DISTI. Aggiunto il 4
+       novembre 2026.
+       Fonte: Manifesto degli Studi DISTI 2025/2026, piano degli studi degli
+       immatricolati nell'a.a. 2025/2026 (pp. 35-38). Il manifesto 2026/2027
+       sul sito dei corsi e' dietro una verifica anti-bot e non si e' potuto
+       leggere: se il piano della tua coorte cambia qualcosa, si corregge qui.
+       ob = obbligatorio nel curriculum IA; senza ob sono le attivita' a
+       scelta (12 CFU in tutto, al 2º e/o 3º anno) dall'elenco approvato
+       senza richiesta per il curriculum IA, e stanno in tutti e due gli anni.
+       I codici "IG-..." sono di questa app, non quelli di ateneo.
+       Le date dei periodi sono quelle del calendario DISTI 2025/2026
+       (lezioni dal 18 settembre, esami dal 18 dicembre, secondo periodo dal
+       23 febbraio) spostate di un anno: da controllare col calendario
+       2026/2027. */
+    nome:"Ingegneria Gestionale · IA (L-9)",cfu:180,
+    ctx:{
+      "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-17"},
+      "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"},
+      "S":{label:"Sessione Esami",       name:"Sessione d'esame", start:"2026-12-17"}
+    },
+    corsi:{
+ 1:[
+  {c:"IG-geom",n:"Geometria",k:"Geometria",p:1,u:9,ob:1},
+  {c:"IG-ecaz",n:"Economia aziendale",k:"Econ. aziendale",p:1,u:12,ob:1},
+  {c:"IG-ingl",n:"Idoneità di Ateneo di lingua inglese B1",k:"Inglese B1",p:1,u:3,ob:1},
+  {c:"IG-fis",n:"Fisica generale",k:"Fisica",p:2,u:12,ob:1},
+  {c:"IG-pria",n:"Programmazione e introduzione all'intelligenza artificiale",k:"Prog. e intro IA",p:2,u:6,ob:1},
+  {c:"IG-mapp",n:"Matematica applicata all'ingegneria",k:"Mat. applicata",p:2,u:12,ob:1}
+ ],
+ 2:[
+  {c:"IG-dtp",n:"Disegno e tecnologie di produzione",k:"Disegno e tecn.",p:1,u:12,ob:1},
+  {c:"IG-mlmf",n:"Machine learning per il manufacturing",k:"ML manufact.",p:1,u:6,ob:1},
+  {c:"IG-goa",n:"Gestione e organizzazione aziendale",k:"Gest. org. az.",p:2,u:9,ob:1},
+  {c:"IG-mpi",n:"Metodi probabilistici per l'ingegneria",k:"Metodi probab.",p:2,u:6,ob:1},
+  {c:"IG-eft",n:"Elementi di fisica tecnica",k:"Fisica tecnica",p:2,u:6,ob:1},
+  {c:"IG-iaa",n:"Intelligenza artificiale e applicazioni",k:"IA e applicaz.",p:2,u:9,ob:1},
+  {c:"IG-tir",n:"Tirocinio",k:"Tirocinio",p:2,u:6,ob:1},
+  {c:"IG-chim",n:"Chimica",k:"Chimica",p:2,u:6},
+  {c:"IG-cdg",n:"Controllo di gestione",k:"Contr. gestione",p:2,u:9},
+  {c:"IG-pstr",n:"Elementi di progettazione strutturale per l'industria",k:"Progett. strutt.",p:2,u:6},
+  {c:"IG-finf",n:"Fondamenti di informatica",k:"Fond. informatica",p:2,u:6},
+  {c:"IG-fmec",n:"Fondamenti di meccanica",k:"Fond. meccanica",p:1,u:9},
+  {c:"IG-imm",n:"Internet e multimedia",k:"Internet multim.",p:2,u:6},
+  {c:"IG-ieoi",n:"Istituzioni di economia e organizzazione industriale",k:"Ist. economia",p:2,u:9},
+  {c:"IG-lsd",n:"Lavoro e società nell'era digitale",k:"Lavoro digitale",p:1,u:3},
+  {c:"IG-mse",n:"Macchine e sistemi energetici",k:"Macchine energ.",p:1,u:6},
+  {c:"IG-mks",n:"Marketing e sostenibilità",k:"Mkt sostenib.",p:2,u:6},
+  {c:"IG-mps",n:"Materiali e processi per la sostenibilità",k:"Materiali sost.",p:2,u:6},
+  {c:"IG-mpv",n:"Metodi di progettazione virtuale integrata",k:"Progett. virtuale",p:1,u:6},
+  {c:"IG-pel",n:"Principi e applicazioni dell'ingegneria elettrica",k:"Ing. elettrica",p:1,u:9},
+  {c:"IG-ssa",n:"Smart sensors per l'automazione industriale",k:"Smart sensors",p:1,u:6},
+  {c:"IG-sel",n:"Sociologia economica del lavoro",k:"Sociol. lavoro",p:1,u:6},
+  {c:"IG-sai",n:"Sostenibilità ambientale nell'industria",k:"Sostenib. amb.",p:1,u:6},
+  {c:"IG-sfab",n:"Studi di fabbricazione",k:"Studi fabbricaz.",p:2,u:9}
+ ],
+ 3:[
+  {c:"IG-imp",n:"Impianti industriali",k:"Impianti ind.",p:1,u:12,ob:1},
+  {c:"IG-mmg",n:"Metodi e modelli per la gestione",k:"Metodi gestione",p:1,u:9,ob:1},
+  {c:"IG-mlai",n:"Machine learning per le applicazioni industriali",k:"ML app. ind.",p:1,u:6,ob:1},
+  {c:"IG-iad",n:"Intelligenza artificiale per le decisioni",k:"IA decisioni",p:1,u:6,ob:1},
+  {c:"IG-gpr",n:"Gestione della produzione",k:"Gest. produzione",p:2,u:9,ob:1},
+  {c:"IG-mlmg",n:"Machine learning per il management",k:"ML management",p:2,u:6,ob:1},
+  {c:"IG-mkf",n:"Marketing e finanza",k:"Marketing fin.",p:2,u:9,ob:1},
+  {c:"IG-pf",n:"Prova finale",k:"Prova finale",p:2,u:3,ob:1},
+  {c:"IG-chim",n:"Chimica",k:"Chimica",p:2,u:6},
+  {c:"IG-cdg",n:"Controllo di gestione",k:"Contr. gestione",p:2,u:9},
+  {c:"IG-pstr",n:"Elementi di progettazione strutturale per l'industria",k:"Progett. strutt.",p:2,u:6},
+  {c:"IG-finf",n:"Fondamenti di informatica",k:"Fond. informatica",p:2,u:6},
+  {c:"IG-fmec",n:"Fondamenti di meccanica",k:"Fond. meccanica",p:1,u:9},
+  {c:"IG-imm",n:"Internet e multimedia",k:"Internet multim.",p:2,u:6},
+  {c:"IG-ieoi",n:"Istituzioni di economia e organizzazione industriale",k:"Ist. economia",p:2,u:9},
+  {c:"IG-lsd",n:"Lavoro e società nell'era digitale",k:"Lavoro digitale",p:1,u:3},
+  {c:"IG-mse",n:"Macchine e sistemi energetici",k:"Macchine energ.",p:1,u:6},
+  {c:"IG-mks",n:"Marketing e sostenibilità",k:"Mkt sostenib.",p:2,u:6},
+  {c:"IG-mps",n:"Materiali e processi per la sostenibilità",k:"Materiali sost.",p:2,u:6},
+  {c:"IG-mpv",n:"Metodi di progettazione virtuale integrata",k:"Progett. virtuale",p:1,u:6},
+  {c:"IG-pel",n:"Principi e applicazioni dell'ingegneria elettrica",k:"Ing. elettrica",p:1,u:9},
+  {c:"IG-ssa",n:"Smart sensors per l'automazione industriale",k:"Smart sensors",p:1,u:6},
+  {c:"IG-sel",n:"Sociologia economica del lavoro",k:"Sociol. lavoro",p:1,u:6},
+  {c:"IG-sai",n:"Sostenibilità ambientale nell'industria",k:"Sostenib. amb.",p:1,u:6},
+  {c:"IG-sfab",n:"Studi di fabbricazione",k:"Studi fabbricaz.",p:2,u:9}
+ ]
+}
+  },
   SDE:{
     /* Laurea triennale in Scienze dell'Educazione e dei Processi Formativi —
        Universita' di Parma. Senza la tabella degli obbligatori: la barra dei
@@ -1946,7 +2032,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · d";
+const VERSIONE="4 nov 2026 · e";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
