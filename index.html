@@ -2032,7 +2032,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · e";
+const VERSIONE="4 nov 2026 · f";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -7450,6 +7450,10 @@ function chiudiMenu(){
   if(!m||!m.classList.contains("open"))return;
   m.classList.remove("open");
   document.getElementById("moreBtn").setAttribute("aria-expanded",false);
+  /* chiuso il menu la griglia risale: le misure prese col menu aperto
+     (altezza delle righe, punti in cui si incolla) vanno rifatte */
+  stickyOffsets();
+  if(autoRow())redrawGrid();
 }
 document.getElementById("moreBtn").onclick=e=>{
   const m=document.getElementById("moremenu");
@@ -7486,10 +7490,17 @@ function stickyOffsets(){
   /* Il pomodoro sta in cima a tutto e si incolla anche lui: se non lo conto qui,
      le barre sotto si incollano alla sua stessa altezza e ci finiscono sotto. */
   const pom=pb?pb.offsetHeight:0;
+  /* Il menu ⋯ sta dentro la barra in cima e, aperto, la allunga. Va
+     lasciato fuori dal conto: il 4 novembre, cambiando piano dal menu, la
+     misura si prendeva col menu ancora aperto, la barra risultava alta 155
+     px invece di 44 e tutto quello che si incolla sotto scendeva di cento
+     pixel, con la barra delle settimane finita sopra la griglia. */
+  const mm=tb.querySelector(".moremenu.open");
+  const alta=tb.offsetHeight-(mm?mm.offsetHeight:0);
   const r=document.documentElement.style;
   r.setProperty("--stick-pom",pom+"px");
-  r.setProperty("--stick-bar",(pom+tb.offsetHeight)+"px");
-  r.setProperty("--stick-head",(pom+tb.offsetHeight+gb.offsetHeight)+"px");
+  r.setProperty("--stick-bar",(pom+alta)+"px");
+  r.setProperty("--stick-head",(pom+alta+gb.offsetHeight)+"px");
 }
 /* quanto spazio resta sotto l'intestazione della griglia */
 function gridTop(){
