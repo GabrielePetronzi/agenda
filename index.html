@@ -2063,7 +2063,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · h";
+const VERSIONE="4 nov 2026 · i";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3856,8 +3856,25 @@ function pomConf(k){
   const d=POM_DEF[k]||POM_DEF.LET;
   return Object.assign({},d,state.pomConf[k]||{});
 }
+/* Il giorno di studio finisce alle quattro di notte, non a mezzanotte.
+   4 novembre: "faro' lo slot di programmazione dichiarativa pero' lo finiro'
+   dopo la mezzanotte, voglio comunque che lo spunti e me lo conti per oggi,
+   e questo vale per tutti se faccio cosi'". Per il timer, quello che fai fra
+   mezzanotte e le quattro appartiene alla sera prima: il blocco che si cerca
+   da solo, i minuti nel registro e le sessioni del giorno. */
+const FINE_GIORNO=4;
+function giornoStudio(){
+  const n=new Date();
+  return iso(n.getHours()<FINE_GIORNO?addDays(n,-1):n);
+}
+/* il giorno a cui va una sessione: quello del blocco a cui e' agganciata,
+   se c'e'; altrimenti il giorno di studio */
+function giornoSessione(r){
+  const b=r&&r.linked&&r.linked[0];
+  return (b&&b.date)||giornoStudio();
+}
 function pomToday(){
-  const t=iso(new Date());
+  const t=giornoStudio();
   if(!state.pomLog||state.pomLog.d!==t)state.pomLog={d:t,n:0,min:0,byAct:{}};
   return state.pomLog;
 }
@@ -3881,7 +3898,7 @@ function logAdd(act,min,ids,dateIso){
   min=Math.round(min);
   if(!(min>0))return;
   state.log=state.log||{};
-  const k=state.year+"."+state.ctx+"."+(dateIso||iso(new Date()));
+  const k=state.year+"."+state.ctx+"."+(dateIso||giornoStudio());
   const day=state.log[k]||(state.log[k]={});
   const who=(ids&&ids.length)?[...new Set(ids)]:[brushNow()||LIBERE[act]||GENID];
   const q=min/who.length;
@@ -3896,7 +3913,7 @@ function logPartial(r){
      farebbe risultare una pausa da cinque minuti lunga quarantacinque */
   const dur=(r.phase==="work"?c.s:(r.phase==="long"?c.l:c.b))*60000;
   const rest=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
-  logAdd(r.act,(dur-rest)/60000,linkedIds(r));
+  logAdd(r.act,(dur-rest)/60000,linkedIds(r),giornoSessione(r));
 }
 /* le materie dei blocchi agganciati al timer: la sessione va a loro */
 function linkedIds(r){
@@ -3985,8 +4002,11 @@ function bloccoDaAvviare(){
 }
 /* solo: la materia non e' una preferenza ma un vincolo */
 function slotDiOggi(act,mat,solo){
-  const d=iso(new Date()),n=new Date();
-  const ora=n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
+  /* dopo mezzanotte e prima delle quattro "oggi" e' ancora ieri, e l'ora
+     sta dopo la fine della sua giornata: il blocco da riprendere e' quello
+     cominciato piu' di recente, cioe' quello della sera */
+  const n=new Date(),d=giornoStudio(),dopo=d!==iso(n);
+  const ora=(dopo?24*PERQ:0)+n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
   const tutti=runsOf(d).filter(r=>(act?r.v.a===act:!daSola(r.v.a))&&!vero(r.v))
     .sort((a,b)=>a.start-b.start||a.lane-b.lane);
   const suoi=mat?tutti.filter(r=>r.v.i===mat):tutti;
@@ -4186,7 +4206,7 @@ function pomAdvance(auto){
     /* a fine sessione conta tutta la durata, se la salti conta solo il girato */
     const rest=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
     const min=auto?c.s:(c.s*60000-rest)/60000;
-    logAdd(r.act,min,linkedIds(r));
+    logAdd(r.act,min,linkedIds(r),giornoSessione(r));
     /* Prima si spunta, poi si mette via la fase. maturato() somma al totale
        il tempo trascorso nella fase in corso: se la fase viene sommata prima,
        a fine sessione i suoi minuti contano due volte — e con l'orologio
@@ -4245,7 +4265,7 @@ function pomAdvance(auto){
        intera. Saltare una sessione di lavoro invece conta solo il girato. */
     if(r.paused!=null)r.paused=0;else r.ends=Math.min(r.ends,Date.now());
     const minP=durP;
-    logAdd(r.act,minP,linkedIds(r));
+    logAdd(r.act,minP,linkedIds(r),giornoSessione(r));
     let kp=spuntaMaturato(r);            /* stessa regola: prima si spunta */
     /* La pausa chiude la mezz'ora in cui cade (25 ottobre: "ho premuto salta
        nella pausa e non mi ha oscurato il relativo slot"). Schema, 45 + 12:
