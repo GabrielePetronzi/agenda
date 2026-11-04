@@ -2193,7 +2193,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · l";
+const VERSIONE="4 nov 2026 · m";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3682,8 +3682,12 @@ function editForm(o){
   return wrap;
 }
 
-function pickAct(k){
-  state.act=k;state.erase=false;
+/* 4 novembre: "se riclicco su un'attivita' si deve deselezionare". Senza
+   attivita' scelta non si dipinge (si chiede di sceglierne una) e il timer
+   prende l'attivita' del blocco che aggancia. */
+function pickAct(k,riclic){
+  /* solo il clic sul pulsante deseleziona; i tasti 1-0 scelgono e basta */
+  state.act=(riclic&&state.act===k&&!state.erase)?null:k;state.erase=false;
   save();tools();status();modeFlag();gridModes();pomPanel();panels();
 }
 function tools(){
@@ -3696,7 +3700,7 @@ function tools(){
       ' style="-webkit-mask-image:'+ATRAMALEG[a.k]+';mask-image:'+ATRAMALEG[a.k]+'"')+
       '></i>'+icon(a.k,15)+a.n;
     b.title=a.n+" · tasto "+(i+1)+" · fase "+AFASE[a.k];
-    b.onclick=()=>pickAct(a.k);
+    b.onclick=()=>pickAct(a.k,true);
     box.appendChild(b);
   });
 
@@ -3756,7 +3760,8 @@ function status(){
         : "Scegli una materia o una voce."+clip);
     return;
   }
-  el.innerHTML="<b>"+m[state.brush].name.toUpperCase()+"</b> · "+actOf(state.act).n+clip;
+  el.innerHTML="<b>"+m[state.brush].name.toUpperCase()+"</b> · "+
+    (state.act?actOf(state.act).n:"scegli un'attività")+clip;
 }
 
 function weeknav(){
@@ -4653,6 +4658,19 @@ function pomPanel(){
      dell'attivita' con cui lo avvii — e il pulsante dice quale. */
   const dopo=sel.length?null:bloccoDaAvviare();
   const act=dopo?dopo.a:state.act;
+  if(!act){
+    const p0=document.createElement("button");
+    p0.className="tool pompick"+(pomPick?" armed":"");
+    p0.innerHTML=icon("POM",16)+(pomPick?"Tocca un blocco…":"Avvia su un blocco");
+    p0.title="Poi tocchi un blocco della griglia: la sessione prende la sua attività";
+    p0.onclick=()=>pomAskBlock(!pomPick);
+    box.appendChild(p0);
+    const h=document.createElement("span");
+    h.className="pomhint";
+    h.textContent="Nessuna attività scelta: scegline una, o tocca il blocco da cui partire.";
+    box.appendChild(h);
+    return;
+  }
   const c=pomConf(act);
 
   const pick=document.createElement("button");
@@ -6664,6 +6682,10 @@ function wire(t){
         "<b>Scegli prima una materia</b> dall'elenco in alto — Ripasso e Lavoro si piazzano anche senza.";
       return;
     }
+    if(!state.act&&!state.erase){
+      document.getElementById("status").innerHTML="<b>Scegli prima un'attività</b> dall'elenco Attività.";
+      return;
+    }
     const kk=ck(td.dataset.date,+td.dataset.h);
     tapUndo={k:kk,prev:state.cells[kk]?JSON.parse(JSON.stringify(state.cells[kk])):null};
     /* ripassare su un blocco già piazzato non lo toglie: si cancella solo
@@ -6679,6 +6701,7 @@ function wire(t){
     e.preventDefault();
     const brush=brushNow();
     if(!brush&&!state.erase)return;
+    if(!state.act&&!state.erase)return;
     val=state.erase?null:{i:brush,a:state.act};
     put(td,null);
     commit();
@@ -6703,7 +6726,7 @@ function sdStart(o,x,y){
   const g=document.createElement("div");
   g.className="dragghost";
   g.innerHTML='<i style="background:'+o.color+'"></i>'+shortOf(o.name)+
-    "<b>"+actOf(state.act).n.toLowerCase()+"</b>";
+    "<b>"+(state.act?actOf(state.act).n.toLowerCase():"scegli un'attività")+"</b>";
   document.body.appendChild(g);
   sd={id:o.id,ghost:g,td:null};
   document.body.classList.add("dropping");
@@ -6728,6 +6751,7 @@ function sdEnd(drop){
   document.body.classList.remove("dropping");
   sd=null;
   if(!td)return;
+  if(!state.act){toast("Scegli prima un'attività");return;}
   const date=td.dataset.date,start=+td.dataset.h;
   const len=Math.max(1,Math.min(DROP_LEN,HOURS[HOURS.length-1]-start+1));
   const lane=freeLane(date,start,len);
