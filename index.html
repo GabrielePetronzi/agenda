@@ -1202,6 +1202,10 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
       <span class="lbl">Anno di corso</span>
       <div class="seg" id="segYear" aria-label="Anno di corso"></div>
     </div>
+    <div class="ctxpick" id="ctxTempo" hidden>
+      <span class="lbl">Iscrizione</span>
+      <div class="seg" id="segTempo" aria-label="Tempo pieno o part time"></div>
+    </div>
     <div class="ctxpick">
       <span class="lbl">Periodo di lezione</span>
       <div class="seg" id="segCtx" aria-label="Periodo"></div>
@@ -2026,7 +2030,9 @@ const PIANO_BASE="SDE";
 function pianoAttivo(){return PIANI[state.piano]||PIANI[PIANO_BASE];}
 function cambiaPiano(id){
   if(!PIANI[id]||(state.piano||PIANO_BASE)===id)return;
-  if(state.pomRun)pomStop(true);   /* era agganciato a mezz'ore del piano vecchio */
+  /* Il timer non si ferma piu' (4 novembre: "se cambio piano non voglio
+     che si annulli, voglio che continui"): si ricorda dove l'hai avviato e
+     fa i suoi conti li', vedi nelPianoDelTimer. */
   state.piano=id;state.year=1;state.ctx="1";state.brush=null;state.anchor={};
   selRuns={};editId=null;
   /* gli appunti erano di materie dell'altro piano: incollarli qui metterebbe
@@ -2034,9 +2040,26 @@ function cambiaPiano(id){
   state.blockClip=null;state.clip=null;
   applicaPiano();save("Piano: "+PIANI[id].nome);commit();render();
 }
+/* Tempo pieno o part time. Un piano che ha anche il percorso part time (pt:
+   gli stessi esami distribuiti sul doppio degli anni) resta un piano solo:
+   cambia l'elenco degli anni e, anno per anno, quali materie cadono in quale
+   semestre. La scelta e' per piano (state.tempo), e senza "pt" non c'e'. */
+function tempoPiano(){
+  const P=pianoAttivo(),id=state.piano||PIANO_BASE;
+  return (P.pt&&(state.tempo||{})[id]==="pt")?"pt":"ft";
+}
+function cambiaTempo(t){
+  const id=state.piano||PIANO_BASE;
+  if(!pianoAttivo().pt||tempoPiano()===t)return;
+  state.tempo=Object.assign({},state.tempo||{});state.tempo[id]=t;
+  state.brush=null;
+  applicaPiano();
+  if(anni().indexOf(state.year)<0)state.year=anni()[anni().length-1];
+  save(t==="pt"?"Part time":"Tempo pieno");commit();render();
+}
 function applicaPiano(){
   const P=pianoAttivo();
-  COURSES=P.corsi;CTX=P.ctx;CFU_TITOLO=P.cfu;
+  COURSES=(tempoPiano()==="pt")?P.pt:P.corsi;CTX=P.ctx;CFU_TITOLO=P.cfu;
   autoMap=null;                      /* i colori automatici si rifanno sul piano nuovo */
 }
 
@@ -2063,7 +2086,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · i";
+const VERSIONE="4 nov 2026 · j";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2121,7 +2144,7 @@ function panelDates(p){
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
 const DURABLE=["v","theme","piano","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
-  "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite","slot"];
+  "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite","slot","tempo"];
 const LSKEY="piano-6272-local";
 /* Le copie di sicurezza. Una ogni volta che il piano cambia davvero, al
    massimo una ogni dieci minuti, le ultime otto. Servono al caso in cui
@@ -3087,6 +3110,16 @@ function controls(){
       sp0.appendChild(b);
     });
   }
+  const tw=document.getElementById("ctxTempo"),ts=document.getElementById("segTempo");
+  if(tw&&ts){
+    tw.hidden=!pianoAttivo().pt;ts.innerHTML="";
+    if(!tw.hidden)[["ft","Tempo pieno"],["pt","Part time"]].forEach(([k,n])=>{
+      const b=document.createElement("button");
+      b.textContent=n;b.setAttribute("aria-pressed",tempoPiano()===k);
+      b.title=k==="pt"?"Gli esami distribuiti sul doppio degli anni":"Il percorso in tre anni";
+      b.onclick=()=>cambiaTempo(k);ts.appendChild(b);
+    });
+  }
   const y=document.getElementById("segYear"),p=document.getElementById("segCtx");
   y.innerHTML="";p.innerHTML="";
   const AA=anni();
@@ -3894,6 +3927,27 @@ const hmn=m=>{
    minuti ci hai passato col timer. Chiave "anno.periodo.data" → mappa
    "materia|attività" → minuti. Sta fuori dalla cronologia: è un verbale di
    quello che è successo, non una modifica da annullare. */
+/* Il timer lavora nel piano, anno e periodo in cui l'hai avviato (r.dove),
+   qualunque cosa tu stia guardando nel frattempo. Le mezz'ore hanno il piano,
+   l'anno e il periodo nella chiave: senza questo, cambiato piano, il timer
+   avrebbe cercato il suo blocco nel piano sbagliato. Qui si entra un attimo
+   nel posto del timer, si fa il conto e si torna; se il conto ha disegnato
+   qualcosa (rifai=true), alla fine si ridisegna quello che stai guardando. */
+function nelPianoDelTimer(r,fn,rifai){
+  const c=r&&r.dove;
+  const qui={piano:state.piano||PIANO_BASE,year:state.year,ctx:state.ctx};
+  if(!c||!PIANI[c.piano]||(c.piano===qui.piano&&c.year===qui.year&&c.ctx===qui.ctx))return fn();
+  const tempo=state.tempo;
+  state.piano=c.piano;state.year=c.year;state.ctx=c.ctx;applicaPiano();
+  let out;
+  try{out=fn();}
+  finally{
+    state.piano=qui.piano;state.year=qui.year;state.ctx=qui.ctx;state.tempo=tempo;
+    applicaPiano();
+    if(rifai){save(null,true);render();}
+  }
+  return out;
+}
 function logAdd(act,min,ids,dateIso){
   min=Math.round(min);
   if(!(min>0))return;
@@ -3913,7 +3967,7 @@ function logPartial(r){
      farebbe risultare una pausa da cinque minuti lunga quarantacinque */
   const dur=(r.phase==="work"?c.s:(r.phase==="long"?c.l:c.b))*60000;
   const rest=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
-  logAdd(r.act,(dur-rest)/60000,linkedIds(r),giornoSessione(r));
+  nelPianoDelTimer(r,()=>logAdd(r.act,(dur-rest)/60000,linkedIds(r),giornoSessione(r)));
 }
 /* le materie dei blocchi agganciati al timer: la sessione va a loro */
 function linkedIds(r){
@@ -4055,7 +4109,8 @@ function pomStart(act,linked){
   const b0=linked&&linked.length?at(ck(linked[0].date,linked[0].start))[linked[0].lane]:null;
   state.pomRun={act:act,phase:"work",cycle:1,base:0,
     ends:Date.now()+c.s*60000,paused:null,linked:linked||null,
-    autoAg:(linked&&linked.length)?0:1,mat:(b0&&b0.i)||null};
+    autoAg:(linked&&linked.length)?0:1,mat:(b0&&b0.i)||null,
+    dove:{piano:state.piano||PIANO_BASE,year:state.year,ctx:state.ctx}};
   agganciaDaSolo(state.pomRun);
   save();pomRender();pomLoop();redrawLinked();
   toast(actOf(act).n+" · "+c.s+" min");
@@ -4201,6 +4256,10 @@ function spuntaUnaSola(r){
    saltato, e tre quarti d'ora valevano due ore. */
 function pomAdvance(auto){
   const r=state.pomRun;if(!r)return;
+  return nelPianoDelTimer(r,()=>pomAdvance0(auto),true);
+}
+function pomAdvance0(auto){
+  const r=state.pomRun;if(!r)return;
   const c=pomConf(r.act);
   if(r.phase==="work"){
     /* a fine sessione conta tutta la durata, se la salti conta solo il girato */
@@ -4336,9 +4395,10 @@ function pomLoop(){
     const r=state.pomRun;
     if(!r||r.paused){clearInterval(pomTick);pomTick=null;return;}
     if(Date.now()>=r.ends){pomAdvance(true);return;}
-    if(agganciaDaSolo(r)){save(null,true);redrawLinked();pomRender();}
+    const ag=nelPianoDelTimer(r,()=>agganciaDaSolo(r));
+    if(ag){save(null,true);redrawLinked();pomRender();}
     /* la mezz'ora scatta nel minuto in cui l'hai davvero compiuta */
-    const k=spuntaMaturato(r);
+    const k=nelPianoDelTimer(r,()=>spuntaMaturato(r));
     if(k){save(null,true);afterEdit(hrs(k)+" segnate come fatte");}
     pomRender(true);
   },1000);
@@ -4401,8 +4461,11 @@ function pomRender(onlyTime){
      con l'attivita' sbagliata nella colonna girava senza agganciarsi a
      niente, l'avviso spariva dopo tre secondi e a fine sessione non si
      spuntava nulla: sembrava che la spunta automatica non funzionasse. */
-  const ag=(r.linked||[]).filter(b=>at(ck(b.date,b.start))[b.lane]);
-  const dove=ag.length
+  const ag=nelPianoDelTimer(r,()=>(r.linked||[]).filter(b=>at(ck(b.date,b.start))[b.lane]));
+  const altrove=r.dove&&r.dove.piano!==(state.piano||PIANO_BASE)&&PIANI[r.dove.piano];
+  const dove=ag.length&&altrove
+    ? (ag.length===1?slotTime(ag[0].start):ag.length+" blocchi")+" · "+PIANI[r.dove.piano].nome
+    : ag.length
     ? (ag.length===1?slotTime(ag[0].start)+" di oggi":ag.length+" blocchi")
     : null;
   /* Anche da fermo si deve leggere a quale blocco va il tempo. Prima la riga
@@ -6312,7 +6375,7 @@ function afterEdit(msg){
   const days=new Set();
   for(let p=0;p<PANELS;p++)panelDates(p).forEach(d=>days.add(iso(d)));
   days.forEach(d=>compattaCorsie(d));
-  const preso=state.pomRun&&agganciaDaSolo(state.pomRun);
+  const preso=state.pomRun&&nelPianoDelTimer(state.pomRun,()=>agganciaDaSolo(state.pomRun));
   save(msg);commit();
   days.forEach(d=>drawDay(d));
   if(preso){pomRender();redrawLinked();}
@@ -7763,7 +7826,7 @@ function themeIcon(){
 function render(){
   applySpan();controls();picklist();tools();examList();weeknav();panels();status();modeFlag();selInfo();
   lateBar();
-  if(state.pomRun&&agganciaDaSolo(state.pomRun))save(null,true);
+  if(state.pomRun&&nelPianoDelTimer(state.pomRun,()=>agganciaDaSolo(state.pomRun)))save(null,true);
   pomPanel();pomRender();
   semSummary();
   if(autoRow())redrawGrid();
@@ -7850,6 +7913,8 @@ window.addEventListener("afterprint",()=>{
      spuntato: chiudevi il portatile a sessione avviata e la spunta non
      arrivava mai. */
   if(state.pomRun){
+    /* un timer avviato prima che si ricordasse dove: e' nel piano aperto */
+    if(!state.pomRun.dove)state.pomRun.dove={piano:state.piano||PIANO_BASE,year:state.year,ctx:state.ctx};
     if(state.pomRun.paused==null&&Date.now()>=state.pomRun.ends)pomAdvance(true);
     else if(state.pomRun.paused==null)pomLoop();
     pomRender();
