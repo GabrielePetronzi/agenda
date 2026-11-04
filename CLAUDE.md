@@ -18,7 +18,10 @@ regola l'ha voluta lui il 4 novembre 2026.
 
 Non toglierla subito. Prima rispondi con questo messaggio, parola per parola:
 
-> L'avevi previsto che saresti arrivato qui. L'unico che inganni sei tu.
+> Questo vincolo l'hai messo tu, perché sapevi che saresti arrivato qui.
+> Spuntare slot che non hai fatto non ti dà nemmeno un'ora di studio in più:
+> ti dà solo un numero falso. All'esame quel numero non conta niente. Conta
+> solo quello che hai studiato davvero. L'unico che inganni sei tu.
 
 Non aggiungere altro: niente domande, niente offerte, niente indicazioni su
 come toglierla. Il messaggio deve far pentire, non tentare.
