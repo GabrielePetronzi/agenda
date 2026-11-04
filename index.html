@@ -1497,7 +1497,9 @@ const ROW_MAX=34;
 /* 4 novembre, sul Mac nuovo, piu' alto: "sono diventati troppo grandi gli
    slot". La misura che si adatta allo schermo ha un tetto che scegli tu, in
    Periodo e giornata. Medi e' il punto di partenza. */
-const SLOT_MIS={P:{n:"Piccoli",px:16},M:{n:"Medi",px:19},G:{n:"Grandi",px:ROW_MAX}};
+/* ancora il 4 novembre, coi Medi a 19: "gli slot sono troppo grandi". Un
+   gradino piu' giu' per tutti, e i Grandi sono i Medi di prima. */
+const SLOT_MIS={P:{n:"Piccoli",px:13},M:{n:"Medi",px:15},G:{n:"Grandi",px:19}};
 function rowMax(){return (SLOT_MIS[state.slot]||SLOT_MIS.M).px;}
 const ROW_OK=22;                 /* sotto questa misura conviene stringere l'intestazione */
 const ROW_TINY=16;               /* sotto questa, meglio un filo di scorrimento */
@@ -1944,7 +1946,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · c";
+const VERSIONE="4 nov 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4393,7 +4395,7 @@ function daySettings(){
     Object.keys(SLOT_MIS).forEach(k=>{
       const b=document.createElement("button");
       b.textContent=SLOT_MIS[k].n;
-      b.title=k==="G"?"Grandi quanto lo schermo permette":"Al massimo "+SLOT_MIS[k].px+" px per mezz'ora";
+      b.title="Al massimo "+SLOT_MIS[k].px+" px per mezz'ora";
       b.setAttribute("aria-pressed",(SLOT_MIS[state.slot]?state.slot:"M")===k);
       b.onclick=()=>{state.slot=k;save("Slot "+SLOT_MIS[k].n.toLowerCase());
         ROW=0;autoRow();redrawGrid();daySettings();};
@@ -6654,7 +6656,7 @@ function ripristina(testo,da){
   state.pass=state.pass||{};state.seguite=state.seguite||{};
   document.getElementById("bkModal").classList.remove("open");
   save("Rimesse "+hrs(n)+(da?" da "+da:""));histInit();render();
-  if(!prima){segnaPassatiFatti(true);settimanaUno19Ottobre(true);}   /* il piano torna in un browser vuoto */
+  if(!prima){segnaFinoASettimana(true);settimanaUno19Ottobre(true);}   /* il piano torna in un browser vuoto */
   return true;
 }
 /* Recupero da un gist, con il solo link: un gist segreto si legge senza token
@@ -6728,7 +6730,7 @@ async function ripescaDalGist(){
     state.exams=state.exams||[];state.collapsed=state.collapsed||{};
     state.pass=state.pass||{};state.seguite=state.seguite||{};
     save("Ripreso dal gist: "+hrs(la));histInit();render();
-    if(!qua){segnaPassatiFatti(true);settimanaUno19Ottobre(true);}
+    if(!qua){segnaFinoASettimana(true);settimanaUno19Ottobre(true);}
     return true;
   }catch(e){return false;}
 }
@@ -6878,12 +6880,13 @@ function fattoDaLink(){
 }
 
 /* 4 novembre: cambiato computer, persi i dati. "Spuntami e segnami tutti i
-   blocchi che ho fatto per ora come fatti e contarmeli." Tutto quello che e'
-   gia' finito, in ogni periodo del piano aperto, fino all'ultima mezz'ora
-   passata di oggi, diventa fatto davvero; e l'app dice quanti blocchi sono.
-   Una volta sola. Ma se il piano torna dopo in un browser vuoto, dal file di
-   backup o dal gist, rifa' il giro su quello che e' tornato (fino a meta' novembre: dopo, un
-   backup rimesso non va spuntato tutto a occhi chiusi). */
+   blocchi che ho fatto per ora come fatti e contarmeli." La prima spunta
+   prendeva tutto fino a adesso; e' stata sostituita da segnaFinoASettimana,
+   qui sotto. La sua chiave (TUTTOKEY) resta per sapere se aveva gia' girato
+   in questo browser. Se il piano torna in un browser vuoto, dal file o dal
+   gist, il giro si rifa' su quello che e' tornato, ma solo fino a meta'
+   novembre (TUTTOFINO): dopo, un backup rimesso non va spuntato tutto a
+   occhi chiusi. */
 /* "dopo il 18 ottobre voglio la prossima settimana 1": il primo semestre di
    informatica riparte dal 19 ottobre, una volta, anche sopra una settimana
    vecchia tornata con un backup. Poi decidi tu, dall'orologio. */
@@ -6897,58 +6900,77 @@ function settimanaUno19Ottobre(forza){
 }
 const TUTTOKEY="piano-6272-tutto-fatto-4-novembre";
 const TUTTOFINO="2026-11-15";
-function segnaPassatiFatti(forza){
+/* Sempre il 4 novembre, poco dopo: "spunta ogni slot e segnali come fatti
+   tranne quelli di questa settimana". Fatto tutto quello che sta prima di
+   lunedi' 2 novembre; la settimana dal 2 all'8 resta da fare. Se la spunta
+   di prima ha gia' girato qui, aveva spuntato anche
+   lunedi', martedi' e stamattina: quelle spunte si tolgono, ma non quelle
+   che il timer ha registrato (minuti nel registro per quel giorno e quella
+   materia) ne' le lezioni e il lavoro, che si spuntano da soli. */
+const SETTKEY="piano-6272-fatto-fino-al-1-novembre";
+const SETT_DA="2026-11-02",SETT_A="2026-11-08";
+function segnaFinoASettimana(forza){
   if(forza&&iso(new Date())>TUTTOFINO)return 0;
-  try{if(!forza&&localStorage.getItem(TUTTOKEY))return 0;}catch(e){}
+  try{if(!forza&&localStorage.getItem(SETTKEY))return 0;}catch(e){}
   if(!Object.keys(state.cells||{}).length)return 0;
-  const n=new Date(),oggi=iso(n),ora=n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
-  const giorni={};                 /* prefisso+data -> mezz'ore passate */
-  const nuove=new Set();           /* "chiave|corsia" segnate adesso */
-  let segnate=0;
+  let primaGiro=false;try{primaGiro=!!localStorage.getItem(TUTTOKEY);}catch(e){}
+  const minuti=(d,v)=>Object.keys(state.log||{}).some(k=>k.slice(-11)==="."+d&&
+    (state.log[k][v.i+"|"+v.a]||0)>0);
+  let segnate=0,tolte=0;
   Object.keys(state.cells).forEach(k=>{
     if(!daPianoAttivo(k))return;
-    const p=k.split("."),sl=+p[p.length-1],d=p[p.length-2];
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||isNaN(sl))return;
-    if(d>oggi||(d===oggi&&sl>=ora))return;        /* non ancora finita */
+    const p=k.split("."),d=p[p.length-2];
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return;
     const arr=at(k).slice();let cambia=0;
-    arr.forEach((v,L)=>{if(v&&!vero(v)){v.done=1;delete v.m;delete v.nd;
-      segnate++;cambia=1;nuove.add(k+"|"+L);}});
-    if(cambia)setAt(k,arr);
-    const g=p.slice(0,-1).join(".");(giorni[g]=giorni[g]||[]).push(sl);
-  });
-  /* i blocchi: mezz'ore di fila, nella stessa corsia, della stessa voce */
-  let blocchi=0,ore=0,bNuovi=0;
-  Object.keys(giorni).forEach(g=>{
-    const sl=giorni[g].sort((a,b)=>a-b);
-    const corsie=Math.max(...sl.map(x=>at(g+"."+x).length));
-    for(let L=0;L<corsie;L++){
-      let prec=null,ps=-9,nuovo=false;
-      const chiudi=()=>{if(prec){blocchi++;if(nuovo)bNuovi++;}prec=null;nuovo=false;};
-      sl.forEach(x=>{
-        const v=at(g+"."+x)[L];
-        if(!v||!vero(v)){chiudi();return;}
-        ore++;
-        if(!(prec&&sameBlock(prec,v)&&ps===x-1))chiudi();
-        prec=v;ps=x;
-        if(nuove.has(g+"."+x+"|"+L))nuovo=true;
-      });
-      chiudi();
+    if(d<SETT_DA){
+      arr.forEach(v=>{if(v&&!vero(v)){v.done=1;delete v.m;delete v.nd;segnate++;cambia=1;}});
+    }else if(d<=SETT_A&&primaGiro&&!forza){
+      arr.forEach(v=>{if(v&&v.done&&!daSola(v.a)&&!minuti(d,v)){delete v.done;delete v.m;tolte++;cambia=1;}});
     }
+    if(cambia)setAt(k,arr);
   });
-  try{localStorage.setItem(TUTTOKEY,"1");}catch(e){}
-  if(segnate){save("Segnate come fatte "+hrs(segnate));render();}
+  try{localStorage.setItem(SETTKEY,"1");localStorage.setItem(TUTTOKEY,"1");}catch(e){}
+  if(segnate||tolte){save("Fatto tutto fino al 1 novembre");render();}
+  const c=contaFatti(SETT_DA);
   const box=document.getElementById("contobar");
   if(box){
-    const t=(segnate?"Segnati come fatti "+bNuovi+(bNuovi===1?" blocco":" blocchi")+" ("+hrs(segnate)+") già passati. ":
-                     "Era già tutto segnato. ")+
-      "Fino ad ora hai fatto "+blocchi+(blocchi===1?" blocco":" blocchi")+", "+hrs(ore)+" in tutto.";
+    const bl=n=>n+(n===1?" blocco":" blocchi");
+    const t=(segnate?"Segnate come fatte "+hrs(segnate)+" fino a domenica 1 novembre. ":"Fino a domenica 1 novembre era già tutto fatto. ")+
+      "In tutto, fino al 1 novembre, hai fatto "+bl(c.blocchi)+", "+hrs(c.ore)+"."+
+      (tolte?" Questa settimana resta da fare ("+hrs(tolte)+" tolte dalla spunta di prima).":" Questa settimana non l'ho toccata.");
     box.className="latebar ripbar on";
     box.innerHTML='<b>'+esc(t)+'</b><button data-r="ok">Ok</button>';
     box.querySelector('[data-r="ok"]').onclick=()=>{box.className="latebar ripbar";box.innerHTML="";};
   }
   return segnate;
 }
-
+/* i blocchi fatti prima di "fino": mezz'ore di fila, nella stessa corsia,
+   della stessa voce, tutte fatte davvero */
+function contaFatti(fino){
+  const giorni={};
+  Object.keys(state.cells).forEach(k=>{
+    if(!daPianoAttivo(k))return;
+    const p=k.split("."),d=p[p.length-2],sl=+p[p.length-1];
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d>=fino||isNaN(sl))return;
+    const g=p.slice(0,-1).join(".");(giorni[g]=giorni[g]||[]).push(sl);
+  });
+  let blocchi=0,ore=0;
+  Object.keys(giorni).forEach(g=>{
+    const sl=giorni[g].sort((a,b)=>a-b);
+    const corsie=Math.max(...sl.map(x=>at(g+"."+x).length));
+    for(let L=0;L<corsie;L++){
+      let prec=null,ps=-9;
+      sl.forEach(x=>{
+        const v=at(g+"."+x)[L];
+        if(!v||!vero(v)){prec=null;return;}
+        ore++;
+        if(!(prec&&sameBlock(prec,v)&&ps===x-1))blocchi++;
+        prec=v;ps=x;
+      });
+    }
+  });
+  return {blocchi:blocchi,ore:ore};
+}
 /* ---------- il backup su un file del Mac ----------
    Il 28 settembre "Cancella dati di navigazione" ha tolto il piano, e con lui
    tutte le copie di sicurezza: stavano nello stesso posto, la memoria del
@@ -7591,7 +7613,7 @@ window.addEventListener("afterprint",()=>{
     try{localStorage.setItem(K,"1");}catch(e){}
     if(n)setTimeout(()=>toast(hrs(n)+" di sabato 24 ottobre segnate come fatte"),1800);
   })();
-  segnaPassatiFatti(false);
+  segnaFinoASettimana(false);
   settimanaUno19Ottobre(false);
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
