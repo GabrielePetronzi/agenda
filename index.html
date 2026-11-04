@@ -1279,8 +1279,8 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
         <button class="icon sm" id="dPrev" title="Giorni precedenti" aria-label="Giorni precedenti">‹</button>
         <span class="dlab" id="dLab"></span>
         <button class="icon sm" id="dNext" title="Giorni successivi" aria-label="Giorni successivi">›</button>
-        <button class="icon sm" id="gdBtn" title="Periodo e ore mostrate"
-          aria-label="Periodo e ore mostrate"></button>
+        <button class="icon sm" id="gdBtn" title="Da dove partono le 4 settimane, ore mostrate, altezza degli slot"
+          aria-label="Settimane e giornata"></button>
       </div>
 
       <div class="grp sep">
@@ -1339,12 +1339,16 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
 
 <div class="modal" id="gdModal">
   <div class="sheet">
-    <div class="mhead"><b>Periodo e giornata</b><button id="gdClose">✕</button></div>
+    <div class="mhead"><b>Settimane e giornata</b><button id="gdClose">✕</button></div>
 
-    <p class="lbl" data-ico="CAL">In che periodo sei</p>
-    <div class="seg" id="gdCtx" aria-label="Periodo" style="margin:4px 0 14px;flex-wrap:wrap"></div>
+    <p class="lbl" data-ico="CAL">Da dove partono le 4 settimane</p>
+    <div class="pmrow" style="padding-top:2px">
+      <span class="nm" id="gdUno"></span>
+      <button class="btn" id="gdUnoBtn">Scegli il giorno</button>
+    </div>
+    <p class="pmnote">Il giorno che scegli apre la Settimana 1; le frecce poi vanno di quattro in quattro.</p>
 
-    <p class="lbl" data-ico="CLK">Ore mostrate in griglia</p>
+    <p class="lbl" style="margin-top:18px" data-ico="CLK">Ore mostrate in griglia</p>
     <div class="pmrow" style="padding-top:2px">
       <span class="nm">Dalla prima all'ultima</span>
       <span class="pair">
@@ -1356,6 +1360,9 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
       </span>
     </div>
     <p class="pmnote" id="dayNote"></p>
+
+    <p class="lbl" style="margin-top:18px" data-ico="CLK">Altezza degli slot</p>
+    <div class="seg" id="gdSlot" aria-label="Altezza degli slot" style="margin:4px 0 4px;flex-wrap:wrap"></div>
 
   </div>
 </div>
@@ -1487,6 +1494,11 @@ let HOURS=buildHours();
 let ROW=28;
 const ROW_MIN=13;                /* sotto non si legge più niente */
 const ROW_MAX=34;
+/* 4 novembre, sul Mac nuovo, piu' alto: "sono diventati troppo grandi gli
+   slot". La misura che si adatta allo schermo ha un tetto che scegli tu, in
+   Periodo e giornata. Medi e' il punto di partenza. */
+const SLOT_MIS={P:{n:"Piccoli",px:16},M:{n:"Medi",px:19},G:{n:"Grandi",px:ROW_MAX}};
+function rowMax(){return (SLOT_MIS[state.slot]||SLOT_MIS.M).px;}
 const ROW_OK=22;                 /* sotto questa misura conviene stringere l'intestazione */
 const ROW_TINY=16;               /* sotto questa, meglio un filo di scorrimento */
 const FIT_TO=21;                 /* l'ora fino a cui la giornata deve stare a schermo */
@@ -1932,7 +1944,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · a";
+const VERSIONE="4 nov 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -1959,15 +1971,22 @@ function anchorDate(){
   const a=state.anchor[state.ctx];
   return monday(parse(a||inizioVista(state.ctx)));
 }
-/* Senza una settimana scelta da te, un periodo si apre sulla settimana di
-   oggi se oggi ci cade dentro, altrimenti sul suo primo giorno. Prima si
-   apriva sempre sul primo giorno: il 4 novembre, su un computer nuovo, il
-   primo semestre ripartiva dal 21 settembre e il mese dopo sembrava
-   irraggiungibile. */
+/* Senza una settimana scelta da te, un periodo si apre sul blocco di
+   quattro settimane, contate dal suo primo giorno, in cui cade oggi; se oggi
+   e' fuori dal periodo, sul primo giorno. Prima si apriva sempre sul primo
+   giorno: il 4 novembre, su un computer nuovo, il primo semestre ripartiva
+   dal 21 settembre e il mese dopo sembrava irraggiungibile. */
 function inizioVista(k){
   const s=CTX[k].start;
   const dopo=Object.keys(CTX).map(x=>CTX[x].start).filter(x=>x>s).sort()[0];
-  return (TODAY>=s&&(!dopo||TODAY<dopo))?TODAY:s;
+  if(!(TODAY>=s&&(!dopo||TODAY<dopo)))return s;
+  return iso(bloccoDiOggi(monday(parse(s))));
+}
+/* il lunedi' che apre il blocco di quattro settimane, allineato a "da", in
+   cui cade oggi: cosi' "Oggi" non sposta la Settimana 1 che hai scelto */
+function bloccoDiOggi(da){
+  const giorni=Math.round((monday(new Date())-da)/86400000);
+  return addDays(da,7*PANELS*Math.floor(giorni/(7*PANELS)));
 }
 function panelStart(p){return addDays(anchorDate(),7*p);}
 function panelDates(p){
@@ -1983,7 +2002,7 @@ function panelDates(p){
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
 const DURABLE=["v","theme","piano","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
-  "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite"];
+  "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite","slot"];
 const LSKEY="piano-6272-local";
 /* Le copie di sicurezza. Una ogni volta che il piano cambia davvero, al
    massimo una ogni dieci minuti, le ultime otto. Servono al caso in cui
@@ -3403,7 +3422,7 @@ function weeknav(){
   document.getElementById("wNext").onclick=()=>{shift(7*PANELS);};
   dayLabel();
   document.getElementById("wToday").onclick=()=>{
-    state.anchor[state.ctx]=iso(monday(new Date()));
+    state.anchor[state.ctx]=iso(bloccoDiOggi(anchorDate()));
     save();weeknav();panels();picklist();
   };
 }
@@ -4358,20 +4377,27 @@ const PMF=[["s","sessione","Minuti di una sessione",1,180],
 /* le ore della griglia e la misura del carico governano la griglia, non il
    pomodoro: stanno nella loro finestra, aperta dalla barra della griglia */
 function daySettings(){
-  /* 4 novembre: "il simbolo a sinistra del cancella deve permettere di
-     decidere in che periodo si e'". Gli stessi periodi della barra in cima. */
-  const pc=document.getElementById("gdCtx");
-  if(pc){
-    pc.innerHTML="";
-    Object.keys(CTX).forEach(k=>{
+  /* 4 novembre: "da quel pulsante posso decidere da quale slot da 4
+     settimane partire": "dopo il 18 ottobre voglio la prossima settimana 1".
+     E' il calendario che c'era gia' nel menu di ogni settimana, qui a vista. */
+  const uno=document.getElementById("gdUno");
+  if(uno){
+    const a=anchorDate();
+    uno.textContent="Settimana 1: "+fmt(a)+" · fino al "+fmt(addDays(a,7*PANELS-1));
+    document.getElementById("gdUnoBtn").onclick=()=>{
+      document.getElementById("gdModal").classList.remove("open");openMonth(anchorDate());};
+  }
+  const ps=document.getElementById("gdSlot");
+  if(ps){
+    ps.innerHTML="";
+    Object.keys(SLOT_MIS).forEach(k=>{
       const b=document.createElement("button");
-      b.textContent=CTX[k].label;b.title=CTX[k].name+" · dal "+fmt(parse(CTX[k].start));
-      b.setAttribute("aria-pressed",state.ctx===k);
-      b.onclick=()=>{
-        if(state.ctx!==k){state.ctx=k;state.brush=null;save(CTX[k].name);render();}
-        document.getElementById("gdModal").classList.remove("open");
-      };
-      pc.appendChild(b);
+      b.textContent=SLOT_MIS[k].n;
+      b.title=k==="G"?"Grandi quanto lo schermo permette":"Al massimo "+SLOT_MIS[k].px+" px per mezz'ora";
+      b.setAttribute("aria-pressed",(SLOT_MIS[state.slot]?state.slot:"M")===k);
+      b.onclick=()=>{state.slot=k;save("Slot "+SLOT_MIS[k].n.toLowerCase());
+        ROW=0;autoRow();redrawGrid();daySettings();};
+      ps.appendChild(b);
     });
   }
   const df=document.getElementById("dayFrom"),dt=document.getElementById("dayTo");
@@ -6584,7 +6610,8 @@ function month(){
       document.getElementById("modal").classList.remove("open");
       save("Settimana 1: "+fmt(monday(day)));
       weeknav();panels();picklist();
-      document.querySelector(".weeknav").scrollIntoView({behavior:"smooth",block:"start"});
+      const wn=document.querySelector(".weeknav")||document.querySelector(".gridbar");
+      if(wn)wn.scrollIntoView({behavior:"smooth",block:"start"});
     };
     g.appendChild(b2);
   }
@@ -6627,7 +6654,7 @@ function ripristina(testo,da){
   state.pass=state.pass||{};state.seguite=state.seguite||{};
   document.getElementById("bkModal").classList.remove("open");
   save("Rimesse "+hrs(n)+(da?" da "+da:""));histInit();render();
-  if(!prima)segnaPassatiFatti(true);   /* il piano torna in un browser vuoto */
+  if(!prima){segnaPassatiFatti(true);settimanaUno19Ottobre(true);}   /* il piano torna in un browser vuoto */
   return true;
 }
 /* Recupero da un gist, con il solo link: un gist segreto si legge senza token
@@ -6701,7 +6728,7 @@ async function ripescaDalGist(){
     state.exams=state.exams||[];state.collapsed=state.collapsed||{};
     state.pass=state.pass||{};state.seguite=state.seguite||{};
     save("Ripreso dal gist: "+hrs(la));histInit();render();
-    if(!qua)segnaPassatiFatti(true);
+    if(!qua){segnaPassatiFatti(true);settimanaUno19Ottobre(true);}
     return true;
   }catch(e){return false;}
 }
@@ -6857,6 +6884,17 @@ function fattoDaLink(){
    Una volta sola. Ma se il piano torna dopo in un browser vuoto, dal file di
    backup o dal gist, rifa' il giro su quello che e' tornato (fino a meta' novembre: dopo, un
    backup rimesso non va spuntato tutto a occhi chiusi). */
+/* "dopo il 18 ottobre voglio la prossima settimana 1": il primo semestre di
+   informatica riparte dal 19 ottobre, una volta, anche sopra una settimana
+   vecchia tornata con un backup. Poi decidi tu, dall'orologio. */
+const UNOKEY="piano-6272-settimana-1-19-ottobre";
+function settimanaUno19Ottobre(forza){
+  try{if(!forza&&localStorage.getItem(UNOKEY))return;}catch(e){}
+  if((state.piano||PIANO_BASE)!=="LM18"||!CTX["1"])return;
+  const a=state.anchor["1"];
+  if(!a||a<"2026-10-19"){state.anchor["1"]="2026-10-19";save();if(state.ctx==="1")render();}
+  try{localStorage.setItem(UNOKEY,"1");}catch(e){}
+}
 const TUTTOKEY="piano-6272-tutto-fatto-4-novembre";
 const TUTTOFINO="2026-11-15";
 function segnaPassatiFatti(forza){
@@ -7391,7 +7429,7 @@ function autoRow(){
     const v=fromView();
     if(v!==null)px=Math.min(ROW_OK,Math.max(px,v));
   }
-  px=Math.max(ROW_MIN,Math.min(ROW_MAX,px));
+  px=Math.max(ROW_MIN,Math.min(rowMax(),px));
   stickyOffsets();
   if(px===ROW)return false;
   setRow(px);
@@ -7402,7 +7440,7 @@ function autoRow(){
      stringere: allargare potrebbe rimbalzare avanti e indietro. */
   const ancora=fromTop();
   if(ancora!==null){
-    const q=Math.max(ROW_MIN,Math.min(ROW_MAX,ancora));
+    const q=Math.max(ROW_MIN,Math.min(rowMax(),ancora));
     if(q<px)setRow(q);
   }
   return true;
@@ -7554,6 +7592,7 @@ window.addEventListener("afterprint",()=>{
     if(n)setTimeout(()=>toast(hrs(n)+" di sabato 24 ottobre segnate come fatte"),1800);
   })();
   segnaPassatiFatti(false);
+  settimanaUno19Ottobre(false);
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
   if(fuori)setTimeout(()=>toast(hrs(fuori)+" fuori dalla fascia "+dayFrom()+"–"+dayTo()),900);
