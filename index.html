@@ -204,6 +204,17 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .propinfo .pr.ok .ps{color:var(--done)}
 .propinfo .pr.da .ps{color:var(--warn)}
 .propinfo .pr.rischio .ps{color:var(--late);font-weight:600}
+/* gli esami rimasti indietro: una riga per esame, cliccabile */
+.indietro .ir{display:block;width:100%;text-align:left;background:none;border:0;
+  border-top:1px solid var(--line-soft);padding:7px 0 5px;color:var(--tx);cursor:pointer;font:inherit}
+.indietro .irs{max-height:230px;overflow-y:auto;margin-right:-6px;padding-right:6px}
+.indietro .irs .ir:first-child{border-top:0;padding-top:2px}
+.indietro .ir:hover .in{text-decoration:underline}
+.indietro .in{font-size:13px}
+.indietro .im{display:block;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);margin-top:2px}
+.indietro .ib{display:block;font-family:"DM Mono",monospace;font-size:10.5px;color:var(--late);
+  font-weight:600;margin-top:3px}
+.indietro .pt b{color:var(--late)}
 /* la materia bloccata si riconosce anche da lontano */
 .prow.bloccata{box-shadow:inset 3px 0 0 var(--warn)}
 .prow.bloccata.rischio{box-shadow:inset 3px 0 0 var(--late)}
@@ -1274,6 +1285,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
 
       <div class="cfubar" id="cfubar"></div>
       <div class="propinfo" id="propinfo"></div>
+      <div class="propinfo indietro" id="indietro"></div>
       <div class="searchbox">
         <input id="q" type="search" placeholder="Cerca in tutto il piano" aria-label="Cerca una materia">
         <button id="qClear" title="Azzera la ricerca">✕</button>
@@ -1847,8 +1859,7 @@ const PIANI={
     nome:"Scienze Informatiche (LM-18)",cfu:120,
     ctx:{
       "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-21"},
-      "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"},
-      "S":{label:"Sessione Esami",       name:"Sessione d'esame", start:"2027-01-07"}
+      "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"}
     },
     corsi:{
  /* Laurea magistrale in Scienze Informatiche (LM-18) — Università di Parma
@@ -1989,8 +2000,7 @@ const PIANI={
 
     ctx:{
       "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-17"},
-      "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"},
-      "S":{label:"Sessione Esami",       name:"Sessione d'esame", start:"2026-12-17"}
+      "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"}
     },
     corsi:{
  1:[
@@ -2063,8 +2073,7 @@ const PIANI={
     nome:"Scienze dell'Educazione",cfu:180,
     ctx:{
       "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-21"},
-      "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-08"},
-      "S":{label:"Sessione Esami",       name:"Sessione d'esame", start:"2026-12-07"}
+      "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-08"}
     },
     corsi:{
  1:[
@@ -2178,7 +2187,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="5 nov 2026 · a";
+const VERSIONE="5 nov 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2714,6 +2723,35 @@ window.addEventListener("keydown",e=>{
 /* se i dati salvati contengono già le pieghe, la scelta è dell'utente e va
    rispettata: l'apertura automatica sulla settimana di oggi vale solo al primo avvio */
 let pieghePresenti=false;
+/* 5 novembre: "togli sessioni esami che non ha molto senso". Il periodo
+   "S" non c'e' piu': il primo semestre arriva fino all'inizio del secondo.
+   Le mezz'ore e i minuti del registro salvati sotto "S" passano al
+   semestre in cui cade la loro data, cosi' non spariscono; se eri sulla
+   sessione, torni al semestre di oggi. */
+function sessioneNeiSemestri(){
+  const sem=(pid,d)=>{const P=PIANI[pid];return (P&&P.ctx["2"]&&d>=P.ctx["2"].start)?"2":"1";};
+  Object.keys(state.cells||{}).forEach(k=>{
+    const p=k.split(".");
+    if(p.length<4||p[p.length-3]!=="S")return;
+    const pid=p.length===5?p[0]:PIANO_BASE;
+    p[p.length-3]=sem(pid,p[p.length-2]);
+    const nk=p.join(".");
+    state.cells[nk]=(state.cells[nk]||[]).concat(at(k));
+    delete state.cells[k];
+  });
+  Object.keys(state.log||{}).forEach(k=>{
+    const p=k.split(".");
+    if(p.length!==3||p[1]!=="S")return;
+    p[1]=sem(state.piano||PIANO_BASE,p[2]);
+    const nk=p.join("."),da=state.log[k],a=state.log[nk]||(state.log[nk]={});
+    Object.keys(da).forEach(f=>{a[f]=(a[f]||0)+da[f];});
+    delete state.log[k];
+  });
+  if(state.anchor)delete state.anchor.S;
+  if(!CTX[state.ctx])state.ctx=sem(state.piano||PIANO_BASE,TODAY);
+  if(state.pomRun&&state.pomRun.dove&&state.pomRun.dove.ctx==="S")
+    state.pomRun.dove.ctx=sem(state.pomRun.dove.piano,(state.pomRun.linked&&state.pomRun.linked[0]&&state.pomRun.linked[0].date)||TODAY);
+}
 function adopt(d){
   if(d.collapsed!==undefined)pieghePresenti=true;
   const mio=state.pomRun;
@@ -2738,6 +2776,7 @@ function adopt(d){
   state.seguite=state.seguite||{};
   normCustom();
   migrate(d);
+  sessioneNeiSemestri();
 }
 async function load(){
   sv.local=localOK();sv.remote=remoteOK();
@@ -3051,7 +3090,7 @@ function allCourses(){
 function courses(){
   const out=[],seen=new Set();
   state.over=state.over||{};
-  COURSES[state.year].filter(c=>state.ctx==="S"||c.p===+state.ctx).forEach(c=>{
+  COURSES[state.year].filter(c=>c.p===+state.ctx).forEach(c=>{
     if(seen.has(c.c))return;seen.add(c.c);
     const id="c:"+c.c,ov=state.over[id]||{};
     out.push({id:id,name:ov.n||c.n,short:ov.n?shortOf(ov.n):c.k,
@@ -3322,7 +3361,7 @@ function picklist(){
   const scad=q?(state.exams||[]).filter(x=>x.t.toLowerCase().indexOf(q)>=0):[];
   box.classList.toggle("grow",!!q);
 
-  cfuBar();propInfo();
+  cfuBar();propInfo();indietroInfo();
   const distingue=pianoCfu().due;
   const info=document.getElementById("pickinfo");
   info.textContent=q?(list.length+scad.length)+" risultati in tutto il piano":"";
@@ -3502,6 +3541,50 @@ function propStato(o){
   const manca=propDi(o.id).prima.filter(a=>!(state.pass||{})[a]);
   if(!manca.length)return "";
   return " bloccata"+(manca.some(a=>propRischio(a,o.id))?" rischio":"");
+}
+/* ---------- esami rimasti indietro ----------
+   5 novembre: "serve un modo per capire quali esami ho lasciato indietro e
+   soprattutto se sono propedeutici". Indietro = obbligatorio, non ancora
+   superato, di un semestre gia' finito rispetto all'anno che stai guardando:
+   gli anni prima, e il primo semestre di quest'anno quando il secondo e'
+   cominciato (la sessione d'esame del primo e' passata). Prima quelli che
+   bloccano altri esami, in rosso, con quali. Un clic sceglie la materia per
+   metterla in griglia e recuperarla. */
+function esamiIndietro(){
+  const P=pianoAttivo(),p=state.pass||{};
+  const s2=CTX["2"]&&CTX["2"].start,s1=CTX["1"]&&CTX["1"].start;
+  const cur=(s2&&TODAY>=s2)?2:((s1&&TODAY>=s1)?1:0);
+  const finito=o=>o.year<state.year||(o.year===state.year&&o.sem<cur);
+  const alt={};
+  allCourses().forEach(o=>{if(o.alt&&p[o.id])alt[o.alt]=1;});
+  const visti={};
+  const out=allCourses().filter(o=>{
+    if(!o.ob||p[o.id]||!finito(o))return false;
+    if(o.alt){if(alt[o.alt]||visti[o.alt])return false;visti[o.alt]=1;}
+    return true;
+  }).map(o=>Object.assign({},o,{blocca:propDi(o.id).sblocca}));
+  out.sort((a,b)=>(b.blocca.length>0)-(a.blocca.length>0)||a.year-b.year||a.sem-b.sem);
+  return {lista:out,cur:cur};
+}
+function indietroInfo(){
+  const el=document.getElementById("indietro");if(!el)return;
+  const r=esamiIndietro(),L=r.lista;
+  const dove=state.year+"º anno, "+(r.cur>=2?"2º semestre":"1º semestre");
+  if(!L.length){
+    el.innerHTML='<p class="pt">Esami rimasti indietro</p><p class="vuoto">Nessuno: sei in pari al '+dove+".</p>";
+    return;
+  }
+  const bl=L.filter(o=>o.blocca.length).length;
+  el.innerHTML='<p class="pt">Esami rimasti indietro · '+L.length+
+    (bl?' · <b>'+bl+" propedeutic"+(bl===1?"o":"i")+"</b>":"")+"</p>"+
+    '<div class="irs">'+L.map(o=>'<button class="ir" data-id="'+o.id+'" title="Sceglila per metterla in griglia">'+
+      '<span class="in">'+esc(o.name)+(o.alt?" (o un'alternativa)":"")+"</span>"+
+      '<span class="im">'+(ANNI_ROMANI[o.year-1]||o.year)+" anno · "+o.sem+"º sem · "+o.cfu+" CFU"+
+        (o.date?" · esame "+fmt(parse(o.date)):"")+"</span>"+
+      (o.blocca.length?'<span class="ib">⚠ propedeutico: blocca '+esc(o.blocca.map(nomeCorso).join(", "))+"</span>":"")+
+      "</button>").join("")+"</div>";
+  el.querySelectorAll(".ir").forEach(b=>b.onclick=()=>{
+    state.brush=b.dataset.id;state.erase=false;save();picklist();tools();status();});
 }
 function propInfo(){
   const el=document.getElementById("propinfo");if(!el)return;
@@ -7074,6 +7157,7 @@ function ripristina(testo,da){
   state.exams=state.exams||[];state.collapsed=state.collapsed||{};
   state.pass=state.pass||{};state.seguite=state.seguite||{};
   document.getElementById("bkModal").classList.remove("open");
+  sessioneNeiSemestri();
   save("Rimesse "+hrs(n)+(da?" da "+da:""));histInit();render();
   if(!prima){segnaFinoASettimana(true);settimanaUno19Ottobre(true);}   /* il piano torna in un browser vuoto */
   return true;
@@ -7148,6 +7232,7 @@ async function ripescaDalGist(){
     DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
     state.exams=state.exams||[];state.collapsed=state.collapsed||{};
     state.pass=state.pass||{};state.seguite=state.seguite||{};
+    sessioneNeiSemestri();
     save("Ripreso dal gist: "+hrs(la));histInit();render();
     if(!qua){segnaFinoASettimana(true);settimanaUno19Ottobre(true);}
     return true;

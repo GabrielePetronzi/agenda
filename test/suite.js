@@ -1335,9 +1335,10 @@
   t("il calendario e' l'anno accademico, e conta anche gli altri periodi",function(){
     pulisci();apri();
     var P=annoDate([]),giorni=Math.round((P[3]-P[2])/86400000)+1;
-    /* tre ore fatte in sessione d'esami, guardando il primo semestre */
-    var d=iso(addDays(parse(CTX.S.start),2));
-    var pp=(state.piano&&state.piano!==PIANO_BASE?state.piano+".":"")+state.year+".S.";
+    /* ore nel secondo semestre, guardando il primo (la sessione d'esami
+       come periodo a se' non c'e' piu' dal 5 novembre 2026) */
+    var d=iso(addDays(parse(CTX["2"].start),2));
+    var pp=(state.piano&&state.piano!==PIANO_BASE?state.piano+".":"")+state.year+".2.";
     state.cells[pp+d+"."+HOURS[2]]=[{i:it[0].id,a:"SCH",done:1}];
     state.cells[pp+d+"."+HOURS[3]]=[{i:it[0].id,a:"SCH",done:1}];
     placeRun(G[0],H0,{i:it[0].id,a:"LET",len:2},0);
@@ -1350,7 +1351,7 @@
     if(celle<giorni)return "quadretti "+celle+" per "+giorni+" giorni";
     /* e' nel futuro: il quadretto dice le ore in piano, fatte si vedranno */
     return q&&/1 h in piano/.test(q.getAttribute("aria-label"))?true:
-      "il giorno in sessione dice: "+(q&&q.getAttribute("aria-label"));});
+      "il giorno nel secondo semestre dice: "+(q&&q.getAttribute("aria-label"));});
   /* 27 settembre: "una volta che ho spuntato l'esame come superato deve
      sparire dai grafici" */
   t("un esame superato sparisce dai grafici delle materie e delle ore saltate",function(){
