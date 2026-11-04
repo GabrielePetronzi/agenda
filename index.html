@@ -2193,7 +2193,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · m";
+const VERSIONE="4 nov 2026 · n";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2251,7 +2251,7 @@ function panelDates(p){
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
 const DURABLE=["v","theme","piano","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
-  "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite","slot","tempo"];
+  "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite","slot","tempo","pomStopTs"];
 const LSKEY="piano-6272-local";
 /* Le copie di sicurezza. Una ogni volta che il piano cambia davvero, al
    massimo una ogni dieci minuti, le ultime otto. Servono al caso in cui
@@ -2731,7 +2731,20 @@ window.addEventListener("keydown",e=>{
 let pieghePresenti=false;
 function adopt(d){
   if(d.collapsed!==undefined)pieghePresenti=true;
+  const mio=state.pomRun;
   DURABLE.forEach(k=>{if(d[k]!==undefined)state[k]=d[k];});
+  /* Il timer acceso qui non lo spegne chi non ne sa niente. 4 novembre:
+     "se cambio piano e c'era un timer attivo in un altro piano me lo
+     toglie". Un'altra scheda dell'app (o il gist) salvava senza timer, e
+     questa, allineandosi, prendeva anche il suo "nessun timer": tornavi
+     sulla scheda e il timer non c'era piu'. Ora quello di qui resta, a meno
+     che di la' sia stato fermato dopo che e' partito (pomStopTs) o ce ne
+     sia uno avviato dopo. */
+  if(mio){
+    const suo=state.pomRun;
+    if(!suo){if((state.pomStopTs||0)<=(mio.t0||0))state.pomRun=mio;}
+    else if((suo.t0||0)<=(mio.t0||0))state.pomRun=mio;
+  }
   if(!PIANI[state.piano]||PIANI[state.piano].nascosto)state.piano=PIANO_BASE;
   applicaPiano();
   setDayRange(state.dayFrom==null?DAY_FROM:state.dayFrom,
@@ -4241,7 +4254,7 @@ function pomStart(act,linked){
   state.pomRun={act:act,phase:"work",cycle:1,base:0,
     ends:Date.now()+c.s*60000,paused:null,linked:linked||null,
     autoAg:(linked&&linked.length)?0:1,mat:(b0&&b0.i)||null,
-    dove:{piano:state.piano||PIANO_BASE,year:state.year,ctx:state.ctx}};
+    dove:{piano:state.piano||PIANO_BASE,year:state.year,ctx:state.ctx},t0:Date.now()};
   agganciaDaSolo(state.pomRun);
   save();pomRender();pomLoop();redrawLinked();
   toast(actOf(act).n+" · "+c.s+" min");
@@ -4504,7 +4517,7 @@ function pomRestart(){
 function pomStop(senzaRegistro){
   const old=state.pomRun;
   if(!senzaRegistro)logPartial(old);
-  state.pomRun=null;clearInterval(pomTick);pomTick=null;save();pomRender();
+  state.pomRun=null;state.pomStopTs=Date.now();clearInterval(pomTick);pomTick=null;save();pomRender();
   if(old&&old.linked)old.linked.forEach(b=>drawDay(b.date));
   pomPanel();
 }
