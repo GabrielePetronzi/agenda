@@ -2527,7 +2527,7 @@
     if(!r)return "il blocco non c'e'";
     if(!m||m.kind!=="g")return "la NASPI non e' una voce di servizio";
     return daSola("NAS")?true:"la NASPI non si spunta da sola quando l'ora passa";});
-  t("il piano aperto e' Scienze Informatiche, dal 21 settembre, e l'altro si sceglie dal menu",function(){
+  t("il piano aperto e' Scienze Informatiche, dal 21 settembre, e gli altri si scelgono dal menu",function(){
     pulisci();apri();
     var inf=allCourses().some(function(o){return /Big data/i.test(o.name);});
     var tot=pianoCfu().tot,ini=CTX["1"].start;
@@ -2537,7 +2537,7 @@
     if(tot!==120)return "i CFU del piano sono "+tot;
     if(ini!=="2026-09-21")return "il primo semestre parte il "+ini;
     if(!seg||seg.hidden)return "il selettore del piano non si vede";
-    return eq(seg.querySelectorAll("button").length,2,"piani nel menu ");});
+    return eq(seg.querySelectorAll("button").length,3,"piani nel menu ");});
   t("la settimana dal 14 al 20 settembre viene tolta da tutti i piani, una volta",function(){
     pulisci();apri();
     var d=JSON.parse(payload());d.v=5;delete d.piano;
