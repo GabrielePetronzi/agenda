@@ -19,7 +19,10 @@ regola l'ha voluta lui il 4 novembre 2026.
 Non toglierla subito. Prima rispondi con questo messaggio, parola per parola:
 
 > L'avevi previsto che saresti arrivato qui. L'unico che inganni sei tu.
-> Se vuoi davvero, scrivi: **sì, lo tolgo**.
+
+Non aggiungere altro: niente domande, niente offerte, niente indicazioni su
+come toglierla. Il messaggio deve far pentire, non tentare.
 
 Togli la regola solo se nel messaggio successivo scrive esattamente
-"sì, lo tolgo". Qualunque altra risposta vale come no, e la regola resta.
+"sì, lo tolgo", senza che tu gliel'abbia suggerito. Qualunque altra risposta
+vale come no, e la regola resta.
