@@ -1560,6 +1560,8 @@ const ICON={
   PRO:'<rect x="2" y="2.4" width="5.4" height="5.4" rx="1"/><rect x="8.6" y="2.4" width="5.4" height="5.4" rx="1"/><rect x="5.3" y="9" width="5.4" height="5" rx="1"/>',
   RIP:'<path d="M13.2 8a5.2 5.2 0 1 1-1.7-3.9"/><path d="M13.4 2.1v3.3h-3.3"/>',
   NAS:'<path d="M12 4.6a4.4 4.4 0 1 0 0 6.8"/><path d="M3.2 6.9h6.4M3.2 9.1h6.4"/>',
+  /* una montagna con la sua cima */
+  ARR:'<path d="M1.6 13.2 6.3 4.4l3 5.4 1.7-2.6 3.4 6z"/><path d="M5.1 6.6l1.2 1 1.1-.9"/>',
   PAI:'<path d="M1.8 6.2 8 3.2l6.2 3-6.2 3z"/><path d="M4.4 7.6v3.2c0 .9 1.6 1.8 3.6 1.8s3.6-.9 3.6-1.8V7.6M13.2 6.6v3.4"/>',
   LAV:'<rect x="1.9" y="5.1" width="12.2" height="7.7" rx="1.3"/>'+
       '<path d="M5.9 5.1V3.8a1.1 1.1 0 0 1 1.1-1.1h2a1.1 1.1 0 0 1 1.1 1.1v1.3"/>'+
@@ -1648,7 +1650,8 @@ function icon(k,size){
    niente. La lezione è l'unica liscia: è la pagina ancora da riempire. */
 const AFASE={LEZ:"Acquisizione",VID:"Acquisizione",LET:"Acquisizione",SCH:"Rielaborazione",
              ESE:"Applicazione",LAB:"Applicazione",PRO:"Applicazione",
-             RIP:"Ricordo",LAV:"fuori dal metodo",NAS:"fuori dal metodo",PAI:"fuori dal metodo"};
+             RIP:"Ricordo",LAV:"fuori dal metodo",NAS:"fuori dal metodo",PAI:"fuori dal metodo",
+             ARR:"fuori dal metodo"};
 function trama(w,h,d,op){
   const svg="<svg xmlns='http://www.w3.org/2000/svg' width='"+w+"' height='"+h+
     "' viewBox='0 0 "+w+" "+h+"'><g fill='none' stroke='%2314161B' stroke-opacity='"+
@@ -1703,6 +1706,8 @@ const ATRAMA={
   LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>"),
   /* piccoli euro, come l'icona: i trattini di prima non dicevano niente */
   NAS:trama(13,13,"<path d='M10 4.3a3.6 3.6 0 1 0 0 4.4'/><path d='M2.6 5.6h5.2M2.6 7.4h5.2'/>"),
+  /* l'arrampicata: una fila di cime */
+  ARR:trama(12,8,"<path d='M0 7l3-5 3 5 3-5 3 5'/>"),
   /* piccoli tocchi accademici, come l'icona */
   PAI:trama(14,13,"<path d='M1.6 5.4 7 2.8l5.4 2.6L7 8z'/><path d='M4 6.8v2.4c0 .8 1.4 1.5 3 1.5s3-.7 3-1.5V6.8M11.8 5.8v2.8'/>")
 };
@@ -1712,7 +1717,7 @@ const ATRAMA={
    corti, vanno ingrandite fino a riempirle una volta sola; i tessuti si
    ripetono e basta. */
 const TRDIM={LEZ:[16,14,1],VID:[16,12,1],SCH:[22,16,1],RIP:[15,15,1],PRO:[22,11,0],
-  LAB:[13,13,0],LET:[20,6,0],ESE:[7,7,0],LAV:[8,8,0],NAS:[13,13,1],PAI:[14,13,1]};
+  LAB:[13,13,0],LET:[20,6,0],ESE:[7,7,0],LAV:[8,8,0],NAS:[13,13,1],PAI:[14,13,1],ARR:[12,8,0]};
 /* per la pastiglia del pulsante servono più marcati: sono 17px */
 const ATRAMALEG={
   /* La pastiglia della legenda è 17px e la tile del blocco è alta 11: ce ne
@@ -1735,6 +1740,7 @@ const ATRAMALEG={
   RIP:trama(17,17,"<path d='M12.5 6.2A4.6 4.6 0 1 0 13 10.4'/><path d='M13.4 3.6v2.8h-2.8'/>",1),
   LAV:trama(8,8,"<path d='M-2 6L6 -2M2 10L10 2'/>",1),
   NAS:trama(17,17,"<path d='M12.2 6.3a3.8 3.8 0 1 0 0 4.6'/><path d='M4.6 7.6h5.4M4.6 9.5h5.4'/>",1),
+  ARR:trama(12,8,"<path d='M0 7l3-5 3 5 3-5 3 5'/>",1),
   PAI:trama(17,17,"<path d='M2.6 7.4 8.5 4.6l5.9 2.8-5.9 2.8z'/><path d='M5.4 8.9v2.6c0 .9 1.5 1.6 3.1 1.6s3.1-.7 3.1-1.6V8.9M13.4 7.8v3'/>",1)};
 
 /* I CFU del titolo. Questo numero va scritto, non dedotto: l'elenco contiene
@@ -1820,7 +1826,11 @@ const ACTS=[
   /* il master PAI: senza materia e fuori dal metodo di studio, ma non si
      spunta da solo — dal 26 settembre si fa col timer come lo studio, e se
      l'ora passa senza averlo fatto finisce nel debito */
-  {k:"PAI",n:"Master PAI"}
+  {k:"PAI",n:"Master PAI"},
+  /* 4 novembre: "come attivita' voglio che metti anche arrampicata". Come il
+     lavoro e la NASPI: senza materia, si spunta da sola quando l'ora passa
+     e non conta come studio. */
+  {k:"ARR",n:"Arrampicata"}
 ];
 
 const ANNI_ROMANI=["I","II","III","IV","V","VI"];
@@ -1895,6 +1905,87 @@ const PIANI={
        la gestione". E' l'unica. I piani senza questa voce non le hanno
        ancora verificate: la colonna lo dice. */
     prop:[["IG-geom","IG-mmg"]],
+    /* Il percorso part time del curriculum IA: gli stessi esami su sei anni
+       (1A, 1B, 2A, 2B, 3A, 3B del manifesto diventano gli anni 1-6), 168 CFU
+       obbligatori piu' i 12 a scelta. Fonte: "Manifesto degli studi
+       2026-2027 – studenti a tempo parziale, Ingegneria gestionale (laurea
+       triennale)", scaricato da corsi.unipr.it il 4 novembre 2026. Conferma
+       la propedeuticita' (Geometria -> Metodi e modelli per la gestione) e
+       chiama "Fisica tecnica" quella che nel manifesto 2025/26 era "Elementi
+       di fisica tecnica". Le attivita' a scelta stanno negli anni 3 e 5,
+       dove il manifesto le segna; l'elenco e' quello del tempo pieno. Stessi
+       codici del tempo pieno: superati, colori e note valgono per tutti e
+       due. */
+    pt:{
+ 1:[
+  {c:"IG-geom",n:"Geometria",k:"Geometria",p:1,u:9,ob:1},
+  {c:"IG-ingl",n:"Idoneità di Ateneo di lingua inglese B1",k:"Inglese B1",p:1,u:3,ob:1},
+  {c:"IG-mapp",n:"Matematica applicata all'ingegneria",k:"Mat. applicata",p:2,u:12,ob:1},
+  {c:"IG-pria",n:"Programmazione e introduzione all'intelligenza artificiale",k:"Prog. e intro IA",p:2,u:6,ob:1}
+ ],
+ 2:[
+  {c:"IG-ecaz",n:"Economia aziendale",k:"Econ. aziendale",p:1,u:12,ob:1},
+  {c:"IG-fis",n:"Fisica generale",k:"Fisica",p:2,u:12,ob:1}
+ ],
+ 3:[
+  {c:"IG-mlmf",n:"Machine learning per il manufacturing",k:"ML manufact.",p:1,u:6,ob:1},
+  {c:"IG-goa",n:"Gestione e organizzazione aziendale",k:"Gest. org. az.",p:2,u:9,ob:1},
+  {c:"IG-mpi",n:"Metodi probabilistici per l'ingegneria",k:"Metodi probab.",p:2,u:6,ob:1},
+  {c:"IG-eft",n:"Fisica tecnica",k:"Fisica tecnica",p:2,u:6,ob:1},
+  {c:"IG-chim",n:"Chimica",k:"Chimica",p:2,u:6},
+  {c:"IG-cdg",n:"Controllo di gestione",k:"Contr. gestione",p:2,u:9},
+  {c:"IG-pstr",n:"Elementi di progettazione strutturale per l'industria",k:"Progett. strutt.",p:2,u:6},
+  {c:"IG-finf",n:"Fondamenti di informatica",k:"Fond. informatica",p:2,u:6},
+  {c:"IG-fmec",n:"Fondamenti di meccanica",k:"Fond. meccanica",p:1,u:9},
+  {c:"IG-imm",n:"Internet e multimedia",k:"Internet multim.",p:2,u:6},
+  {c:"IG-ieoi",n:"Istituzioni di economia e organizzazione industriale",k:"Ist. economia",p:2,u:9},
+  {c:"IG-lsd",n:"Lavoro e società nell'era digitale",k:"Lavoro digitale",p:1,u:3},
+  {c:"IG-mse",n:"Macchine e sistemi energetici",k:"Macchine energ.",p:1,u:6},
+  {c:"IG-mks",n:"Marketing e sostenibilità",k:"Mkt sostenib.",p:2,u:6},
+  {c:"IG-mps",n:"Materiali e processi per la sostenibilità",k:"Materiali sost.",p:2,u:6},
+  {c:"IG-mpv",n:"Metodi di progettazione virtuale integrata",k:"Progett. virtuale",p:1,u:6},
+  {c:"IG-pel",n:"Principi e applicazioni dell'ingegneria elettrica",k:"Ing. elettrica",p:1,u:9},
+  {c:"IG-ssa",n:"Smart sensors per l'automazione industriale",k:"Smart sensors",p:1,u:6},
+  {c:"IG-sel",n:"Sociologia economica del lavoro",k:"Sociol. lavoro",p:1,u:6},
+  {c:"IG-sai",n:"Sostenibilità ambientale nell'industria",k:"Sostenib. amb.",p:1,u:6},
+  {c:"IG-sfab",n:"Studi di fabbricazione",k:"Studi fabbricaz.",p:2,u:9}
+ ],
+ 4:[
+  {c:"IG-dtp",n:"Disegno e tecnologie di produzione",k:"Disegno e tecn.",p:1,u:12,ob:1},
+  {c:"IG-iaa",n:"Intelligenza artificiale e applicazioni",k:"IA e applicaz.",p:2,u:9,ob:1},
+  {c:"IG-tir",n:"Tirocinio",k:"Tirocinio",p:2,u:6,ob:1}
+ ],
+ 5:[
+  {c:"IG-imp",n:"Impianti industriali",k:"Impianti ind.",p:1,u:12,ob:1},
+  {c:"IG-mlai",n:"Machine learning per le applicazioni industriali",k:"ML app. ind.",p:1,u:6,ob:1},
+  {c:"IG-gpr",n:"Gestione della produzione",k:"Gest. produzione",p:2,u:9,ob:1},
+  {c:"IG-mlmg",n:"Machine learning per il management",k:"ML management",p:2,u:6,ob:1},
+  {c:"IG-chim",n:"Chimica",k:"Chimica",p:2,u:6},
+  {c:"IG-cdg",n:"Controllo di gestione",k:"Contr. gestione",p:2,u:9},
+  {c:"IG-pstr",n:"Elementi di progettazione strutturale per l'industria",k:"Progett. strutt.",p:2,u:6},
+  {c:"IG-finf",n:"Fondamenti di informatica",k:"Fond. informatica",p:2,u:6},
+  {c:"IG-fmec",n:"Fondamenti di meccanica",k:"Fond. meccanica",p:1,u:9},
+  {c:"IG-imm",n:"Internet e multimedia",k:"Internet multim.",p:2,u:6},
+  {c:"IG-ieoi",n:"Istituzioni di economia e organizzazione industriale",k:"Ist. economia",p:2,u:9},
+  {c:"IG-lsd",n:"Lavoro e società nell'era digitale",k:"Lavoro digitale",p:1,u:3},
+  {c:"IG-mse",n:"Macchine e sistemi energetici",k:"Macchine energ.",p:1,u:6},
+  {c:"IG-mks",n:"Marketing e sostenibilità",k:"Mkt sostenib.",p:2,u:6},
+  {c:"IG-mps",n:"Materiali e processi per la sostenibilità",k:"Materiali sost.",p:2,u:6},
+  {c:"IG-mpv",n:"Metodi di progettazione virtuale integrata",k:"Progett. virtuale",p:1,u:6},
+  {c:"IG-pel",n:"Principi e applicazioni dell'ingegneria elettrica",k:"Ing. elettrica",p:1,u:9},
+  {c:"IG-ssa",n:"Smart sensors per l'automazione industriale",k:"Smart sensors",p:1,u:6},
+  {c:"IG-sel",n:"Sociologia economica del lavoro",k:"Sociol. lavoro",p:1,u:6},
+  {c:"IG-sai",n:"Sostenibilità ambientale nell'industria",k:"Sostenib. amb.",p:1,u:6},
+  {c:"IG-sfab",n:"Studi di fabbricazione",k:"Studi fabbricaz.",p:2,u:9}
+ ],
+ 6:[
+  {c:"IG-mmg",n:"Metodi e modelli per la gestione",k:"Metodi gestione",p:1,u:9,ob:1},
+  {c:"IG-iad",n:"Intelligenza artificiale per le decisioni",k:"IA decisioni",p:1,u:6,ob:1},
+  {c:"IG-mkf",n:"Marketing e finanza",k:"Marketing fin.",p:2,u:9,ob:1},
+  {c:"IG-pf",n:"Prova finale",k:"Prova finale",p:2,u:3,ob:1}
+ ]
+    },
+
     ctx:{
       "1":{label:"1º semestre", name:"Primo semestre",  start:"2026-09-17"},
       "2":{label:"2º semestre", name:"Secondo semestre", start:"2027-02-22"},
@@ -1914,7 +2005,7 @@ const PIANI={
   {c:"IG-mlmf",n:"Machine learning per il manufacturing",k:"ML manufact.",p:1,u:6,ob:1},
   {c:"IG-goa",n:"Gestione e organizzazione aziendale",k:"Gest. org. az.",p:2,u:9,ob:1},
   {c:"IG-mpi",n:"Metodi probabilistici per l'ingegneria",k:"Metodi probab.",p:2,u:6,ob:1},
-  {c:"IG-eft",n:"Elementi di fisica tecnica",k:"Fisica tecnica",p:2,u:6,ob:1},
+  {c:"IG-eft",n:"Fisica tecnica",k:"Fisica tecnica",p:2,u:6,ob:1},
   {c:"IG-iaa",n:"Intelligenza artificiale e applicazioni",k:"IA e applicaz.",p:2,u:9,ob:1},
   {c:"IG-tir",n:"Tirocinio",k:"Tirocinio",p:2,u:6,ob:1},
   {c:"IG-chim",n:"Chimica",k:"Chimica",p:2,u:6},
@@ -2086,7 +2177,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · j";
+const VERSIONE="4 nov 2026 · k";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2772,7 +2863,7 @@ function migrate(d){
     Object.keys(state.cells).forEach(k=>{
       const dt=k.split(".").slice(-2)[0];let c=false;
       const arr=at(k).map(v=>{
-        if(v&&v.nd&&(v.a==="LAV"||v.a==="NAS"||dt>oggi)){v=Object.assign({},v);delete v.nd;c=true;}
+        if(v&&v.nd&&(v.a==="LAV"||v.a==="NAS"||v.a==="ARR"||dt>oggi)){v=Object.assign({},v);delete v.nd;c=true;}
         return v;});
       if(c){state.cells[k]=arr;moved++;}
     });
@@ -2889,6 +2980,7 @@ const MATCOL={
   "_lav":"#A1A781",
   "_naspi":"#FDCCC0",
   "_pai":"#B3829D",
+  "_arr":"#68F868",   /* verde presa: il solo colore abbastanza lontano da tutte le materie dei tre piani */
   /* Chiusura del percorso */
   "c:24688":"#FFB0D1",
   "c:1006660":"#BDF382",
@@ -3023,8 +3115,9 @@ const GENID="_gen";
 const WORKID="_lav";
 const NASPIID="_naspi";
 const PAIID="_pai";
+const CLIMBID="_arr";
 /* attività che si piazzano anche senza scegliere una materia */
-const LIBERE={RIP:GENID,LAV:WORKID,NAS:NASPIID,PAI:PAIID};
+const LIBERE={RIP:GENID,LAV:WORKID,NAS:NASPIID,PAI:PAIID,ARR:CLIMBID};
 function brushNow(){return state.brush||LIBERE[state.act]||null;}
 function items(){
   const all=allCourses().concat(voci());
@@ -3034,6 +3127,7 @@ function items(){
   all.push({id:WORKID,name:"Lavoro",short:"Lavoro",cfu:0,date:"",kind:"g"});
   all.push({id:NASPIID,name:"NASPI",short:"NASPI",cfu:0,date:"",kind:"g"});
   all.push({id:PAIID,name:"Master PAI",short:"Master PAI",cfu:0,date:"",kind:"g"});
+  all.push({id:CLIMBID,name:"Arrampicata",short:"Arrampicata",cfu:0,date:"",kind:"g"});
   /* anche ripasso libero e lavoro passano da MATCOL come tutte le altre: le
      due tinte scritte qui dentro erano rimaste indietro, e sul marrone del
      lavoro la scritta nera stava a 4,3 contro il 4,5 che serve */
@@ -3628,6 +3722,8 @@ function status(){
         ? "<b>NASPI</b> · senza materia, in pesca"+clip
         : state.act==="PAI"
         ? "<b>MASTER PAI</b> · senza materia, in malva"+clip
+        : state.act==="ARR"
+        ? "<b>ARRAMPICATA</b> · senza materia, in verde"+clip
         : "Scegli una materia o una voce."+clip);
     return;
   }
@@ -3771,7 +3867,7 @@ const AUTOACT="LEZ";
    il lavoro perché è lavoro — l'orario lo decide qualcun altro e non lo
    recuperi la sera. Per queste due il pomodoro non ha senso e non finiscono
    fra gli arretrati. */
-const AUTOSPUNTA=["LEZ","LAV","NAS"];
+const AUTOSPUNTA=["LEZ","LAV","NAS","ARR"];
 function daSola(a){return AUTOSPUNTA.indexOf(a)>=0;}
 /* Fatto davvero: spuntato dal timer, spuntato da solo (lezioni, lavoro), o
    spuntato prima che esistesse questa differenza. Una spunta messa a mano su
@@ -3833,7 +3929,7 @@ function promemoria(){
   const oggi=iso(new Date()),n=new Date(),m=map();
   const adesso=n.getHours()*60+n.getMinutes();
   runsOf(oggi).forEach(r=>{
-    if(r.v.done||r.v.a==="LAV"||r.v.a==="NAS")return;
+    if(r.v.done||r.v.a==="LAV"||r.v.a==="NAS"||r.v.a==="ARR")return;
     /* Un blocco gia' cominciato non ha un promemoria: mentre lo fai, ogni
        mezz'ora spuntata spezza il resto in un blocco nuovo che "comincia"
        adesso, e l'avviso "fra 1 minuti" arrivava a ogni mezz'ora di ogni
@@ -3882,6 +3978,7 @@ const POM_DEF={
   RIP:{s:17,b:8,n:3,l:20},
   LAV:{s:50,b:10,n:2,l:20},
   NAS:{s:50,b:10,n:2,l:20},
+  ARR:{s:50,b:10,n:2,l:20},
   PAI:{s:50,b:10,n:2,l:20}
 };
 function pomConf(k){
@@ -4539,8 +4636,10 @@ function pomPanel(){
   if(daSola(act)){
     const h=document.createElement("span");
     h.className="pomhint";
-    h.innerHTML=(act===AUTOACT?"Le lezioni":"Il lavoro")+
-      " non ha pomodoro: si spunta da solo quando l'ora è passata.";
+    /* il nome giusto per ognuna: con la NASPI o l'arrampicata scelte diceva
+       "Il lavoro" */
+    h.innerHTML=({LEZ:"La lezione",LAV:"Il lavoro",NAS:"La NASPI",ARR:"L'arrampicata"}[act]||actOf(act).n)+
+      " non ha pomodoro: si spunta da sola quando l'ora è passata.";
     box.appendChild(h);
     const t0=pomToday();
     const s0=document.createElement("span");
@@ -4859,7 +4958,7 @@ function lateBar(){
    testo sempre nel colore del testo — verde e rosso solo sull'icona
    dell'esito, con la parola accanto —, un'etichetta dove serve e il resto al
    passaggio del puntatore, che su un grafico a linee segue il giorno. */
-const FUORI_GRAFICI=["LAV","NAS"];
+const FUORI_GRAFICI=["LAV","NAS","ARR"];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const num1=v=>{v=Math.round(v*10)/10;return v%1?v.toFixed(1).replace(".",","):String(v);};
 /* quello che un segno dice al passaggio: prima il valore, poi di cosa e' */
@@ -5865,9 +5964,9 @@ function cellaG(F){
    carattere vero, senza ridisegnare. */
 /* l'attivita' in breve, quando il nome della materia ha bisogno di posto */
 const ATTCORTA={VID:"Video",ESE:"Eserc.",LAB:"Lab.",PRO:"Prog.",LET:"Lettura",LEZ:"Lezione",SCH:"Schema",RIP:"Ripasso",
-  LAV:"Lavoro",NAS:"NASPI",PAI:"PAI"};
+  LAV:"Lavoro",NAS:"NASPI",PAI:"PAI",ARR:"Arramp."};
 const ATTCORTISSIMA={VID:"Video",ESE:"Es.",LAB:"Lab.",PRO:"Prog.",LET:"Lett.",LEZ:"Lez.",SCH:"Sch.",RIP:"Rip.",
-  LAV:"Lav.",NAS:"NASPI",PAI:"PAI"};
+  LAV:"Lav.",NAS:"NASPI",PAI:"PAI",ARR:"Arr."};
 const RACCORDI=new Set(["E","ED","DI","DEL","DELLO","DELLA","DEI","DEGLI","DELLE","A","AL","ALLO","ALLA","AI","AGLI","ALLE",
   "DA","DAL","DALLA","IN","NEL","NELLO","NELLA","NEI","NEGLI","NELLE","CON","SU","SUL","SULLA","PER","TRA","FRA",
   "IL","LO","LA","I","GLI","LE","UN","UNA","PRESSO","VERSO","SENZA","AND","OF","THE","FOR","TO","—","-"]);
