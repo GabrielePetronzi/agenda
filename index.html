@@ -188,21 +188,6 @@ html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px r
 .pnm em.prop.rischio{color:var(--late);border-color:var(--late);font-weight:600}
 .pnm em.sbl{color:var(--action);border:1px solid var(--action);border-radius:3px;
   padding:0 4px;letter-spacing:.04em}
-/* Tempo pieno o part time, in grande sopra i CFU (4 novembre: "deve essere
-   molto piu' evidente dove selezionare per avere full time o part time") */
-.tempobox{margin:0 0 12px;padding:10px;border:1px solid var(--action);
-  border-radius:var(--r-sm);background:var(--surface)}
-.tempobox .pt{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--action);margin:0 0 8px 2px}
-.tempobox .tb{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.tempobox button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
-  padding:9px 10px;border:1px solid var(--line);border-radius:var(--r-sm);
-  background:var(--raised);color:var(--tx2);cursor:pointer;text-align:left;font:inherit}
-.tempobox button b{font-size:14px;font-weight:600;color:var(--tx)}
-.tempobox button u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
-.tempobox button:hover{border-color:var(--tx3)}
-.tempobox button[aria-pressed="true"]{background:var(--action);border-color:var(--action)}
-.tempobox button[aria-pressed="true"] b,.tempobox button[aria-pressed="true"] u{color:#fff}
 /* il riquadro delle propedeuticita', sotto la barra dei CFU */
 .propinfo{margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);
   border-radius:var(--r-sm);background:var(--surface)}
@@ -1213,13 +1198,14 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
 
 <header class="topbar">
   <div class="tin">
-    <div class="ctxpick">
-      <span class="lbl">Anno di corso</span>
-      <div class="seg" id="segYear" aria-label="Anno di corso"></div>
-    </div>
+    <!-- tempo pieno o part time: primo, prima dell'anno (4-5 novembre) -->
     <div class="ctxpick" id="ctxTempo" hidden>
       <span class="lbl">Iscrizione</span>
       <div class="seg" id="segTempo" aria-label="Tempo pieno o part time"></div>
+    </div>
+    <div class="ctxpick">
+      <span class="lbl">Anno di corso</span>
+      <div class="seg" id="segYear" aria-label="Anno di corso"></div>
     </div>
     <div class="ctxpick">
       <span class="lbl">Periodo di lezione</span>
@@ -1286,7 +1272,6 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
         <div class="tools" id="voci" style="margin-top:9px"></div>
       </div>
 
-      <div class="tempobox" id="tempobox" hidden></div>
       <div class="cfubar" id="cfubar"></div>
       <div class="propinfo" id="propinfo"></div>
       <div class="searchbox">
@@ -2193,7 +2178,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="4 nov 2026 · n";
+const VERSIONE="5 nov 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3337,7 +3322,7 @@ function picklist(){
   const scad=q?(state.exams||[]).filter(x=>x.t.toLowerCase().indexOf(q)>=0):[];
   box.classList.toggle("grow",!!q);
 
-  cfuBar();tempoBox();propInfo();
+  cfuBar();propInfo();
   const distingue=pianoCfu().due;
   const info=document.getElementById("pickinfo");
   info.textContent=q?(list.length+scad.length)+" risultati in tutto il piano":"";
@@ -3517,19 +3502,6 @@ function propStato(o){
   const manca=propDi(o.id).prima.filter(a=>!(state.pass||{})[a]);
   if(!manca.length)return "";
   return " bloccata"+(manca.some(a=>propRischio(a,o.id))?" rischio":"");
-}
-function tempoBox(){
-  const el=document.getElementById("tempobox");if(!el)return;
-  const P=pianoAttivo();
-  el.hidden=!P.pt;
-  if(el.hidden){el.innerHTML="";return;}
-  const anniDi=c=>Object.keys(c).length;
-  el.innerHTML='<p class="pt">Iscrizione</p><div class="tb">'+
-    [["ft","Tempo pieno",anniDi(P.corsi)+" anni · 60 CFU l'anno"],
-     ["pt","Part time",anniDi(P.pt)+" anni · 30 CFU l'anno"]].map(([k,n,d])=>
-      '<button data-t="'+k+'" aria-pressed="'+(tempoPiano()===k)+'"><b>'+n+"</b><u>"+d+"</u></button>").join("")+
-    "</div>";
-  el.querySelectorAll("button").forEach(b=>b.onclick=()=>cambiaTempo(b.dataset.t));
 }
 function propInfo(){
   const el=document.getElementById("propinfo");if(!el)return;
@@ -4096,7 +4068,9 @@ function logAdd(act,min,ids,dateIso){
   min=Math.round(min);
   if(!(min>0))return;
   state.log=state.log||{};
-  const k=state.year+"."+state.ctx+"."+(dateIso||giornoStudio());
+  /* il timer passa sempre il giorno della sessione (giornoSessione); senza,
+     vale il giorno di calendario */
+  const k=state.year+"."+state.ctx+"."+(dateIso||iso(new Date()));
   const day=state.log[k]||(state.log[k]={});
   const who=(ids&&ids.length)?[...new Set(ids)]:[brushNow()||LIBERE[act]||GENID];
   const q=min/who.length;
@@ -4199,12 +4173,21 @@ function bloccoDaAvviare(){
   return daSola(state.act)?null:slotDiOggi(state.act,state.brush);
 }
 /* solo: la materia non e' una preferenza ma un vincolo */
+/* Dopo mezzanotte e prima delle quattro si guarda prima la sera prima: il
+   blocco da riprendere e' quello cominciato piu' di recente, quello della
+   sera. Se la' non resta niente, vale il giorno nuovo come sempre. */
 function slotDiOggi(act,mat,solo){
-  /* dopo mezzanotte e prima delle quattro "oggi" e' ancora ieri, e l'ora
-     sta dopo la fine della sua giornata: il blocco da riprendere e' quello
-     cominciato piu' di recente, cioe' quello della sera */
-  const n=new Date(),d=giornoStudio(),dopo=d!==iso(n);
-  const ora=(dopo?24*PERQ:0)+n.getHours()*PERQ+(n.getMinutes()>=30?1:0);
+  const n=new Date(),ieri=giornoStudio();
+  if(ieri!==iso(n)){
+    /* della sera prima solo un blocco della materia scelta, se ce n'e' una:
+       un blocco lasciato a meta' di un'altra materia non deve rubare la
+       sessione a quello di oggi */
+    const r=slotDelGiorno(ieri,24*PERQ+n.getHours()*PERQ+(n.getMinutes()>=30?1:0),act,mat,solo||!!mat);
+    if(r)return r;
+  }
+  return slotDelGiorno(iso(n),n.getHours()*PERQ+(n.getMinutes()>=30?1:0),act,mat,solo);
+}
+function slotDelGiorno(d,ora,act,mat,solo){
   const tutti=runsOf(d).filter(r=>(act?r.v.a===act:!daSola(r.v.a))&&!vero(r.v))
     .sort((a,b)=>a.start-b.start||a.lane-b.lane);
   const suoi=mat?tutti.filter(r=>r.v.i===mat):tutti;
