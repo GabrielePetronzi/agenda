@@ -1624,6 +1624,43 @@
       if(dopo-prima!==15)return "la pausa saltata ha messo a registro "+(dopo-prima)+" minuti (attesi 15)";
       return q==="■■□□"?true:"dopo 45 + 15 minuti il blocco e' "+q+" (atteso ■■□□)";
     });});
+  /* 9 novembre: "ho schiacciato salta e poi pausa e di nuovo salta e mi ha
+     oscurato le caselle quando non doveva". La pausa vale quanto la sessione
+     fatta davvero prima: saltata subito niente, a meta' meta', intera intera
+     (e saltarla per attaccare col blocco dopo conta come averla fatta). */
+  t("Salta, Pausa, Salta a raffica non oscura niente: la pausa vale quanto la sessione fatta",function(){
+    return alleSette(function(){
+      var reg=function(){var n=0,k=state.year+"."+state.ctx+"."+oggi,d=(state.log||{})[k]||{};
+        Object.keys(d).forEach(function(x){n+=d[x];});return n;};
+      var q=function(){return [0,1,2,3].map(function(i){return vero(at(ck(oggi,MATT+i))[0])?"■":"□";}).join("");};
+      var clic=function(p){var b=document.querySelector('[data-p="'+p+'"]');if(b)b.click();};
+      pulisci();apri();
+      state.pomConf={ESE:{s:30,b:15,l:20,n:3}};
+      placeRun(oggi,MATT,{i:it[0].id,a:"ESE",len:4},0);
+      pomStart("ESE",[{date:oggi,start:MATT,lane:0}]);
+      for(var i=0;i<5;i++){clic("skip");clic("pause");clic("skip");}
+      var raffica=q(),minR=reg();
+      pomStop(true);
+      /* meta' sessione, poi la pausa saltata: 15 + 7,5 */
+      pulisci();apri();
+      placeRun(oggi,MATT,{i:it[0].id,a:"ESE",len:4},0);
+      pomStart("ESE",[{date:oggi,start:MATT,lane:0}]);
+      state.pomRun.ends=Date.now()+15*60000;
+      clic("skip");clic("skip");
+      var minM=reg();
+      pomStop(true);
+      /* sessione intera e pausa saltata subito: 30 + 15, e la mezz'ora c'e' */
+      pulisci();apri();
+      placeRun(oggi,MATT,{i:it[0].id,a:"ESE",len:4},0);
+      pomStart("ESE",[{date:oggi,start:MATT,lane:0}]);
+      fine();clic("skip");
+      var minI=reg(),intera=q();
+      pomStop(true);state.pomConf={};
+      if(raffica!=="□□□□"||minR>1)return "a raffica: "+raffica+", "+minR+" minuti a registro (attesi □□□□ e 0)";
+      if(Math.abs(minM-22.5)>1)return "meta' sessione + pausa saltata: "+minM+" minuti (attesi ~22,5)";
+      if(minI!==45)return "sessione intera + pausa saltata: "+minI+" minuti (attesi 45)";
+      return intera==="■□□□"?true:"sessione intera + pausa saltata: "+intera+" (atteso ■□□□)";
+    });});
   /* 24 ottobre: lo stesso, col tasto Salta vero della barra del timer */
   t("il tasto Salta nella pausa mette a registro la pausa intera",function(){
     return alleSette(function(){
@@ -3210,6 +3247,33 @@
       if(dasolo)return "passata l'ora si e' spuntato da solo";
       if(!inDebito)return "non e' finito nel debito";
       return q.indexOf("■")>=0?true:"la sessione di PAI non l'ha spuntato: "+q;
+    });});
+
+  /* 9 novembre: "aggiungi l'attivita' Claude, selezionabile anche senza materia" */
+  t("Claude si dipinge con o senza materia, si spunta col timer e non a mano",function(){
+    return alle(23,function(){
+      pulisci();apri();
+      var d=iso(new Date()),pennello=state.brush,att=state.act;
+      var bott=[].some.call(document.querySelectorAll("#tools .tool"),function(b){return /Claude/.test(b.textContent);});
+      state.act="CLA";state.brush=null;var senza=brushNow();
+      state.brush=it[0].id;var con=brushNow();
+      var voce=map()[CLAUDEID];
+      placeRun(d,36,{i:CLAUDEID,a:"CLA",len:2},0);
+      placeRun(d,40,{i:it[0].id,a:"CLA",len:2},0);
+      autoLessons();
+      var dasolo=!!(at(ck(d,36))[0]||{}).done;
+      var v=Object.assign({},at(ck(d,40))[0]);spuntaAMano(v);
+      state.brush=null;avvia();fine();
+      /* alle 23 il timer prende il blocco cominciato piu' di recente, quello delle 20 */
+      var q=[36,37,40,41].map(function(k){return vero(at(ck(d,k))[0])?"■":"□";}).join("");
+      pomStop(true);pomAskBlock(false);state.brush=pennello;state.act=att;
+      if(!bott)return "fra le attivita' non c'e' il pulsante Claude";
+      if(senza!==CLAUDEID)return "senza materia dipinge "+senza;
+      if(con!==it[0].id)return "con una materia scelta dipinge "+con;
+      if(!voce||voce.color!=="#FC4830")return "la voce Claude non c'e' o non e' corallo";
+      if(dasolo)return "passata l'ora si e' spuntato da solo";
+      if(vero(v))return "la spunta a mano conta come fatta";
+      return q.indexOf("■")>=0?true:"la sessione di Claude non l'ha spuntato: "+q;
     });});
 
   t("la spunta a mano resta tale dopo un ricarico e uno spostamento di corsia",function(){
