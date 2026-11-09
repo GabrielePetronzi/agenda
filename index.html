@@ -2224,7 +2224,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="9 nov 2026 · e";
+const VERSIONE="9 nov 2026 · f";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2814,6 +2814,7 @@ function adopt(d){
   normCustom();
   migrate(d);
   sessioneNeiSemestri();
+  mmInEsclusi();
 }
 async function load(){
   sv.local=localOK();sv.remote=remoteOK();
@@ -3186,10 +3187,7 @@ function delVoce(id){
   normCustom();
   state.custom=state.custom.filter(c=>c.id!==id);
   Object.keys(state.cells).forEach(k=>{
-    const arr=at(k).map(v=>{
-      if(!v||v.i===id)return null;
-      if(mmOf(v)&&v.mm.indexOf(id)>=0){v=Object.assign({},v);v.mm=v.mm.filter(x=>x!==id);if(!v.mm.length)delete v.mm;}
-      return v;});
+    const arr=at(k).map(v=>(v&&v.i===id)?null:v);
     setAt(k,arr);
   });
   state.exams=(state.exams||[]).filter(x=>x.mid!==id);
@@ -3214,15 +3212,55 @@ const CLAUDEID="_claude";
 /* attività che si piazzano anche senza scegliere una materia */
 const LIBERE={RIP:GENID,LAV:WORKID,NAS:NASPIID,PAI:PAIID,ARR:CLIMBID,CLA:CLAUDEID};
 function brushNow(){return state.brush||LIBERE[state.act]||null;}
-/* Le materie di un ripasso libero. 9 novembre: il ripasso senza materia non
-   andava a nessuna, "magari viene diviso in base a quante materie ci sono
-   (meta', 1/3...), pero' vorrei dare l'approvazione di quali delle materie".
-   Le sceglie lui, dalla barra della selezione, fra quelle che ha in piano
-   quella settimana; finche' non ne sceglie nessuna il ripasso resta libero
-   come prima. Stanno nel campo mm di ogni mezz'ora del blocco. */
-function mmOf(v){return (v&&v.i===GENID&&Array.isArray(v.mm)&&v.mm.length)?v.mm:null;}
+/* Il ripasso libero si divide fra le materie. 9 novembre, prima: "magari
+   viene diviso in base a quante materie ci sono (meta', 1/3...), pero' vorrei
+   dare l'approvazione di quali". Poi, la sera: "di default voglio che quando
+   ci sono piu' materie venga diviso per quante sono (1/N)", e "se tolgo una
+   materia e rimane solo una, i ripassi rimanenti vanno tutti a lei".
+   Quindi di base un ripasso libero va, a parti uguali, a tutte le materie che
+   hai in piano quella settimana, e la divisione segue la griglia: togli una
+   materia dalla settimana e la sua parte passa alle altre. Quello che si
+   salva nel blocco e' solo cosa hai spento (mx): spente tutte, il ripasso
+   resta libero come una volta. */
+const ripLibero=v=>!!(v&&v.i===GENID&&v.a==="RIP");
+const esclusi=v=>(ripLibero(v)&&Array.isArray(v.mx))?v.mx:[];
+const chiaveEscl=v=>esclusi(v).slice().sort().join();
+/* il prefisso (piano, anno, periodo) di una chiave di mezz'ora */
+function preDi(k){const p=k.split(".");return p.slice(0,-2).join(".")+".";}
+/* le materie fra cui va un ripasso libero: quelle della sua settimana,
+   tolte quelle spente. Il memo evita di rileggere la settimana per ogni
+   mezz'ora quando si contano tutte. */
+function divisoFra(v,dt,pre,memo){
+  if(!ripLibero(v)||!dt)return [];
+  pre=pre||PRE();memo=memo||{};
+  const kk=pre+iso(monday(parse(dt)));
+  const tutte=memo[kk]||(memo[kk]=materieDellaSettimana(dt,pre));
+  const x=esclusi(v);
+  return tutte.filter(id=>x.indexOf(id)<0);
+}
 /* a chi va una mezz'ora e per quanto: [[materia,peso]], i pesi fanno uno */
-function quote(v){const mm=mmOf(v);return mm?mm.map(id=>[id,1/mm.length]):[[v.i,1]];}
+function quote(v,dt,pre,memo){
+  const ids=divisoFra(v,dt,pre,memo);
+  return ids.length?ids.map(id=>[id,1/ids.length]):[[v.i,1]];
+}
+/* I ripassi divisi per scelta, dalla prima versione di oggi (mm: le materie
+   accese), diventano esclusioni: le materie della settimana che non erano
+   accese. Una volta sola, al caricamento. */
+function mmInEsclusi(){
+  Object.keys(state.cells).forEach(k=>{
+    const arr=at(k);
+    if(!arr.some(v=>v&&Array.isArray(v.mm)))return;
+    const p=k.split("."),dt=p[p.length-2];
+    setAt(k,arr.map(v=>{
+      if(!v||!Array.isArray(v.mm))return v;
+      const e=Object.assign({},v),mm=e.mm;delete e.mm;
+      if(ripLibero(e)&&mm.length){
+        const mx=materieDellaSettimana(dt,preDi(k)).filter(id=>mm.indexOf(id)<0);
+        if(mx.length)e.mx=mx;
+      }
+      return e;}));
+  });
+}
 function items(){
   const all=allCourses().concat(voci());
   /* "Ripasso", senza "libero" (4 ottobre): col nome intero nel titolo dei
@@ -3251,33 +3289,34 @@ const rgb=h=>{const n=parseInt(h.slice(1),16);return [n>>16,(n>>8)&255,n&255];};
 function ink(h){const c=rgb(h);return (.299*c[0]+.587*c[1]+.114*c[2])/255>.62?"#0D0F13":"#FFFFFF";}
 
 function countAll(pre){
-  const out={},m=map();
+  const out={},m=map(),memo={};
   Object.keys(state.cells).forEach(k=>{
     if(pre&&k.indexOf(pre)!==0)return;
+    const dt=k.split(".").slice(-2)[0],pk=preDi(k);
     at(k).forEach(v=>{
       if(!v)return;
-      conta(out,v,m);
+      conta(out,v,m,dt,pk,memo);
     });
   });
   return out;
 }
 /* una mezz'ora nei conti per materia: un ripasso diviso va alle sue materie
    a pezzi, un mezzo o un terzo ciascuna */
-function conta(out,v,m){
+function conta(out,v,m,dt,pre,memo){
   const ok=vero(v);
-  quote(v).forEach(([id,w])=>{
+  quote(v,dt,pre,memo).forEach(([id,w])=>{
     if(!m[id])return;
     const c=out[id]=out[id]||{tot:0,done:0};
     c[v.a]=(c[v.a]||0)+w;c.tot+=w;if(ok)c.done+=w;
   });
 }
 function countPanel(p){
-  const out={},m=map();
+  const out={},m=map(),memo={},pre=PRE();
   panelDates(p).forEach(d=>{
     const key=iso(d);
     HOURS.forEach(sl=>{
       at(ck(key,sl)).forEach(v=>{
-        if(v)conta(out,v,m);
+        if(v)conta(out,v,m,key,pre,memo);
       });
     });
   });
@@ -3285,10 +3324,11 @@ function countPanel(p){
 }
 function totalCtx(id){
   const pre=PRE();
-  let n=0,f=0;
+  let n=0,f=0;const memo={};
   Object.keys(state.cells).forEach(k=>{
     if(k.indexOf(pre)!==0)return;
-    at(k).forEach(v=>{if(v)quote(v).forEach(([x,w])=>{if(x===id){n+=w;if(vero(v))f+=w;}});});
+    const dt=k.split(".").slice(-2)[0];
+    at(k).forEach(v=>{if(v)quote(v,dt,pre,memo).forEach(([x,w])=>{if(x===id){n+=w;if(vero(v))f+=w;}});});
   });
   totalCtx.done=f;
   return n;
@@ -3877,9 +3917,10 @@ function status(){
     "Cancella, E o Esc per uscire"+clip;return;}
   if(!state.brush||!m[state.brush]){
     el.innerHTML=state.act==="RIP"
-      ? "<b>RIPASSO</b> · "+((state.ripMm||[]).filter(id=>m[id]).length
-          ?"diviso fra "+state.ripMm.filter(id=>m[id]).map(id=>m[id].short||m[id].name).join(", ")
-          :"senza materia, in grigio — sotto le attività scegli fra quali materie dividerlo")+clip
+      ? "<b>RIPASSO</b> · si divide fra le materie della settimana"+
+          ((state.ripMx||[]).filter(id=>m[id]).length
+          ?", tranne "+state.ripMx.filter(id=>m[id]).map(id=>m[id].short||m[id].name).join(", "):"")+
+          " — sotto le attività spegni quelle che non ripassi"+clip
       : (state.act==="LAV"
         ? "<b>LAVORO</b> · senza materia, in oliva"+clip
         : state.act==="NAS"
@@ -4012,7 +4053,7 @@ function copyWeek(p){
    gia' fatta — o col lavoro che non si spuntava piu'. */
 function fresco(v){
   if(!v)return v;
-  const e={i:v.i,a:v.a};if(v.n)e.n=v.n;if(mmOf(v))e.mm=v.mm.slice();return e;
+  const e={i:v.i,a:v.a};if(v.n)e.n=v.n;if(esclusi(v).length)e.mx=v.mx.slice();return e;
 }
 function pasteWeek(p){
   if(!state.clip)return;
@@ -4252,7 +4293,9 @@ function quotaPausa(r){
 /* le materie dei blocchi agganciati al timer: la sessione va a loro */
 function linkedIds(r){
   return ((r&&r.linked)||[]).map(b=>{
-    const q=runAt(b.date,b.start,b.lane);return q&&(q.mm||q.i);
+    const q=runAt(b.date,b.start,b.lane);if(!q)return null;
+    const ids=divisoFra(at(ck(b.date,q.start))[b.lane],b.date);
+    return ids.length?ids:q.i;
   }).flat().filter(Boolean);
 }
 /* minuti registrati nel periodo aperto, in tutto o per una sola materia */
@@ -5110,7 +5153,7 @@ function spostaArretrati(){
     const v=at(ck(b.date,b.start))[b.lane];if(!v)return;
     const posto=cercaPosto(b,tetto);
     if(!posto){fermi++;return;}
-    const copia={i:v.i,a:v.a,len:b.len,mm:mmOf(v)||undefined};if(v.n)copia.n=v.n;
+    const copia={i:v.i,a:v.a,len:b.len,mx:esclusi(v).length?v.mx:undefined};if(v.n)copia.n=v.n;
     clearRun(b.date,b.start,b.len,b.lane);
     placeRun(posto.date,posto.start,copia,0);
     if(!primo)primo=posto;
@@ -5248,7 +5291,7 @@ function semSummary(){
   const preAnno=(state.piano&&state.piano!==PIANO_BASE?state.piano+".":"")+state.year+".";
   grafMezz=oggi+"."+ora;
   const perGiorno={},qui={},futuro={},primo={},ultimo={},cal={},superati=state.pass||{};
-  const sett={},amano={},salt={};
+  const sett={},amano={},salt={},memoQ={};
   let pianoTot=0;
   Object.keys(state.cells).forEach(k=>{
     const p=k.split("."),dt=p[p.length-2],sl=+p[p.length-1];
@@ -5265,8 +5308,9 @@ function semSummary(){
       if(k.indexOf(preAnno)===0){
         const c=cal[dt]=cal[dt]||{f:0,p:0,m:0};c.p++;if(q)c.f++;else if(v.done)c.m++;}
       if(dentro)pianoTot++;
-      if(dentro&&passata&&!q&&v.done&&!quote(v).every(([id])=>superati[id])){const ls=iso(monday(parse(dt)));amano[ls]=(amano[ls]||0)+1;}
-      quote(v).forEach(([id,w])=>{
+      const qq=quote(v,dt,preDi(k),memoQ);
+      if(dentro&&passata&&!q&&v.done&&!qq.every(([id])=>superati[id])){const ls=iso(monday(parse(dt)));amano[ls]=(amano[ls]||0)+1;}
+      qq.forEach(([id,w])=>{
         if(!m[id])return;
         /* le ore di una materia si contano su tutto il piano: per l'esame di
            gennaio si studia anche a dicembre, in un altro periodo */
@@ -5653,7 +5697,7 @@ function doRepeat(){
     runs.forEach(r=>{
       for(let k=1;k<=n;k++){
         placeRun(iso(addDays(parse(r.date),7*k)),r.start,
-          {i:r.i,a:r.a,n:r.n,mm:r.mm,len:r.len},null);
+          {i:r.i,a:r.a,n:r.n,mx:r.mx,len:r.len},null);
       }
     });
     afterEdit("Ripetuti su "+n+(n===1?" settimana":" settimane"));
@@ -5915,7 +5959,7 @@ function lanesOf(dateIso){
    fare. Senza questo il disegno prenderebbe lo stato dalla prima mezz'ora e
    direbbe che è tutto fatto. */
 function sameBlock(a,b){return a&&b&&a.i===b.i&&a.a===b.a&&!a.done===!b.done&&!a.m===!b.m&&
-  (mmOf(a)||[]).join()===(mmOf(b)||[]).join();}
+  chiaveEscl(a)===chiaveEscl(b);}
 
 /* elenca i blocchi contigui di un giorno, corsia per corsia */
 function runsOf(dateIso){
@@ -5935,7 +5979,7 @@ function runsOf(dateIso){
 function runAt(dateIso,slot,lane){
   const r=runsOf(dateIso).find(x=>x.lane===lane&&slot>=x.start&&slot<x.start+x.len);
   if(!r)return null;
-  return {i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,m:r.v.m,mm:mmOf(r.v)||undefined,lane:lane,start:r.start,len:r.len,date:dateIso};
+  return {i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,m:r.v.m,mx:esclusi(r.v).length?r.v.mx:undefined,lane:lane,start:r.start,len:r.len,date:dateIso};
 }
 function anyRunAt(dateIso,slot){
   const rs=runsOf(dateIso).filter(x=>slot>=x.start&&slot<x.start+x.len);
@@ -5980,7 +6024,7 @@ function placeRun(dateIso,start,r,lane){
     const key=ck(dateIso,sl),arr=at(key).slice();
     const e={i:r.i,a:r.a};
     if(k===0&&r.n)e.n=r.n;
-    if(r.i===GENID&&r.mm&&r.mm.length)e.mm=r.mm.slice();
+    if(r.i===GENID&&r.a==="RIP"&&r.mx&&r.mx.length)e.mx=r.mx.slice();
     if(r.done){e.done=1;if(r.m)e.m=1;}
     while(arr.length<L)arr.push(null);
     arr[L]=e;
@@ -6112,7 +6156,7 @@ function motivi(root){
     const blk0=x.t.closest(".blk"),at0=blk0.dataset.att,dmm=blk0.dataset.mm,nmm=+dmm||0;
     /* un ripasso diviso non torna a dire "Ripasso": si accorcia in "2
        materie"; uno libero tiene il suo invito a sceglierle */
-    const forme=wi?(nmm?[wi.textContent,nmm+" materie"]:dmm==="0"?[wi.textContent,"＋ mat.","＋"]
+    const forme=wi?(nmm?[wi.textContent,nmm+(nmm===1?" materia":" materie")]:dmm==="0"?[wi.textContent,"＋ mat.","＋"]
       :[wi.textContent,ATTCORTA[at0],ATTCORTISSIMA[at0]])
       .filter((v,i,a)=>v&&a.indexOf(v)===i):[null];
     const posto=()=>base-(x.ss&&x.ss.isConnected?x.ss.getBoundingClientRect().width+gap:0);
@@ -6347,7 +6391,7 @@ function drawDay(dateIso,scope){
   root.querySelectorAll('td.c[data-date="'+dateIso+'"]').forEach(td=>{
     cell(td,m);td.dataset.lanes=lanesOf(dateIso);
   });
-  const rr=runsOf(dateIso),cw=clusters(rr);
+  const rr=runsOf(dateIso),cw=clusters(rr),memoD={};
   rr.forEach((r,ri)=>{
     const o=m[r.v.i];if(!o)return;
     const a=actOf(r.v.a);
@@ -6372,8 +6416,8 @@ function drawDay(dateIso,scope){
         ((selRuns[selKey(dateIso,r.start,r.lane)]||{}).len===r.len?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
       bl.dataset.att=r.v.a;
-      if(mmOf(r.v))bl.dataset.mm=mmOf(r.v).length;
-      else if(r.v.i===GENID&&r.v.a==="RIP")bl.dataset.mm="0";
+      const fra=ripLibero(r.v)?divisoFra(r.v,dateIso,PRE(),memoD):null;
+      if(fra)bl.dataset.mm=fra.length;
       /* Il riempimento dice l'attività, la barra dice la materia. Non è un
          capriccio: il colore categorico regge fino a otto-dieci valori, e le
          attività sono otto e resteranno otto, mentre le materie sono venti e
@@ -6403,9 +6447,9 @@ function drawDay(dateIso,scope){
       let corpo,nota="";
       /* un ripasso diviso dice fra chi, al posto della parola "Ripasso" che
          il titolo dice gia' */
-      const mmB=mmOf(r.v),libero=r.v.i===GENID&&r.v.a==="RIP";
+      const mmB=fra&&fra.length?fra:null,libero=!!fra;
       const etAtt=mmB?esc(mmB.map(id=>(m[id]||{}).short||"?").join(" + ")):(libero?"＋ materie":a.n);
-      const sA=libero?'<s class="mmlink" title="Scegli le materie di questo ripasso">':"<s>";
+      const sA=libero?'<s class="mmlink" title="Fra quali materie si divide questo ripasso">':"<s>";
       if(striscia){
         /* Niente icona: a mezz'ora si prende ventun pixel di una fascia che ne
            aveva dieci, e dice la stessa cosa che dice il motivo. Con una nota
@@ -6483,10 +6527,10 @@ function drawDay(dateIso,scope){
 }
 
 /* quello che dipinge il pennello: un ripasso libero porta con se' le
-   materie accese nella riga "Ripasso di" */
+   materie spente nella riga "Ripasso di" */
 function pennello(brush){
   const v={i:brush,a:state.act};
-  if(brush===GENID&&state.act==="RIP"&&state.ripMm&&state.ripMm.length)v.mm=state.ripMm.slice();
+  if(brush===GENID&&state.act==="RIP"&&state.ripMx&&state.ripMx.length)v.mx=state.ripMx.slice();
   return v;
 }
 /* ---------- scrittura ---------- */
@@ -6511,7 +6555,7 @@ function put(td,lane){
       }else{
         while(arr.length<L)arr.push(null);
         arr[L]={i:val.i,a:val.a};
-        if(val.mm)arr[L].mm=val.mm.slice();
+        if(val.mx)arr[L].mx=val.mx.slice();
         setAt(k,arr);
       }
     }
@@ -6587,43 +6631,44 @@ function selInfo(){
   if(uno)ripassoMaterie(el,uno);
   pomPanel();
 }
-/* Un ripasso libero scelto da solo: le materie fra cui dividerlo. Le
-   proposte sono le materie che hai in piano quella settimana, e nessuna e'
-   accesa finche' non la accendi tu: e' lui che approva quali. */
+/* Un ripasso libero scelto da solo: le materie fra cui si divide. Le
+   proposte sono le materie che hai in piano quella settimana, accese tutte:
+   spegni quelle che non ripassi. */
 function ripassoMaterie(el,r){
   const v=at(ck(r.date,r.start))[r.lane];
-  if(!v||v.i!==GENID||v.a!=="RIP")return;
-  const m=map(),mm=mmOf(v)||[];
-  const prop=materieDellaSettimana(r.date);
-  mm.forEach(id=>{if(prop.indexOf(id)<0&&m[id])prop.push(id);});
+  if(!ripLibero(v))return;
   const box=document.createElement("div");box.className="ripmm";
   box.innerHTML="<span>Il ripasso va a</span>";
-  chipsMaterie(box,prop,mm,id=>ripassoSegna(r,id),"nessuna materia in piano questa settimana");
+  const prop=materieDellaSettimana(r.date);
+  chipsMaterie(box,prop,esclusi(v),id=>ripassoSegna(r,id),"nessuna materia in piano questa settimana");
   el.appendChild(box);
 }
-/* I pulsanti delle materie, uno per proposta, acceso se e' fra le scelte.
+/* I pulsanti delle materie, uno per proposta, acceso se non e' spento.
    Sotto, quanto prende ognuna. Li usano la barra, il riquadro del blocco e
    la riga sotto le attivita'. */
-function chipsMaterie(box,prop,mm,cambia,vuoto){
+function chipsMaterie(box,prop,spente,cambia,vuoto){
   const m=map();
   const nota=t=>{const e=document.createElement("em");e.textContent=t;box.appendChild(e);};
   if(!prop.length&&vuoto)nota(vuoto);
+  let n=0;
   prop.forEach(id=>{
     if(!m[id])return;
+    const acc=spente.indexOf(id)<0;if(acc)n++;
     const b=document.createElement("button");
     b.className="tool";b.dataset.mm=id;b.type="button";
-    b.setAttribute("aria-pressed",mm.indexOf(id)>=0);
+    b.setAttribute("aria-pressed",acc);
     b.innerHTML='<i style="background:'+m[id].color+'"></i>'+esc(m[id].short||m[id].name);
-    b.title=m[id].name;
+    b.title=m[id].name+(acc?" · clic per toglierla":" · clic per rimetterla");
     b.onclick=e=>{e.stopPropagation();cambia(id);};
     box.appendChild(b);
   });
-  if(prop.length)nota(mm.length?(mm.length===1?"tutto a lei":parteDi(mm.length)+" ciascuna"):"nessuna accesa: resta un ripasso libero");
+  if(prop.length)nota(n===0?"tutte spente: resta un ripasso libero"
+    :n===1?"tutto a lei":parteDi(n)+" ciascuna"+(n===prop.length?", fra tutte quelle in piano":""));
 }
 /* ---------- il riquadro sul blocco ----------
-   Si apre col clic secco sulla scritta di un ripasso libero ("＋ materie", o
-   i nomi se le hai gia' scelte). Resta aperto mentre accendi e spegni, si
-   chiude con Fatto, con Esc o cliccando fuori. */
+   Si apre col clic secco sulla scritta di un ripasso libero (le materie fra
+   cui si divide, o "＋ materie" se non ce n'e'). Resta aperto mentre accendi e
+   spegni, si chiude con Fatto, con Esc o cliccando fuori. */
 let ripPop=null;
 function apriRipMm(r){
   chiudiRipMm();
@@ -6639,14 +6684,13 @@ function chiudiRipMm(){
 function disegnaRipMm(){
   const pop=document.getElementById("mmpop");if(!pop||!ripPop)return;
   const v=at(ck(ripPop.date,ripPop.start))[ripPop.lane];
-  if(!v||v.i!==GENID||v.a!=="RIP"){chiudiRipMm();return;}
-  const m=map(),mm=mmOf(v)||[],prop=materieDellaSettimana(ripPop.date);
-  mm.forEach(id=>{if(prop.indexOf(id)<0&&m[id])prop.push(id);});
-  pop.innerHTML='<p class="mmt"><b>Ripasso di quali materie?</b> Accendi quelle che ripassi: '+
-    "le ore si dividono in parti uguali.</p>";
+  if(!ripLibero(v)){chiudiRipMm();return;}
+  const prop=materieDellaSettimana(ripPop.date);
+  pop.innerHTML='<p class="mmt"><b>Fra quali materie si divide?</b> Di base fra tutte quelle '+
+    "che hai in piano questa settimana, in parti uguali. Spegni quelle che non ripassi.</p>";
   const box=document.createElement("div");box.className="ripmm";
-  chipsMaterie(box,prop,mm,id=>{ripassoSegna(ripPop,id);disegnaRipMm();},
-    "Questa settimana non hai materie in piano: mettine una in griglia e torna qui.");
+  chipsMaterie(box,prop,esclusi(v),id=>{ripassoSegna(ripPop,id);disegnaRipMm();},
+    "Questa settimana non hai materie in piano: appena ne metti una, il ripasso va a lei.");
   pop.appendChild(box);
   const ok=document.createElement("div");ok.className="mmok";
   const b=document.createElement("button");b.className="btn";b.type="button";b.textContent="Fatto";
@@ -6668,19 +6712,19 @@ document.addEventListener("keydown",e=>{
   if(ripPop&&e.key==="Escape"){e.stopPropagation();chiudiRipMm();}
 },true);
 /* La riga "Ripasso di" sotto le attivita': con Ripasso scelto e nessuna
-   materia, le materie che accendi qui vanno ai ripassi che dipingi. Le
-   proposte sono le materie che hai in piano nel periodo. */
+   materia, le materie che spegni qui restano fuori dai ripassi che dipingi.
+   Le proposte sono le materie che hai in piano nel periodo, accese tutte. */
 function ripassoDi(){
   const sec=document.getElementById("tools");if(!sec)return;
   let el=document.getElementById("ripdi");
   if(!(state.act==="RIP"&&!state.brush&&!state.erase)){if(el)el.remove();return;}
   if(!el){el=document.createElement("div");el.id="ripdi";el.className="ripdi";sec.after(el);}
   const prop=materieInPiano(),m=map();
-  state.ripMm=(state.ripMm||[]).filter(id=>m[id]);
+  state.ripMx=(state.ripMx||[]).filter(id=>m[id]);
   el.innerHTML="<span>Ripasso di</span>";
-  chipsMaterie(el,prop,state.ripMm,id=>{
-    const i=state.ripMm.indexOf(id);
-    if(i>=0)state.ripMm.splice(i,1);else state.ripMm.push(id);
+  chipsMaterie(el,prop,state.ripMx,id=>{
+    const i=state.ripMx.indexOf(id);
+    if(i>=0)state.ripMx.splice(i,1);else state.ripMx.push(id);
     save();ripassoDi();status();
   },"metti in griglia una materia per poterla scegliere qui");
 }
@@ -6696,36 +6740,38 @@ function materieInPiano(){
 }
 const parteDi=n=>({2:"metà",3:"un terzo",4:"un quarto",5:"un quinto"}[n]||"1/"+n);
 /* le materie (non le voci di servizio) che hanno almeno una mezz'ora nella
-   settimana di quel giorno, nell'ordine in cui compaiono */
-function materieDellaSettimana(dateIso){
-  const m=map(),lun=monday(parse(dateIso)),out=[];
+   settimana di quel giorno, in ordine di nome. pre: di quale piano e
+   periodo, se non e' quello aperto. */
+function materieDellaSettimana(dateIso,pre){
+  const m=map(),lun=monday(parse(dateIso)),out=[];pre=pre||PRE();
   for(let d=0;d<7;d++){
     const k=iso(addDays(lun,d));
-    HOURS.forEach(sl=>at(ck(k,sl)).forEach(v=>{
+    HOURS.forEach(sl=>at(pre+k+"."+sl).forEach(v=>{
       if(v&&m[v.i]&&m[v.i].kind!=="g"&&out.indexOf(v.i)<0)out.push(v.i);}));
   }
-  return out;
+  return out.sort((a,b)=>m[a].name.localeCompare(m[b].name));
 }
-/* accende o spegne una materia su tutto il ripasso: anche sulla parte gia'
-   spuntata, che per la griglia e' un blocco a se' ma per te e' lo stesso */
+/* spegne o riaccende una materia su tutto il ripasso: anche sulla parte
+   gia' spuntata, che per la griglia e' un blocco a se' ma per te e' lo
+   stesso */
 function ripassoSegna(r,id){
   const v0=at(ck(r.date,r.start))[r.lane];
-  if(!v0||v0.i!==GENID||v0.a!=="RIP")return;
-  const prima=(mmOf(v0)||[]).join();
-  const stesso=v=>v&&v.i===GENID&&v.a==="RIP"&&(mmOf(v)||[]).join()===prima;
+  if(!ripLibero(v0))return;
+  const prima=chiaveEscl(v0);
+  const stesso=v=>ripLibero(v)&&chiaveEscl(v)===prima;
   let a=r.start,b=r.start;
   while(a-1>=HOURS[0]&&stesso(at(ck(r.date,a-1))[r.lane]))a--;
   while(b+1<=HOURS[HOURS.length-1]&&stesso(at(ck(r.date,b+1))[r.lane]))b++;
-  let mm=(mmOf(v0)||[]).slice();
-  mm=mm.indexOf(id)>=0?mm.filter(x=>x!==id):mm.concat(id);
+  let mx=esclusi(v0).slice();
+  mx=mx.indexOf(id)>=0?mx.filter(x=>x!==id):mx.concat(id);
   for(let sl=a;sl<=b;sl++){
     const key=ck(r.date,sl),arr=at(key).slice(),v=Object.assign({},arr[r.lane]);
-    if(mm.length)v.mm=mm.slice();else delete v.mm;
+    if(mx.length)v.mx=mx.slice();else delete v.mx;
     arr[r.lane]=v;setAt(key,arr);
   }
-  const m=map();
-  afterEdit(mm.length?"Ripasso diviso fra "+mm.map(x=>m[x].short||m[x].name).join(", ")
-                     :"Ripasso di nuovo libero");
+  const m=map(),fra=divisoFra(at(ck(r.date,r.start))[r.lane],r.date);
+  afterEdit(fra.length?"Ripasso diviso fra "+fra.map(x=>m[x].short||m[x].name).join(", ")
+                      :"Ripasso di nuovo libero");
 }
 function copyBlocks(){
   const keys=Object.keys(selRuns);
@@ -6739,7 +6785,7 @@ function copyBlocks(){
   });
   state.blockClip=runs.map(r=>({
     dd:Math.round((parse(r.date)-minDay)/86400000),
-    ds:r.start-minSlot,len:r.len,i:r.i,a:r.a,n:r.n,done:r.done,m:r.m,mm:r.mm
+    ds:r.start-minSlot,len:r.len,i:r.i,a:r.a,n:r.n,done:r.done,m:r.m,mx:r.mx
   }));
   /* Dice cosa ha copiato, per nome: la selezione resta finche' non premi Esc,
      e un blocco scelto ieri e dimenticato finiva negli appunti insieme a
@@ -6776,7 +6822,7 @@ function pasteBlocks(dove){
        corsie non si incolla, invece di sovrascrivere in silenzio */
     const L=corsiaPerArrivo(d,st,b.len,null);
     if(L<0){senzaPosto++;return;}
-    placeRun(d,st,{i:b.i,a:b.a,n:b.n,mm:b.mm,len:b.len},L);
+    placeRun(d,st,{i:b.i,a:b.a,n:b.n,mx:b.mx,len:b.len},L);
     messi++;
   });
   /* la selezione ha finito il suo lavoro: quello che era scelto e' negli
@@ -6844,7 +6890,7 @@ function compattaCorsie(dateIso){
       const sotto=r.lane-1;
       for(let k=0;k<r.len;k++)if(at(ck(dateIso,r.start+k))[sotto])return;
       clearRun(dateIso,r.start,r.len,r.lane);
-      placeRun(dateIso,r.start,{i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,m:r.v.m,mm:mmOf(r.v)||undefined,len:r.len},sotto);
+      placeRun(dateIso,r.start,{i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,m:r.v.m,mx:esclusi(r.v).length?r.v.mx:undefined,len:r.len},sotto);
       if(state.pomRun&&state.pomRun.linked)state.pomRun.linked.forEach(b=>{
         if(b.date===dateIso&&b.lane===r.lane&&b.start>=r.start&&b.start<r.start+r.len)b.lane=sotto;});
       cambiato=true;mosso=true;

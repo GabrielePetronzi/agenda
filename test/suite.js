@@ -3287,47 +3287,67 @@
     var c=countAll()[it[0].id]||{};
     if(conM!==libero)return "ripasso con materia "+conM+", ripasso libero "+libero;
     if(schema===libero)return "anche lo schema e' grigio";
-    return (c.RIP===2)?true:"le mezz'ore di ripasso della materia sono "+c.RIP+" (attese 2)";});
-  /* 9 novembre: "magari viene diviso in base a quante materie ci sono (meta',
-     1/3...), pero' vorrei dare l'approvazione di quali delle materie" */
-  t("il ripasso libero si divide fra le materie che approvi, a parti uguali",function(){
+    /* le sue due, piu' le due del ripasso libero, che e' l'unica materia in settimana */
+    return (c.RIP===4)?true:"le mezz'ore di ripasso della materia sono "+c.RIP+" (attese 4)";});
+  /* 9 novembre: "di default voglio che quando ci sono piu' materie venga
+     diviso per quante sono (1/N)" e "se tolgo una materia e rimane solo una,
+     i ripassi rimanenti vanno tutti a lei" */
+  t("il ripasso libero si divide da solo fra le materie della settimana, e segue la griglia",function(){
     pulisci();apri();clearSel();
+    var rip=function(){return countAll();};
     placeRun(G[0],H0,{i:GENID,a:"RIP",len:2},0);
     placeRun(G[1],H0,{i:it[0].id,a:"SCH",len:2},0);
     placeRun(G[2],H0,{i:it[1].id,a:"LET",len:2},0);render();
+    var c=rip(),base=[(c[it[0].id]||{}).RIP,(c[it[1].id]||{}).RIP,c[GENID]];
+    var et=(document.querySelector('.blk[data-date="'+G[0]+'"][data-start="'+H0+'"]')||{}).textContent||"";
+    var ids=linkedIds({linked:[{date:G[0],start:H0,lane:0}]}).sort().join();
+    /* dalla barra della selezione: accese tutte, se ne spegne una */
     selezionaSolo(Object.assign({},runAt(G[0],H0,0),{len:1}));
     var bott=function(id){return document.querySelector('#selbar .ripmm button[data-mm="'+id+'"]');};
-    if(!bott(it[0].id)||!bott(it[1].id)){clearSel();return "nella barra non ci sono le materie della settimana";}
     var accese=[].filter.call(document.querySelectorAll('#selbar .ripmm button'),function(b){return b.getAttribute("aria-pressed")==="true";}).length;
-    bott(it[0].id).click();bott(it[1].id).click();
-    var celle=[0,1].map(function(k){return (mmOf(at(ck(G[0],H0+k))[0])||[]).join(",");});
-    var c=countAll(),a0=(c[it[0].id]||{}).RIP,a1=(c[it[1].id]||{}).RIP,gen=c[GENID];
-    var et=(document.querySelector('.blk[data-date="'+G[0]+'"][data-start="'+H0+'"]')||{}).textContent||"";
-    var ids=linkedIds({linked:[{date:G[0],start:H0,lane:0}]});
-    /* copiato altrove si porta dietro le sue materie */
-    var r=runAt(G[0],H0,0);placeRun(G[3],H0,r,0);var copia=(mmOf(at(ck(G[3],H0))[0])||[]).length;
-    bott(it[0].id).click();bott(it[1].id).click();
-    var dopo=at(ck(G[0],H0))[0];
+    if(bott(it[1].id))bott(it[1].id).click();
+    c=rip();var spenta=[(c[it[0].id]||{}).RIP,(c[it[1].id]||{}).RIP];
+    var mx=esclusi(at(ck(G[0],H0+1))[0]).join();
+    /* copiato altrove si porta dietro quello che hai spento */
+    placeRun(G[3],H0,runAt(G[0],H0,0),0);var copia=esclusi(at(ck(G[3],H0))[0]).join();
+    clearRun(G[3],H0,2,0);
+    if(bott(it[0].id))bott(it[0].id).click();
+    c=rip();var tutteSpente=[c[GENID]&&c[GENID].RIP,(c[it[0].id]||{}).RIP];
     clearSel();
-    if(accese)return "proposte gia' accese: "+accese+" (le approvi tu)";
-    var atteso=it[0].id+","+it[1].id;
-    if(celle[0]!==atteso||celle[1]!==atteso)return "materie nelle mezz'ore: "+celle.join(" | ");
-    if(a0!==1||a1!==1||gen)return "un'ora di ripasso fra due materie: "+a0+" e "+a1+" mezz'ore, al ripasso libero "+JSON.stringify(gen);
-    /* i nomi se ci stanno, se no quante sono */
-    if(!/\+|2 materie/.test(et))return "il blocco non dice fra chi e' diviso: "+et;
-    if(ids.join()!==atteso)return "il timer manda i minuti a "+ids.join();
-    if(copia!==2)return "copiato, il ripasso ha "+copia+" materie";
-    return mmOf(dopo)?"spente tutte e due, il ripasso resta diviso":true;});
+    /* riaccese tutte; poi una materia esce dalla settimana: l'altra prende tutto */
+    [0,1].forEach(function(k){var v=Object.assign({},at(ck(G[0],H0+k))[0]);delete v.mx;var a=at(ck(G[0],H0+k)).slice();a[0]=v;setAt(ck(G[0],H0+k),a);});
+    clearRun(G[2],H0,2,0);
+    c=rip();var tolta=[(c[it[0].id]||{}).RIP,(c[it[1].id]||{}).RIP];
+    if(base[0]!==1||base[1]!==1||base[2])return "un'ora di ripasso con due materie in settimana: "+JSON.stringify(base)+" (attese mezz'ora ciascuna, niente al ripasso libero)";
+    if(!/\+|2 materie/.test(et))return "il blocco non dice fra chi si divide: "+et;
+    if(ids!==[it[0].id,it[1].id].sort().join())return "il timer manda i minuti a "+ids;
+    if(accese!==2)return "nella barra le materie accese di base sono "+accese+" (attese tutte e due)";
+    if(spenta[0]!==2||spenta[1])return "spenta la seconda, il ripasso va "+JSON.stringify(spenta)+" (atteso tutto alla prima)";
+    if(mx!==it[1].id)return "la mezz'ora dopo non sa cosa e' spento: "+mx;
+    if(copia!==it[1].id)return "copiato, il ripasso ha perso quello che era spento: "+copia;
+    if(tutteSpente[0]!==2||tutteSpente[1])return "spente tutte, il ripasso dovrebbe restare libero: "+JSON.stringify(tutteSpente);
+    return (tolta[0]===2&&!tolta[1])?true:"tolta una materia dalla settimana: "+JSON.stringify(tolta)+" (atteso tutto all'altra)";});
+  /* i ripassi divisi con la prima versione (mm, le materie accese) diventano
+     esclusioni al caricamento */
+  t("un ripasso diviso con la versione di prima tiene le stesse materie",function(){
+    pulisci();apri();
+    placeRun(G[1],H0,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(G[2],H0,{i:it[1].id,a:"LET",len:2},0);
+    setAt(ck(G[0],H0),[{i:GENID,a:"RIP",mm:[it[0].id]}]);
+    mmInEsclusi();                       /* e' quello che fa adopt() al caricamento */
+    var v=at(ck(G[0],H0))[0];
+    if(v.mm)return "il campo vecchio e' rimasto";
+    if(esclusi(v).join()!==it[1].id)return "spente: "+esclusi(v).join()+" (attesa la materia che non era accesa)";
+    return eq(divisoFra(v,G[0]).join(),it[0].id,"dopo il caricamento va a ");});
   /* 9 novembre: "rendi piu' intuitiva la scelta delle materie per il ripasso" */
-  t("la scritta del ripasso libero apre la scelta delle materie, e il pennello le porta con se'",function(){
+  t("la scritta del ripasso libero apre la scelta delle materie, e il pennello la porta con se'",function(){
     pulisci();apri();clearSel();
-    var pennello=state.brush,att=state.act,prima=state.ripMm;
+    var pennello=state.brush,att=state.act,prima=state.ripMx;
     placeRun(G[0],H0,{i:GENID,a:"RIP",len:2},0);
     placeRun(G[1],H0,{i:it[0].id,a:"SCH",len:2},0);
     placeRun(G[2],H0,{i:it[1].id,a:"LET",len:2},0);render();
     var link=document.querySelector('.blk[data-date="'+G[0]+'"] .mmlink');
     if(!link)return "il ripasso libero non ha la scritta da cliccare";
-    var invito=link.textContent;
     var r=link.getBoundingClientRect(),xy={bubbles:true,cancelable:true,pointerId:1,clientX:r.left+r.width/2,clientY:r.top+r.height/2,buttons:1,isPrimary:true};
     lastTap={sig:null,t:0};
     link.dispatchEvent(new PointerEvent("pointerdown",xy));
@@ -3336,29 +3356,28 @@
     if(!pop){clearSel();return "il clic sulla scritta non apre il riquadro";}
     var b=pop.querySelector('button[data-mm="'+it[0].id+'"]');if(b)b.click();
     var ancora=!!document.getElementById("mmpop");
-    var diviso=(mmOf(at(ck(G[0],H0))[0])||[]).join();
+    var fra=divisoFra(at(ck(G[0],H0))[0],G[0]).join();
     var fatto=[].find.call(document.querySelectorAll("#mmpop button"),function(x){return x.textContent==="Fatto";});
     if(fatto)fatto.click();
     var chiuso=!document.getElementById("mmpop");
-    /* prima di dipingere: Ripasso, nessuna materia, due accese nella riga */
-    state.brush=null;pickAct("RIP");
+    /* prima di dipingere: Ripasso, nessuna materia, se ne spegne una */
+    state.brush=null;state.ripMx=[];pickAct("RIP");
     var riga=document.getElementById("ripdi");
-    var c0=riga&&riga.querySelector('button[data-mm="'+it[0].id+'"]'),c1=riga&&riga.querySelector('button[data-mm="'+it[1].id+'"]');
+    var c0=riga&&riga.querySelector('button[data-mm="'+it[0].id+'"]');
+    var accesa=c0&&c0.getAttribute("aria-pressed")==="true";
     if(c0)c0.click();
-    c1=document.querySelector('#ripdi button[data-mm="'+it[1].id+'"]');if(c1)c1.click();
     var td=document.querySelector('td.c[data-date="'+G[3]+'"][data-h="'+H0+'"]');
     var tr=td.getBoundingClientRect();
     td.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,cancelable:true,pointerId:1,clientX:tr.left+4,clientY:tr.top+4,buttons:1,isPrimary:true}));
     window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
-    var dipinto=at(ck(G[3],H0))[0];
-    state.ripMm=prima;state.brush=pennello;state.act=att;tools();status();clearSel();
-    if(invito.indexOf("materie")<0&&invito.indexOf("＋")<0)return "la scritta dice "+invito;
-    if(diviso!==it[0].id)return "acceso nel riquadro, il ripasso va a "+diviso;
-    if(!ancora)return "il riquadro si chiude al primo clic: non si possono accendere due materie";
+    var dipinto=at(ck(G[3],H0))[0],fraD=dipinto?divisoFra(dipinto,G[3]).join():"";
+    state.ripMx=prima;state.brush=pennello;state.act=att;tools();status();clearSel();
+    if(fra!==it[1].id)return "spenta la prima nel riquadro, il ripasso va a "+fra;
+    if(!ancora)return "il riquadro si chiude al primo clic";
     if(!chiuso)return "Fatto non chiude il riquadro";
     if(!riga||!c0)return "con Ripasso scelto non c'e' la riga Ripasso di";
-    return (dipinto&&dipinto.i===GENID&&(mmOf(dipinto)||[]).join()===it[0].id+","+it[1].id)?true:
-      "il ripasso dipinto e' "+JSON.stringify(dipinto);});
+    if(!accesa)return "nella riga Ripasso di le materie non partono accese";
+    return (dipinto&&dipinto.i===GENID&&fraD===it[1].id)?true:"il ripasso dipinto va a "+fraD+" "+JSON.stringify(dipinto);});
   /* 9 novembre: "aggiungi l'attivita' Claude, selezionabile anche senza materia" */
   t("Claude si dipinge con o senza materia, si spunta col timer e non a mano",function(){
     return alle(23,function(){
