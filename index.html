@@ -1879,8 +1879,8 @@ const ACTS=[
      l'ora passa senza averlo fatto finisce nel debito */
   {k:"PAI",n:"Master PAI"},
   /* 4 novembre: "come attivita' voglio che metti anche arrampicata". Come il
-     lavoro e la NASPI: senza materia, si spunta da sola quando l'ora passa
-     e non conta come studio. */
+     lavoro e la NASPI: senza materia e non conta come studio. Dal 9
+     novembre non si spunta piu' da sola: la spunti tu (SPUNTI_TU). */
   {k:"ARR",n:"Arrampicata"},
   /* 9 novembre: "aggiungi l'attivita' Claude, selezionabile anche senza
      materia". Come il ripasso: con una materia scelta va a lei, senza va
@@ -2230,7 +2230,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="9 nov 2026 · i";
+const VERSIONE="9 nov 2026 · j";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4090,6 +4090,13 @@ const AUTOACT="LEZ";
    fra gli arretrati. */
 const AUTOSPUNTA=["LEZ","LAV","NAS","ARR"];
 function daSola(a){return AUTOSPUNTA.indexOf(a)>=0;}
+/* Fra queste, quelle che pero' spunti tu. 9 novembre: "solo il lavoro si
+   deve spuntare in automatico in base alla linea dell'oggi, arrampicata devo
+   premerla io". L'arrampicata resta fuori dallo studio come prima (niente
+   timer, niente debito, niente promemoria, fuori dai grafici) e la tua spunta
+   vale come fatta; solo, passata l'ora non si spunta piu' da sola. */
+const SPUNTI_TU=["ARR"];
+function spuntiTu(a){return SPUNTI_TU.indexOf(a)>=0;}
 /* Fatto davvero: spuntato dal timer, spuntato da solo (lezioni, lavoro), o
    spuntato prima che esistesse questa differenza. Una spunta messa a mano su
    un blocco di studio porta "m": toglie il blocco dal riquadro del debito, ma
@@ -4114,7 +4121,7 @@ function autoLessons(){
     if(dt===oggi&&sl>=slotOra)return;         /* oggi, non ancora passata */
     const arr=at(k);let cambiato=false;
     arr.forEach(v=>{
-      if(v&&daSola(v.a)&&!v.done&&!v.nd){v.done=1;cambiato=true;}
+      if(v&&daSola(v.a)&&!spuntiTu(v.a)&&!v.done&&!v.nd){v.done=1;cambiato=true;}
     });
     if(cambiato)touched.add(dt);
   });
@@ -4338,7 +4345,8 @@ function pomFromCell(dateIso,slot,lane){
   const r=runAt(dateIso,slot,lane)||anyRunAt(dateIso,slot);
   if(!r){toast("Tocca un blocco già piazzato");return true;}
   if(daSola(r.a)){
-    toast(actOf(r.a).n+": si spunta da sola al passare dell'ora");
+    toast(actOf(r.a).n+(spuntiTu(r.a)?": non ha timer, la spunti tu quando l'hai fatta"
+                                      :": si spunta da sola al passare dell'ora"));
     return true;
   }
   askNotify();
@@ -4903,7 +4911,8 @@ function pomPanel(){
     /* il nome giusto per ognuna: con la NASPI o l'arrampicata scelte diceva
        "Il lavoro" */
     h.innerHTML=({LEZ:"La lezione",LAV:"Il lavoro",NAS:"La NASPI",ARR:"L'arrampicata"}[act]||actOf(act).n)+
-      " non ha pomodoro: si spunta da sola quando l'ora è passata.";
+      (spuntiTu(act)?" non ha pomodoro: la spunti tu, col quadratino del blocco, quando l'hai fatta."
+                    :" non ha pomodoro: si spunta da sola quando l'ora è passata.");
     box.appendChild(h);
     const t0=pomToday();
     const s0=document.createElement("span");

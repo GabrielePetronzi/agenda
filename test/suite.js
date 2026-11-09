@@ -2760,6 +2760,25 @@
     window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
     var q=runAt(G[0],H0+4,0);
     return (q&&q.len===3)?true:"il blocco e' lungo "+(q?q.len:"—")+" invece di 3";});
+  /* 9 novembre: "solo il lavoro si deve spuntare in automatico in base alla
+     linea dell'oggi, arrampicata devo premerla io" */
+  t("passata l'ora il lavoro si spunta da solo, l'arrampicata la spunti tu",function(){
+    pulisci();apri();
+    var ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,20,{i:WORKID,a:"LAV",len:2},0);
+    placeRun(ieri,20,{i:CLIMBID,a:"ARR",len:2},1);
+    autoLessons();
+    var lav=!!(at(ck(ieri,20))[0]||{}).done,arr=!!(at(ck(ieri,20))[1]||{}).done;
+    var debito=arretrati().some(function(x){return x.v&&x.v.a==="ARR";});
+    setDone(ieri,20,1,true);
+    var v=at(ck(ieri,20))[1],fatta=vero(v);
+    autoLessons();
+    var resta=vero(at(ck(ieri,20))[1]);
+    if(!lav)return "passata l'ora il lavoro non si e' spuntato";
+    if(arr)return "passata l'ora l'arrampicata si e' spuntata da sola";
+    if(debito)return "l'arrampicata non fatta e' finita nel debito";
+    if(!fatta)return "spuntata a mano, l'arrampicata non conta come fatta";
+    return resta?true:"la spunta a mano dell'arrampicata non e' rimasta";});
   /* 9 novembre: "migliora il grab dei singoli slot" */
   t("una mezz'ora presa al centro si sposta, non si allunga",function(){
     pulisci();apri();clearSel();
