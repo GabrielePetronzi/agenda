@@ -1861,7 +1861,11 @@ const ACTS=[
   {k:"LET",n:"Lettura"},
   {k:"SCH",n:"Schema"},
   {k:"ESE",n:"Esercizi"},
-  {k:"LAB",n:"Laboratorio"},
+  /* 9 novembre: "togli laboratorio come attivita'". Non si sceglie piu', ma
+     resta qui: i blocchi di laboratorio gia' in griglia continuano a
+     vedersi e a contare per quello che sono. Tolto del tutto, actOf() li
+     avrebbe fatti passare per lezioni, che si spuntano da sole. */
+  {k:"LAB",n:"Laboratorio",tolta:1},
   {k:"PRO",n:"Progetto"},
   {k:"RIP",n:"Ripasso"},
   {k:"LAV",n:"Lavoro"},
@@ -2224,7 +2228,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="9 nov 2026 · f";
+const VERSIONE="9 nov 2026 · g";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2730,7 +2734,7 @@ window.addEventListener("keydown",e=>{
 
   const k=e.key;
   /* da 1 a 7: l'attività con cui dipingere */
-  if(k>="1"&&k<="9"&&ACTS[+k-1]){e.preventDefault();pickAct(ACTS[+k-1].k);return;}
+  if(k>="1"&&k<="9"&&SCELTE()[+k-1]){e.preventDefault();pickAct(SCELTE()[+k-1].k);return;}
   /* il tasto 0 e' del Master PAI: le attivita' sono undici e le cifre dieci,
      e la NASPI si sceglie col pulsante */
   if(k==="0"&&ACTS.some(x=>x.k==="PAI")){e.preventDefault();pickAct("PAI");return;}
@@ -3285,6 +3289,8 @@ const map=()=>{const m={};items().forEach(o=>m[o.id]=o);return m;};
 const PRE=()=>(state.piano&&state.piano!==PIANO_BASE?state.piano+".":"")+state.year+"."+state.ctx+".";
 const ck=(dateIso,h)=>PRE()+dateIso+"."+h;
 const actOf=k=>ACTS.find(a=>a.k===k)||ACTS[0];
+/* le attivita' che si possono scegliere: tutte tranne quelle tolte */
+const SCELTE=()=>ACTS.filter(a=>!a.tolta);
 const rgb=h=>{const n=parseInt(h.slice(1),16);return [n>>16,(n>>8)&255,n&255];};
 function ink(h){const c=rgb(h);return (.299*c[0]+.587*c[1]+.114*c[2])/255>.62?"#0D0F13":"#FFFFFF";}
 
@@ -3857,7 +3863,9 @@ function pickAct(k,riclic){
 }
 function tools(){
   const box=document.getElementById("tools");box.innerHTML="";
-  ACTS.forEach((a,i)=>{
+  /* un'attivita' tolta che era rimasta scelta non dipinge piu' */
+  if(state.act&&actOf(state.act).tolta)state.act=null;
+  SCELTE().forEach((a,i)=>{
     const b=document.createElement("button");
     b.className="tool";
     b.setAttribute("aria-pressed",!state.erase&&state.act===a.k);
@@ -5043,7 +5051,7 @@ function pomSettings(){
   const hd=document.createElement("div");hd.className="pmhead";
   hd.innerHTML=PMF.map(f=>"<span>"+f[1]+"</span>").join("");
   box.appendChild(hd);
-  ACTS.filter(a=>!daSola(a.k)).forEach(a=>{
+  SCELTE().filter(a=>!daSola(a.k)).forEach(a=>{
     const c=pomConf(a.k);
     const row=document.createElement("div");row.className="pmrow";
     row.innerHTML='<span class="nm">'+icon(a.k,13)+a.n+"</span>"+

@@ -3378,6 +3378,23 @@
     if(!riga||!c0)return "con Ripasso scelto non c'e' la riga Ripasso di";
     if(!accesa)return "nella riga Ripasso di le materie non partono accese";
     return (dipinto&&dipinto.i===GENID&&fraD===it[1].id)?true:"il ripasso dipinto va a "+fraD+" "+JSON.stringify(dipinto);});
+  /* 9 novembre: "togli laboratorio come attivita'" */
+  t("Laboratorio non si sceglie piu', ma i blocchi che c'erano restano laboratorio",function(){
+    pulisci();apri();
+    var att=state.act;
+    state.act="LAB";tools();
+    var tolto=state.act;
+    var nomi=[].map.call(document.querySelectorAll("#tools .tool"),function(b){return b.textContent;});
+    window.dispatchEvent(new KeyboardEvent("keydown",{key:"6",bubbles:true}));
+    var sei=state.act;
+    placeRun(G[0],H0,{i:it[0].id,a:"LAB",len:2},0);render();
+    var bl=document.querySelector('.blk[data-date="'+G[0]+'"][data-att="LAB"]');
+    state.act=att;tools();
+    if(nomi.some(function(n){return /Laboratorio/.test(n);}))return "il pulsante Laboratorio c'e' ancora";
+    if(tolto!==null)return "Laboratorio rimasto scelto dipinge ancora";
+    if(sei!=="PRO")return "il tasto 6 sceglie "+sei+" (atteso Progetto)";
+    if(!bl)return "il blocco di laboratorio gia' in griglia non si vede";
+    return daSola("LAB")?"il laboratorio si spunterebbe da solo":true;});
   /* 9 novembre: "aggiungi l'attivita' Claude, selezionabile anche senza materia" */
   t("Claude si dipinge con o senza materia, si spunta col timer e non a mano",function(){
     return alle(23,function(){
