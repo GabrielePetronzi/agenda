@@ -699,7 +699,6 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
 .blk.mini2 em{padding:0 6px}
 .blk.mini2 em b{font-size:10.5px;line-height:1.25;padding-right:15px}
 .blk.mini2 em s{font-size:10px;line-height:1.2;margin-top:0}
-.blk.mini2 .rsz{height:6px}
 /* mezz'ora: una riga sola, e il nome dell'attività non c'è. Lo dice il motivo,
    e la parola gli rubava esattamente lo spazio in cui farsi vedere. Qui il
    motivo è una voce del flex: si prende quello che avanza a destra, quindi
@@ -722,7 +721,6 @@ html[data-row="micro"] .blk em u.nota{font-size:10px;line-height:1.15;margin-top
 .blk.mini em span.tr{flex:1 1 0;min-width:0;align-self:stretch;margin:0 0 0 1px;
   background-image:var(--tr)}
 .blk.mini::before{content:none}
-.blk.mini .rsz{height:6px}
 
 html[data-row="micro"] .blk em{padding:1px 5px 0}
 html[data-row="micro"] .blk.mini em{padding:1px 14px 0 5px}
@@ -738,7 +736,6 @@ html[data-row="micro"] .blk.mini em s.soloico{display:flex}
 html[data-row="micro"] .blk.mini em s.soloico i{display:none}
 html[data-row="micro"] .tick{width:10px;height:10px;top:2px;right:2px}
 html[data-row="micro"] td.hr{font-size:9px}
-html[data-row="micro"] .rsz{height:5px}
 html[data-row="tight"] .blk em{padding:2px 6px 0}
 html[data-row="tight"] .blk.mini em{padding:0 18px 0 6px}
 html[data-row="tight"] .blk em b{font-size:11px;padding-right:15px}
@@ -793,14 +790,19 @@ td.c .selmezz{position:absolute;z-index:3;pointer-events:none;border-radius:5px;
    scuro — si vede che l'hai messa tu e che nei conti non vale. */
 .blk.done.amano .tick{background:inherit;box-shadow:inset 0 0 0 1.4px currentColor}
 .blk.done.amano .tick::after{background:currentColor}
-.rsz{position:absolute;left:0;right:0;bottom:0;height:9px;z-index:5;cursor:ns-resize}
-.rsz::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:2.5px;
+/* 9 novembre: "migliora il grab dei singoli slot". Con la maniglia anche in
+   alto, su una mezz'ora alta undici pixel le due maniglie da sei la
+   coprivano tutta: ogni presa allungava invece di spostare. Ora ognuna e' un
+   quinto del blocco, fra tre e nove pixel (--rz, da drawDay): il centro
+   resta la presa per spostare. */
+.rsz{position:absolute;left:0;right:0;bottom:0;height:var(--rz,9px);z-index:5;cursor:ns-resize}
+.rsz::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--rz,9px)/2 - 1px);
   width:20px;height:2px;border-radius:2px;background:currentColor;opacity:0;transition:opacity .12s}
 .blk:hover .rsz::after{opacity:.55}
 /* 9 novembre: "uno slot lo posso allargare solo in basso ma non in alto".
    La maniglia di sopra lascia libero l'angolo della spunta. */
 .rsz.su{top:0;bottom:auto;right:22px}
-.rsz.su::after{bottom:auto;top:2.5px}
+.rsz.su::after{bottom:auto;top:calc(var(--rz,9px)/2 - 1px)}
 input.noteEdit{position:absolute;left:5px;right:5px;bottom:5px;z-index:8;
   background:rgba(255,255,255,.6);border:0;border-radius:4px;color:inherit;
   font-family:Inter,sans-serif;font-size:11.5px;padding:4px 6px;outline:none;
@@ -2228,7 +2230,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="9 nov 2026 · h";
+const VERSIONE="9 nov 2026 · i";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -6449,6 +6451,7 @@ function drawDay(dateIso,scope){
          con la scritta bianca e uno con la nera a seconda della materia */
       bl.style.color=BLKINK;
       bl.style.height=alt+"px";
+      bl.style.setProperty("--rz",Math.max(3,Math.min(9,Math.round(alt*.2)))+"px");
       const nl=cw[ri]||1;
       bl.style.left=(r.lane*100/nl)+"%";
       bl.style.width=(100/nl)+"%";

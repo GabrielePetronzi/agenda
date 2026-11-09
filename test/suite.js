@@ -2760,6 +2760,27 @@
     window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
     var q=runAt(G[0],H0+4,0);
     return (q&&q.len===3)?true:"il blocco e' lungo "+(q?q.len:"—")+" invece di 3";});
+  /* 9 novembre: "migliora il grab dei singoli slot" */
+  t("una mezz'ora presa al centro si sposta, non si allunga",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"SCH",len:1},0);render();
+    var bl=document.querySelector('.blk[data-date="'+G[0]+'"]');
+    bl.scrollIntoView({block:"center"});
+    var R=bl.getBoundingClientRect(),su=bl.querySelector(".rsz.su").getBoundingClientRect(),giu=bl.querySelector(".rsz:not(.su)").getBoundingClientRect();
+    var presa=R.height-su.height-giu.height;
+    var x=R.left+R.width/3,y=R.top+R.height/2,el=document.elementFromPoint(x,y);
+    var dove=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+(H0+8)+'"]').getBoundingClientRect();
+    lastTap={sig:null,t:0};
+    el.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,cancelable:true,pointerId:1,clientX:x,clientY:y,buttons:1,isPrimary:true}));
+    window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:1,clientX:x,clientY:dove.top+dove.height/2,buttons:1,isPrimary:true}));
+    var sotto=document.elementFromPoint(x,dove.top+dove.height/2);
+    if(sotto)sotto.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:1,clientX:x,clientY:dove.top+dove.height/2,buttons:1,isPrimary:true}));
+    window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
+    var q=runAt(G[0],H0+8,0),vecchio=runAt(G[0],H0+4,0);clearSel();
+    if(presa<R.height*.4)return "al centro restano "+presa.toFixed(0)+" px su "+R.height.toFixed(0)+" per afferrarla";
+    if(el.classList.contains("rsz"))return "al centro c'e' una maniglia";
+    if(vecchio&&vecchio.len>1)return "presa al centro si e' allungata a "+vecchio.len;
+    return (q&&q.len===1&&!vecchio)?true:"non si e' spostata: alle "+slotTime(H0+8)+" "+JSON.stringify(q)+", al posto vecchio "+JSON.stringify(vecchio);});
   /* 9 novembre: "uno slot lo posso allargare solo in basso ma non in alto" */
   t("la maniglia di sopra allarga e accorcia dall'alto, e non si mangia il blocco sopra",function(){
     var tira=function(su,h){
