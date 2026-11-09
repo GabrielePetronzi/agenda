@@ -2760,6 +2760,32 @@
     window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
     var q=runAt(G[0],H0+4,0);
     return (q&&q.len===3)?true:"il blocco e' lungo "+(q?q.len:"—")+" invece di 3";});
+  /* 9 novembre: "uno slot lo posso allargare solo in basso ma non in alto" */
+  t("la maniglia di sopra allarga e accorcia dall'alto, e non si mangia il blocco sopra",function(){
+    var tira=function(su,h){
+      var bl=document.querySelector('.blk[data-date="'+G[0]+'"][data-start="'+su+'"]');
+      var m=bl&&bl.querySelector(".rsz.su");if(!m)return false;
+      var r=m.getBoundingClientRect(),c=document.querySelector('td.c[data-date="'+G[0]+'"][data-h="'+h+'"]').getBoundingClientRect();
+      lastTap={sig:null,t:0};
+      m.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,cancelable:true,pointerId:1,clientX:r.left+5,clientY:r.top+2,buttons:1,isPrimary:true}));
+      window.dispatchEvent(new PointerEvent("pointermove",{bubbles:true,pointerId:1,clientX:r.left+5,clientY:c.top+c.height/2,buttons:1,isPrimary:true}));
+      window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
+      return true;};
+    var riga=function(a,b){var s="";for(var sl=a;sl<=b;sl++){var v=at(ck(G[0],sl))[0];s+=v?(v.i===it[0].id?"■":"x"):"□";}return s;};
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"SCH",len:2,n:"cap. 3"},0);render();
+    if(!tira(H0+4,H0+2))return "il blocco non ha la maniglia di sopra";
+    var su=riga(H0+1,H0+6),nota=(at(ck(G[0],H0+2))[0]||{}).n;
+    tira(H0+2,H0+3);var giu=riga(H0+1,H0+6);
+    /* un altro blocco sopra: ci si ferma contro, non lo si sovrascrive */
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+1,{i:it[1].id,a:"LET",len:2},0);
+    placeRun(G[0],H0+5,{i:it[0].id,a:"SCH",len:2},0);render();
+    tira(H0+5,H0);var muro=riga(H0,H0+6);
+    if(su!=="□■■■■□")return "tirata su di due mezz'ore: "+su+" (atteso □■■■■□)";
+    if(nota!=="cap. 3")return "la nota non e' salita col blocco: "+nota;
+    if(giu!=="□□■■■□")return "riabbassata di una: "+giu+" (atteso □□■■■□)";
+    return muro==="□xx■■■■"?true:"col blocco sopra: "+muro+" (atteso □xx■■■■)";});
   t("con Cancella acceso il bordo di sotto e' una mezz'ora da togliere, non una maniglia",function(){
     pulisci();apri();clearSel();
     placeRun(G[0],H0+4,{i:it[0].id,a:"LEZ",len:4},0);render();
@@ -3249,6 +3275,49 @@
       return q.indexOf("■")>=0?true:"la sessione di PAI non l'ha spuntato: "+q;
     });});
 
+  /* 9 novembre: "mi da fastidio che ha lo stesso colore della materia, io lo
+     volevo sempre grigio" */
+  t("il ripasso e' grigio anche con una materia, e le ore vanno a lei",function(){
+    pulisci();apri();
+    placeRun(G[0],H0,{i:it[0].id,a:"RIP",len:2},0);
+    placeRun(G[0],H0+4,{i:GENID,a:"RIP",len:2},0);
+    placeRun(G[0],H0+8,{i:it[0].id,a:"SCH",len:2},0);render();
+    var f=function(sl){var b=document.querySelector('.blk[data-date="'+G[0]+'"][data-start="'+sl+'"]');return b?b.style.backgroundColor:"—";};
+    var conM=f(H0),libero=f(H0+4),schema=f(H0+8);
+    var c=countAll()[it[0].id]||{};
+    if(conM!==libero)return "ripasso con materia "+conM+", ripasso libero "+libero;
+    if(schema===libero)return "anche lo schema e' grigio";
+    return (c.RIP===2)?true:"le mezz'ore di ripasso della materia sono "+c.RIP+" (attese 2)";});
+  /* 9 novembre: "magari viene diviso in base a quante materie ci sono (meta',
+     1/3...), pero' vorrei dare l'approvazione di quali delle materie" */
+  t("il ripasso libero si divide fra le materie che approvi, a parti uguali",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0,{i:GENID,a:"RIP",len:2},0);
+    placeRun(G[1],H0,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(G[2],H0,{i:it[1].id,a:"LET",len:2},0);render();
+    selezionaSolo(Object.assign({},runAt(G[0],H0,0),{len:1}));
+    var bott=function(id){return document.querySelector('#selbar .ripmm button[data-mm="'+id+'"]');};
+    if(!bott(it[0].id)||!bott(it[1].id)){clearSel();return "nella barra non ci sono le materie della settimana";}
+    var accese=[].filter.call(document.querySelectorAll('#selbar .ripmm button'),function(b){return b.getAttribute("aria-pressed")==="true";}).length;
+    bott(it[0].id).click();bott(it[1].id).click();
+    var celle=[0,1].map(function(k){return (mmOf(at(ck(G[0],H0+k))[0])||[]).join(",");});
+    var c=countAll(),a0=(c[it[0].id]||{}).RIP,a1=(c[it[1].id]||{}).RIP,gen=c[GENID];
+    var et=(document.querySelector('.blk[data-date="'+G[0]+'"][data-start="'+H0+'"]')||{}).textContent||"";
+    var ids=linkedIds({linked:[{date:G[0],start:H0,lane:0}]});
+    /* copiato altrove si porta dietro le sue materie */
+    var r=runAt(G[0],H0,0);placeRun(G[3],H0,r,0);var copia=(mmOf(at(ck(G[3],H0))[0])||[]).length;
+    bott(it[0].id).click();bott(it[1].id).click();
+    var dopo=at(ck(G[0],H0))[0];
+    clearSel();
+    if(accese)return "proposte gia' accese: "+accese+" (le approvi tu)";
+    var atteso=it[0].id+","+it[1].id;
+    if(celle[0]!==atteso||celle[1]!==atteso)return "materie nelle mezz'ore: "+celle.join(" | ");
+    if(a0!==1||a1!==1||gen)return "un'ora di ripasso fra due materie: "+a0+" e "+a1+" mezz'ore, al ripasso libero "+JSON.stringify(gen);
+    /* i nomi se ci stanno, se no quante sono */
+    if(!/\+|2 materie/.test(et))return "il blocco non dice fra chi e' diviso: "+et;
+    if(ids.join()!==atteso)return "il timer manda i minuti a "+ids.join();
+    if(copia!==2)return "copiato, il ripasso ha "+copia+" materie";
+    return mmOf(dopo)?"spente tutte e due, il ripasso resta diviso":true;});
   /* 9 novembre: "aggiungi l'attivita' Claude, selezionabile anche senza materia" */
   t("Claude si dipinge con o senza materia, si spunta col timer e non a mano",function(){
     return alle(23,function(){

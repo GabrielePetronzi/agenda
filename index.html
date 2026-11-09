@@ -485,6 +485,10 @@ body.consel .toast{bottom:84px}
   body.consel .toast{bottom:18px}
 }
 .selbar b{font-family:"DM Mono",monospace;font-size:12px;font-weight:500;color:var(--action)}
+/* le materie di un ripasso libero: una riga a parte nella barra */
+.selbar .ripmm{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex-basis:100%}
+.selbar .ripmm .tool{padding:4px 7px;font-size:11px}
+.selbar .ripmm em{font-style:normal;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
 .selbar span{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
 .modeflag{display:none}
 .modeflag.on{display:block;position:sticky;top:var(--stick-head, 109px);z-index:28;background:var(--action);
@@ -774,6 +778,10 @@ td.c .selmezz{position:absolute;z-index:3;pointer-events:none;border-radius:5px;
 .rsz::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:2.5px;
   width:20px;height:2px;border-radius:2px;background:currentColor;opacity:0;transition:opacity .12s}
 .blk:hover .rsz::after{opacity:.55}
+/* 9 novembre: "uno slot lo posso allargare solo in basso ma non in alto".
+   La maniglia di sopra lascia libero l'angolo della spunta. */
+.rsz.su{top:0;bottom:auto;right:22px}
+.rsz.su::after{bottom:auto;top:2.5px}
 input.noteEdit{position:absolute;left:5px;right:5px;bottom:5px;z-index:8;
   background:rgba(255,255,255,.6);border:0;border-radius:4px;color:inherit;
   font-family:Inter,sans-serif;font-size:11.5px;padding:4px 6px;outline:none;
@@ -2197,7 +2205,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="9 nov 2026 · a";
+const VERSIONE="9 nov 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3159,7 +3167,10 @@ function delVoce(id){
   normCustom();
   state.custom=state.custom.filter(c=>c.id!==id);
   Object.keys(state.cells).forEach(k=>{
-    const arr=at(k).map(v=>(v&&v.i===id)?null:v);
+    const arr=at(k).map(v=>{
+      if(!v||v.i===id)return null;
+      if(mmOf(v)&&v.mm.indexOf(id)>=0){v=Object.assign({},v);v.mm=v.mm.filter(x=>x!==id);if(!v.mm.length)delete v.mm;}
+      return v;});
     setAt(k,arr);
   });
   state.exams=(state.exams||[]).filter(x=>x.mid!==id);
@@ -3184,6 +3195,15 @@ const CLAUDEID="_claude";
 /* attività che si piazzano anche senza scegliere una materia */
 const LIBERE={RIP:GENID,LAV:WORKID,NAS:NASPIID,PAI:PAIID,ARR:CLIMBID,CLA:CLAUDEID};
 function brushNow(){return state.brush||LIBERE[state.act]||null;}
+/* Le materie di un ripasso libero. 9 novembre: il ripasso senza materia non
+   andava a nessuna, "magari viene diviso in base a quante materie ci sono
+   (meta', 1/3...), pero' vorrei dare l'approvazione di quali delle materie".
+   Le sceglie lui, dalla barra della selezione, fra quelle che ha in piano
+   quella settimana; finche' non ne sceglie nessuna il ripasso resta libero
+   come prima. Stanno nel campo mm di ogni mezz'ora del blocco. */
+function mmOf(v){return (v&&v.i===GENID&&Array.isArray(v.mm)&&v.mm.length)?v.mm:null;}
+/* a chi va una mezz'ora e per quanto: [[materia,peso]], i pesi fanno uno */
+function quote(v){const mm=mmOf(v);return mm?mm.map(id=>[id,1/mm.length]):[[v.i,1]];}
 function items(){
   const all=allCourses().concat(voci());
   /* "Ripasso", senza "libero" (4 ottobre): col nome intero nel titolo dei
@@ -3216,13 +3236,21 @@ function countAll(pre){
   Object.keys(state.cells).forEach(k=>{
     if(pre&&k.indexOf(pre)!==0)return;
     at(k).forEach(v=>{
-      if(!v||!m[v.i])return;
-      out[v.i]=out[v.i]||{tot:0,done:0};
-      out[v.i][v.a]=(out[v.i][v.a]||0)+1;
-      out[v.i].tot++;if(vero(v))out[v.i].done++;
+      if(!v)return;
+      conta(out,v,m);
     });
   });
   return out;
+}
+/* una mezz'ora nei conti per materia: un ripasso diviso va alle sue materie
+   a pezzi, un mezzo o un terzo ciascuna */
+function conta(out,v,m){
+  const ok=vero(v);
+  quote(v).forEach(([id,w])=>{
+    if(!m[id])return;
+    const c=out[id]=out[id]||{tot:0,done:0};
+    c[v.a]=(c[v.a]||0)+w;c.tot+=w;if(ok)c.done+=w;
+  });
 }
 function countPanel(p){
   const out={},m=map();
@@ -3230,10 +3258,7 @@ function countPanel(p){
     const key=iso(d);
     HOURS.forEach(sl=>{
       at(ck(key,sl)).forEach(v=>{
-        if(!v||!m[v.i])return;
-        out[v.i]=out[v.i]||{tot:0,done:0};
-        out[v.i][v.a]=(out[v.i][v.a]||0)+1;
-        out[v.i].tot++;if(vero(v))out[v.i].done++;
+        if(v)conta(out,v,m);
       });
     });
   });
@@ -3244,7 +3269,7 @@ function totalCtx(id){
   let n=0,f=0;
   Object.keys(state.cells).forEach(k=>{
     if(k.indexOf(pre)!==0)return;
-    at(k).forEach(v=>{if(v&&v.i===id){n++;if(vero(v))f++;}});
+    at(k).forEach(v=>{if(v)quote(v).forEach(([x,w])=>{if(x===id){n+=w;if(vero(v))f+=w;}});});
   });
   totalCtx.done=f;
   return n;
@@ -3965,7 +3990,7 @@ function copyWeek(p){
    gia' fatta — o col lavoro che non si spuntava piu'. */
 function fresco(v){
   if(!v)return v;
-  const e={i:v.i,a:v.a};if(v.n)e.n=v.n;return e;
+  const e={i:v.i,a:v.a};if(v.n)e.n=v.n;if(mmOf(v))e.mm=v.mm.slice();return e;
 }
 function pasteWeek(p){
   if(!state.clip)return;
@@ -4205,8 +4230,8 @@ function quotaPausa(r){
 /* le materie dei blocchi agganciati al timer: la sessione va a loro */
 function linkedIds(r){
   return ((r&&r.linked)||[]).map(b=>{
-    const q=runAt(b.date,b.start,b.lane);return q&&q.i;
-  }).filter(Boolean);
+    const q=runAt(b.date,b.start,b.lane);return q&&(q.mm||q.i);
+  }).flat().filter(Boolean);
 }
 /* minuti registrati nel periodo aperto, in tutto o per una sola materia */
 function logMin(id){
@@ -5063,7 +5088,7 @@ function spostaArretrati(){
     const v=at(ck(b.date,b.start))[b.lane];if(!v)return;
     const posto=cercaPosto(b,tetto);
     if(!posto){fermi++;return;}
-    const copia={i:v.i,a:v.a,len:b.len};if(v.n)copia.n=v.n;
+    const copia={i:v.i,a:v.a,len:b.len,mm:mmOf(v)||undefined};if(v.n)copia.n=v.n;
     clearRun(b.date,b.start,b.len,b.lane);
     placeRun(posto.date,posto.start,copia,0);
     if(!primo)primo=posto;
@@ -5209,32 +5234,39 @@ function semSummary(){
     at(k).forEach(v=>{
       if(!v||!m[v.i]||FUORI_GRAFICI.indexOf(v.a)>=0)return;
       const q=vero(v);
-      /* le ore di una materia si contano su tutto il piano: per l'esame di
-         gennaio si studia anche a dicembre, in un altro periodo */
-      if(!primo[v.i]||dt<primo[v.i])primo[v.i]=dt;
-      if(!ultimo[v.i]||dt>ultimo[v.i])ultimo[v.i]=dt;
-      if(q){const g=perGiorno[v.i]=perGiorno[v.i]||{};g[dt]=(g[dt]||0)+1;}
-      else if(dt>oggi||(dt===oggi&&sl>=ora))futuro[v.i]=(futuro[v.i]||0)+1;
-      if(k.indexOf(preAnno)===0){
-        const c=cal[dt]=cal[dt]||{f:0,p:0,m:0};c.p++;if(q)c.f++;else if(v.done)c.m++;}
-      if(!dentro)return;
-      pianoTot++;
-      /* Un esame segnato come superato sparisce dai grafici delle materie e
-         delle ore saltate: non c'e' piu' niente da inseguire ne' da
-         recuperare (27 settembre). Nel calendario le sue ore restano, perche'
-         li' si guardano i giorni, non le materie: toglierle farebbe sembrare
-         vuoti giorni in cui hai studiato. */
-      if(superati[v.i])return;
-      /* di chi parlare: le materie messe negli slot di questo periodo */
-      qui[v.i]=1;
+      const futura=dt>oggi||(dt===oggi&&sl>=ora);
       /* saltata: la sua ora e' passata e non e' fatta davvero */
       const passata=dt<oggi||(dt===oggi&&sl<ora);
-      if(passata&&!q){
-        const sd=salt[v.i]=salt[v.i]||{};sd[dt]=(sd[dt]||0)+1;
-        const ls=iso(monday(parse(dt)));
-        const s=sett[ls]=sett[ls]||{};s[v.i]=(s[v.i]||0)+1;
-        if(v.done)amano[ls]=(amano[ls]||0)+1;
-      }
+      /* Il calendario guarda i giorni, non le materie: la mezz'ora conta una
+         volta sola. Tutto il resto e' per materia, e un ripasso diviso va a
+         ognuna delle sue per la sua parte (quote). */
+      if(k.indexOf(preAnno)===0){
+        const c=cal[dt]=cal[dt]||{f:0,p:0,m:0};c.p++;if(q)c.f++;else if(v.done)c.m++;}
+      if(dentro)pianoTot++;
+      if(dentro&&passata&&!q&&v.done&&!quote(v).every(([id])=>superati[id])){const ls=iso(monday(parse(dt)));amano[ls]=(amano[ls]||0)+1;}
+      quote(v).forEach(([id,w])=>{
+        if(!m[id])return;
+        /* le ore di una materia si contano su tutto il piano: per l'esame di
+           gennaio si studia anche a dicembre, in un altro periodo */
+        if(!primo[id]||dt<primo[id])primo[id]=dt;
+        if(!ultimo[id]||dt>ultimo[id])ultimo[id]=dt;
+        if(q){const g=perGiorno[id]=perGiorno[id]||{};g[dt]=(g[dt]||0)+w;}
+        else if(futura)futuro[id]=(futuro[id]||0)+w;
+        if(!dentro)return;
+        /* Un esame segnato come superato sparisce dai grafici delle materie e
+           delle ore saltate: non c'e' piu' niente da inseguire ne' da
+           recuperare (27 settembre). Nel calendario le sue ore restano, perche'
+           li' si guardano i giorni, non le materie: toglierle farebbe sembrare
+           vuoti giorni in cui hai studiato. */
+        if(superati[id])return;
+        /* di chi parlare: le materie messe negli slot di questo periodo */
+        qui[id]=1;
+        if(passata&&!q){
+          const sd=salt[id]=salt[id]||{};sd[dt]=(sd[dt]||0)+w;
+          const ls=iso(monday(parse(dt)));
+          const s=sett[ls]=sett[ls]||{};s[id]=(s[id]||0)+w;
+        }
+      });
     });
   });
   if(!pianoTot){
@@ -5599,7 +5631,7 @@ function doRepeat(){
     runs.forEach(r=>{
       for(let k=1;k<=n;k++){
         placeRun(iso(addDays(parse(r.date),7*k)),r.start,
-          {i:r.i,a:r.a,n:r.n,len:r.len},null);
+          {i:r.i,a:r.a,n:r.n,mm:r.mm,len:r.len},null);
       }
     });
     afterEdit("Ripetuti su "+n+(n===1?" settimana":" settimane"));
@@ -5860,7 +5892,8 @@ function lanesOf(dateIso){
    un'ora, quell'ora è un blocco fatto e la mezz'ora che resta è un blocco da
    fare. Senza questo il disegno prenderebbe lo stato dalla prima mezz'ora e
    direbbe che è tutto fatto. */
-function sameBlock(a,b){return a&&b&&a.i===b.i&&a.a===b.a&&!a.done===!b.done&&!a.m===!b.m;}
+function sameBlock(a,b){return a&&b&&a.i===b.i&&a.a===b.a&&!a.done===!b.done&&!a.m===!b.m&&
+  (mmOf(a)||[]).join()===(mmOf(b)||[]).join();}
 
 /* elenca i blocchi contigui di un giorno, corsia per corsia */
 function runsOf(dateIso){
@@ -5880,7 +5913,7 @@ function runsOf(dateIso){
 function runAt(dateIso,slot,lane){
   const r=runsOf(dateIso).find(x=>x.lane===lane&&slot>=x.start&&slot<x.start+x.len);
   if(!r)return null;
-  return {i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,m:r.v.m,lane:lane,start:r.start,len:r.len,date:dateIso};
+  return {i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,m:r.v.m,mm:mmOf(r.v)||undefined,lane:lane,start:r.start,len:r.len,date:dateIso};
 }
 function anyRunAt(dateIso,slot){
   const rs=runsOf(dateIso).filter(x=>slot>=x.start&&slot<x.start+x.len);
@@ -5925,6 +5958,7 @@ function placeRun(dateIso,start,r,lane){
     const key=ck(dateIso,sl),arr=at(key).slice();
     const e={i:r.i,a:r.a};
     if(k===0&&r.n)e.n=r.n;
+    if(r.i===GENID&&r.mm&&r.mm.length)e.mm=r.mm.slice();
     if(r.done){e.done=1;if(r.m)e.m=1;}
     while(arr.length<L)arr.push(null);
     arr[L]=e;
@@ -6053,8 +6087,10 @@ function motivi(root){
     const base=x.t.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0)-
       (parseFloat(cb.paddingLeft)||0)-(parseFloat(cb.paddingRight)||0)-1;
     const wi=x.ss&&x.ss.isConnected?x.ss.querySelector("i"):null;
-    const at0=x.t.closest(".blk").dataset.att;
-    const forme=wi?[wi.textContent,ATTCORTA[at0],ATTCORTISSIMA[at0]].filter((v,i,a)=>v&&a.indexOf(v)===i):[null];
+    const blk0=x.t.closest(".blk"),at0=blk0.dataset.att,nmm=+blk0.dataset.mm||0;
+    /* un ripasso diviso non torna a dire "Ripasso": si accorcia in "2 materie" */
+    const forme=wi?(nmm?[wi.textContent,nmm+" materie"]:[wi.textContent,ATTCORTA[at0],ATTCORTISSIMA[at0]])
+      .filter((v,i,a)=>v&&a.indexOf(v)===i):[null];
     const posto=()=>base-(x.ss&&x.ss.isConnected?x.ss.getBoundingClientRect().width+gap:0);
     const cand=nomiCandidati(L,C),wc=larghezzaTesto(C||L,font);
     for(const f of forme){
@@ -6312,6 +6348,7 @@ function drawDay(dateIso,scope){
         ((selRuns[selKey(dateIso,r.start,r.lane)]||{}).len===r.len?" selblk":"")+(run?" running":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
       bl.dataset.att=r.v.a;
+      if(mmOf(r.v))bl.dataset.mm=mmOf(r.v).length;
       /* Il riempimento dice l'attività, la barra dice la materia. Non è un
          capriccio: il colore categorico regge fino a otto-dieci valori, e le
          attività sono otto e resteranno otto, mentre le materie sono venti e
@@ -6319,8 +6356,14 @@ function drawDay(dateIso,scope){
          che cresce faceva un'insalata; darla a quella limitata fa una
          legenda. E siccome le otto tinte seguono le fasi del metodo, una
          settimana si legge per quello che è: dove acquisisci, dove applichi. */
-      bl.style.background=o.color;
-      bl.style.setProperty("--bc",o.color);
+      /* Il ripasso e' sempre grigio, anche con una materia (9 novembre: "mi da
+         fastidio che ha lo stesso colore della materia, io lo volevo sempre
+         grigio"). La materia resta scritta nel blocco e le ore vanno a lei:
+         cambia solo il fondo. Il grigio e' quello della voce Ripasso, quindi
+         se lo cambi li' cambia anche qui. */
+      const fondo=r.v.a==="RIP"?(state.colors[GENID]||autoColor(GENID)):o.color;
+      bl.style.background=fondo;
+      bl.style.setProperty("--bc",fondo);
       bl.style.setProperty("--tr",ATRAMA[r.v.a]||"none");
       /* sempre nera: i fondi sono tutti chiari apposta, così non c'è un blocco
          con la scritta bianca e uno con la nera a seconda della materia */
@@ -6333,6 +6376,10 @@ function drawDay(dateIso,scope){
          su mezz'ora prende il posto dell'attività (che motivo e icona dicono già),
          più in alto va a capo su una riga sua, con quante righe ci stanno. */
       let corpo,nota="";
+      /* un ripasso diviso dice fra chi, al posto della parola "Ripasso" che
+         il titolo dice gia' */
+      const mmB=mmOf(r.v);
+      const etAtt=mmB?esc(mmB.map(id=>(m[id]||{}).short||"?").join(" + ")):a.n;
       if(striscia){
         /* Niente icona: a mezz'ora si prende ventun pixel di una fascia che ne
            aveva dieci, e dice la stessa cosa che dice il motivo. Con una nota
@@ -6340,7 +6387,7 @@ function drawDay(dateIso,scope){
         /* il nome dell'attivita' anche qui, come nel lavoro (3 ottobre: "a
            lavoro metti anche la scritta e mi piace molto, negli altri no") */
         corpo=nt?"<s>"+icon(r.v.a,11)+"<i>"+nt+"</i></s>"
-                :"<s>"+icon(r.v.a,11)+"<i>"+a.n+"</i></s>";
+                :"<s>"+icon(r.v.a,11)+"<i>"+etAtt+"</i></s>";
         corpo+=(due?"":'<span class="tr"></span>');
       }else if(nt&&alt<62){
         /* Quando la colonna è stretta — la vista settimana sta a 147 pixel —
@@ -6352,7 +6399,7 @@ function drawDay(dateIso,scope){
            dicono già. */
         corpo="<s>"+icon(r.v.a,11)+"<i>"+nt+"</i></s>";
       }else{
-        corpo="<s>"+icon(r.v.a,11)+"<i>"+a.n+"</i></s>";
+        corpo="<s>"+icon(r.v.a,11)+"<i>"+etAtt+"</i></s>";
         if(nt){
           /* le righe della nota si fermano sedici pixel prima del fondo: una
              fascia di motivo deve restare sempre, se no il blocco pieno di
@@ -6367,10 +6414,10 @@ function drawDay(dateIso,scope){
       bl.innerHTML='<span class="tick" role="button" aria-label="Segna come fatto"></span>'+
         "<em>"+(striscia?testa
                 :'<span class="l1">'+testa+"</span>"+nota+'<span class="tr"></span>')+
-        "</em>"+'<span class="rsz"></span>';
+        "</em>"+'<span class="rsz"></span><span class="rsz su"></span>';
       /* con Cancella acceso il fumetto del browser starebbe sotto l'etichetta
          rossa e direbbe un'altra cosa: l'intero blocco invece della mezz'ora */
-      if(!state.erase)bl.title=o.name+" · "+a.n+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
+      if(!state.erase)bl.title=o.name+" · "+(mmB?"diviso fra "+mmB.map(id=>(m[id]||{}).name||"?").join(", "):a.n)+" · "+slotTime(r.start)+"–"+slotTime(r.start+r.len)+
         (r.v.n?" ("+r.v.n+")":"")+(r.v.done?(!vero(r.v)?" · spuntato a mano, non conta":" · fatto"):"");
       td.setAttribute("aria-label",
         (td.dataset.lab||"")+" — "+o.name+", "+a.n+", fino alle "+
@@ -6503,7 +6550,66 @@ function selInfo(){
   rip.title="Ricopia questi blocchi nelle settimane successive, stesso giorno e stessa ora";
   rip.onclick=openRepeatBlocks;
   el.appendChild(rip);
+  if(uno)ripassoMaterie(el,uno);
   pomPanel();
+}
+/* Un ripasso libero scelto da solo: le materie fra cui dividerlo. Le
+   proposte sono le materie che hai in piano quella settimana, e nessuna e'
+   accesa finche' non la accendi tu: e' lui che approva quali. */
+function ripassoMaterie(el,r){
+  const v=at(ck(r.date,r.start))[r.lane];
+  if(!v||v.i!==GENID||v.a!=="RIP")return;
+  const m=map(),mm=mmOf(v)||[];
+  const prop=materieDellaSettimana(r.date);
+  mm.forEach(id=>{if(prop.indexOf(id)<0&&m[id])prop.push(id);});
+  const box=document.createElement("div");box.className="ripmm";
+  const nota=t=>{const e=document.createElement("em");e.textContent=t;box.appendChild(e);};
+  box.innerHTML="<span>Il ripasso va a</span>";
+  if(!prop.length)nota("nessuna materia in piano questa settimana");
+  prop.forEach(id=>{
+    const b=document.createElement("button");
+    b.className="tool";b.dataset.mm=id;
+    b.setAttribute("aria-pressed",mm.indexOf(id)>=0);
+    b.innerHTML='<i style="background:'+m[id].color+'"></i>'+esc(m[id].short||m[id].name);
+    b.title=m[id].name;
+    b.onclick=e=>{e.stopPropagation();ripassoSegna(r,id);};
+    box.appendChild(b);
+  });
+  if(mm.length)nota(mm.length===1?"tutto a lei":parteDi(mm.length)+" ciascuna");
+  el.appendChild(box);
+}
+const parteDi=n=>({2:"metà",3:"un terzo",4:"un quarto",5:"un quinto"}[n]||"1/"+n);
+/* le materie (non le voci di servizio) che hanno almeno una mezz'ora nella
+   settimana di quel giorno, nell'ordine in cui compaiono */
+function materieDellaSettimana(dateIso){
+  const m=map(),lun=monday(parse(dateIso)),out=[];
+  for(let d=0;d<7;d++){
+    const k=iso(addDays(lun,d));
+    HOURS.forEach(sl=>at(ck(k,sl)).forEach(v=>{
+      if(v&&m[v.i]&&m[v.i].kind!=="g"&&out.indexOf(v.i)<0)out.push(v.i);}));
+  }
+  return out;
+}
+/* accende o spegne una materia su tutto il ripasso: anche sulla parte gia'
+   spuntata, che per la griglia e' un blocco a se' ma per te e' lo stesso */
+function ripassoSegna(r,id){
+  const v0=at(ck(r.date,r.start))[r.lane];
+  if(!v0||v0.i!==GENID||v0.a!=="RIP")return;
+  const prima=(mmOf(v0)||[]).join();
+  const stesso=v=>v&&v.i===GENID&&v.a==="RIP"&&(mmOf(v)||[]).join()===prima;
+  let a=r.start,b=r.start;
+  while(a-1>=HOURS[0]&&stesso(at(ck(r.date,a-1))[r.lane]))a--;
+  while(b+1<=HOURS[HOURS.length-1]&&stesso(at(ck(r.date,b+1))[r.lane]))b++;
+  let mm=(mmOf(v0)||[]).slice();
+  mm=mm.indexOf(id)>=0?mm.filter(x=>x!==id):mm.concat(id);
+  for(let sl=a;sl<=b;sl++){
+    const key=ck(r.date,sl),arr=at(key).slice(),v=Object.assign({},arr[r.lane]);
+    if(mm.length)v.mm=mm.slice();else delete v.mm;
+    arr[r.lane]=v;setAt(key,arr);
+  }
+  const m=map();
+  afterEdit(mm.length?"Ripasso diviso fra "+mm.map(x=>m[x].short||m[x].name).join(", ")
+                     :"Ripasso di nuovo libero");
 }
 function copyBlocks(){
   const keys=Object.keys(selRuns);
@@ -6517,7 +6623,7 @@ function copyBlocks(){
   });
   state.blockClip=runs.map(r=>({
     dd:Math.round((parse(r.date)-minDay)/86400000),
-    ds:r.start-minSlot,len:r.len,i:r.i,a:r.a,n:r.n,done:r.done,m:r.m
+    ds:r.start-minSlot,len:r.len,i:r.i,a:r.a,n:r.n,done:r.done,m:r.m,mm:r.mm
   }));
   /* Dice cosa ha copiato, per nome: la selezione resta finche' non premi Esc,
      e un blocco scelto ieri e dimenticato finiva negli appunti insieme a
@@ -6554,7 +6660,7 @@ function pasteBlocks(dove){
        corsie non si incolla, invece di sovrascrivere in silenzio */
     const L=corsiaPerArrivo(d,st,b.len,null);
     if(L<0){senzaPosto++;return;}
-    placeRun(d,st,{i:b.i,a:b.a,n:b.n,len:b.len},L);
+    placeRun(d,st,{i:b.i,a:b.a,n:b.n,mm:b.mm,len:b.len},L);
     messi++;
   });
   /* la selezione ha finito il suo lavoro: quello che era scelto e' negli
@@ -6622,7 +6728,7 @@ function compattaCorsie(dateIso){
       const sotto=r.lane-1;
       for(let k=0;k<r.len;k++)if(at(ck(dateIso,r.start+k))[sotto])return;
       clearRun(dateIso,r.start,r.len,r.lane);
-      placeRun(dateIso,r.start,{i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,m:r.v.m,len:r.len},sotto);
+      placeRun(dateIso,r.start,{i:r.v.i,a:r.v.a,n:r.v.n,done:r.v.done,m:r.v.m,mm:mmOf(r.v)||undefined,len:r.len},sotto);
       if(state.pomRun&&state.pomRun.linked)state.pomRun.linked.forEach(b=>{
         if(b.date===dateIso&&b.lane===r.lane&&b.start>=r.start&&b.start<r.start+r.len)b.lane=sotto;});
       cambiato=true;mosso=true;
@@ -6718,7 +6824,11 @@ function wire(t){
     if(e.target.classList&&e.target.classList.contains("rsz")&&!state.erase){
       const bl=e.target.closest(".blk");
       const r=runAt(bl.dataset.date,+bl.dataset.start,+bl.dataset.lane);
-      if(r){e.preventDefault();e.stopPropagation();rz=r;}
+      if(r){
+        e.preventDefault();e.stopPropagation();rz=r;
+        /* quella di sopra tiene ferma la fine e sposta l'inizio */
+        rz.su=e.target.classList.contains("su");rz.fine=r.start+r.len-1;
+      }
       return;
     }
     /* spunta fatto/da fare */
@@ -6994,6 +7104,23 @@ window.addEventListener("pointermove",e=>{
        quattro mezz'ore a tre lo faceva saltare a una. */
     const td=slotAtY(rz.date,e.clientY);
     if(!td)return;
+    if(rz.su){
+      /* Salendo si ferma contro un altro blocco della stessa corsia invece
+         di mangiarselo: riaccorciando, le mezz'ore sovrascritte non
+         tornerebbero piu'. */
+      const meta=Math.max(HOURS[0],Math.min(rz.fine,+td.dataset.h));
+      let ns=meta;
+      if(meta<rz.start){
+        ns=rz.start;
+        for(let sl=rz.start-1;sl>=meta&&!at(ck(rz.date,sl))[rz.lane];sl--)ns=sl;
+      }
+      if(ns===rz.start)return;
+      clearRun(rz.date,rz.start,rz.len,rz.lane);
+      rz.start=ns;rz.len=rz.fine-ns+1;
+      placeRun(rz.date,rz.start,rz,rz.lane);
+      drawDay(rz.date);
+      return;
+    }
     let nl=(+td.dataset.h)-rz.start+1;
     nl=Math.max(1,Math.min(HOURS[HOURS.length-1]-rz.start+1,nl));
     if(nl===rz.len)return;
