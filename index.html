@@ -2228,7 +2228,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="9 nov 2026 · g";
+const VERSIONE="9 nov 2026 · h";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -3075,7 +3075,10 @@ const MATCOL={
   "_lav":"#A1A781",
   "_naspi":"#FDCCC0",
   "_pai":"#B3829D",
-  "_claude":"#FC4830",  /* corallo: a 27 da tutte le materie dei tre piani, e la scritta nera ci si legge */
+  /* corallo chiaro (9 novembre: "fallo di un colore meno forte"; prima era
+     #FC4830). A 22,8 da tutte le materie di ogni anno del piano LM18; un
+     corallo tenue lontano da tutte quelle dei tre piani non c'e' */
+  "_claude":"#FFA989",
   "_arr":"#68F868",   /* verde presa: il solo colore abbastanza lontano da tutte le materie dei tre piani */
   /* Chiusura del percorso */
   "c:24688":"#FFB0D1",
@@ -3938,7 +3941,7 @@ function status(){
         : state.act==="ARR"
         ? "<b>ARRAMPICATA</b> · senza materia, in verde"+clip
         : state.act==="CLA"
-        ? "<b>CLAUDE</b> · senza materia, in corallo — o scegli una materia"+clip
+        ? "<b>CLAUDE</b> · senza materia, in corallo chiaro — o scegli una materia"+clip
         : "Scegli una materia o una voce."+clip);
     return;
   }

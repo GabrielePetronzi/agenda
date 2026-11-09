@@ -3416,7 +3416,7 @@
       if(!bott)return "fra le attivita' non c'e' il pulsante Claude";
       if(senza!==CLAUDEID)return "senza materia dipinge "+senza;
       if(con!==it[0].id)return "con una materia scelta dipinge "+con;
-      if(!voce||voce.color!=="#FC4830")return "la voce Claude non c'e' o non e' corallo";
+      if(!voce||voce.color!=="#FFA989")return "la voce Claude non c'e' o non e' corallo chiaro";
       if(dasolo)return "passata l'ora si e' spuntato da solo";
       if(vero(v))return "la spunta a mano conta come fatta";
       return q.indexOf("■")>=0?true:"la sessione di Claude non l'ha spuntato: "+q;
