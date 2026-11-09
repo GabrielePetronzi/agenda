@@ -3318,6 +3318,47 @@
     if(ids.join()!==atteso)return "il timer manda i minuti a "+ids.join();
     if(copia!==2)return "copiato, il ripasso ha "+copia+" materie";
     return mmOf(dopo)?"spente tutte e due, il ripasso resta diviso":true;});
+  /* 9 novembre: "rendi piu' intuitiva la scelta delle materie per il ripasso" */
+  t("la scritta del ripasso libero apre la scelta delle materie, e il pennello le porta con se'",function(){
+    pulisci();apri();clearSel();
+    var pennello=state.brush,att=state.act,prima=state.ripMm;
+    placeRun(G[0],H0,{i:GENID,a:"RIP",len:2},0);
+    placeRun(G[1],H0,{i:it[0].id,a:"SCH",len:2},0);
+    placeRun(G[2],H0,{i:it[1].id,a:"LET",len:2},0);render();
+    var link=document.querySelector('.blk[data-date="'+G[0]+'"] .mmlink');
+    if(!link)return "il ripasso libero non ha la scritta da cliccare";
+    var invito=link.textContent;
+    var r=link.getBoundingClientRect(),xy={bubbles:true,cancelable:true,pointerId:1,clientX:r.left+r.width/2,clientY:r.top+r.height/2,buttons:1,isPrimary:true};
+    lastTap={sig:null,t:0};
+    link.dispatchEvent(new PointerEvent("pointerdown",xy));
+    window.dispatchEvent(new PointerEvent("pointerup",xy));
+    var pop=document.getElementById("mmpop");
+    if(!pop){clearSel();return "il clic sulla scritta non apre il riquadro";}
+    var b=pop.querySelector('button[data-mm="'+it[0].id+'"]');if(b)b.click();
+    var ancora=!!document.getElementById("mmpop");
+    var diviso=(mmOf(at(ck(G[0],H0))[0])||[]).join();
+    var fatto=[].find.call(document.querySelectorAll("#mmpop button"),function(x){return x.textContent==="Fatto";});
+    if(fatto)fatto.click();
+    var chiuso=!document.getElementById("mmpop");
+    /* prima di dipingere: Ripasso, nessuna materia, due accese nella riga */
+    state.brush=null;pickAct("RIP");
+    var riga=document.getElementById("ripdi");
+    var c0=riga&&riga.querySelector('button[data-mm="'+it[0].id+'"]'),c1=riga&&riga.querySelector('button[data-mm="'+it[1].id+'"]');
+    if(c0)c0.click();
+    c1=document.querySelector('#ripdi button[data-mm="'+it[1].id+'"]');if(c1)c1.click();
+    var td=document.querySelector('td.c[data-date="'+G[3]+'"][data-h="'+H0+'"]');
+    var tr=td.getBoundingClientRect();
+    td.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,cancelable:true,pointerId:1,clientX:tr.left+4,clientY:tr.top+4,buttons:1,isPrimary:true}));
+    window.dispatchEvent(new PointerEvent("pointerup",{bubbles:true,pointerId:1,isPrimary:true}));
+    var dipinto=at(ck(G[3],H0))[0];
+    state.ripMm=prima;state.brush=pennello;state.act=att;tools();status();clearSel();
+    if(invito.indexOf("materie")<0&&invito.indexOf("＋")<0)return "la scritta dice "+invito;
+    if(diviso!==it[0].id)return "acceso nel riquadro, il ripasso va a "+diviso;
+    if(!ancora)return "il riquadro si chiude al primo clic: non si possono accendere due materie";
+    if(!chiuso)return "Fatto non chiude il riquadro";
+    if(!riga||!c0)return "con Ripasso scelto non c'e' la riga Ripasso di";
+    return (dipinto&&dipinto.i===GENID&&(mmOf(dipinto)||[]).join()===it[0].id+","+it[1].id)?true:
+      "il ripasso dipinto e' "+JSON.stringify(dipinto);});
   /* 9 novembre: "aggiungi l'attivita' Claude, selezionabile anche senza materia" */
   t("Claude si dipinge con o senza materia, si spunta col timer e non a mano",function(){
     return alle(23,function(){
