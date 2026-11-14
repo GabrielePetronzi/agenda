@@ -72,6 +72,7 @@ body.amouse td.c:focus-visible{outline:none}
 /* sotto i 960 la larghezza non basta più per tenerle in riga */
 @media (max-width:960px){.ctxpick .lbl{display:none}}
 .tin .spacer{flex:1}
+.tacts{display:flex;gap:8px;flex:0 0 auto;margin-left:auto}
 .seg{display:flex;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r-sm);padding:2px;flex:0 0 auto}
 .seg button{background:none;border:0;cursor:pointer;color:var(--tx2);
@@ -451,6 +452,10 @@ body.dropping td.c.dropok{background:var(--tint-hover);
 .latebar b i{font-style:normal;color:var(--late)}
 .latebar u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;
   color:var(--tx3);flex:1;min-width:0}
+/* nel riquadro dei ritardi "14,5 h · dal 11 nov al 14 nov" resta su una riga:
+   a finestra stretta andava in colonna, una parola sotto l'altra, e i due
+   tasti finivano su righe diverse */
+#latebar u{flex:1 1 auto;white-space:nowrap}
 .latebar button{border:1px solid var(--line);background:var(--raised);color:var(--tx2);
   border-radius:var(--r-sm);padding:4px 10px;font-size:11.5px;cursor:pointer}
 .latebar button:hover{color:var(--tx);border-color:var(--tx3)}
@@ -1144,6 +1149,13 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
   .pombar .pmeta i{display:block}
   .pombar .pt{font-size:21px;min-width:62px}
   .pombar .pin{gap:10px}
+  /* i tasti su una riga loro: accanto si prendevano tutta la larghezza e la
+     scritta (cosa spunta, "pausa finita") finiva in una colonnina di otto
+     righe da quattro parole */
+  .pombar .pin{flex-wrap:wrap;row-gap:8px}
+  .pombar .pbtn{flex:1 0 100%}
+  .pombar .pbtn button{flex:1 1 auto;justify-content:center}
+  .pombar .pbtn button[data-p="stop"]{flex:0 0 auto}
   .pmhead{display:none}
   .pmrow .f u{display:block}
   .pmrow .nm{flex:1 0 100%}
@@ -1258,10 +1270,14 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
       <div class="seg" id="segCtx" aria-label="Periodo"></div>
     </div>
     <span class="spacer"></span>
-    <button class="icon" id="undoBtn" title="Annulla (Ctrl+Z)" aria-label="Annulla">↶</button>
-    <button class="icon" id="redoBtn" title="Rifai (Ctrl+Y)" aria-label="Rifai">↷</button>
-    <button class="icon" id="theme" title="Chiaro o scuro" aria-label="Cambia tema">◐</button>
-    <button class="icon" id="moreBtn" title="Altro" aria-label="Altro" aria-expanded="false">⋯</button>
+    <!-- insieme: a finestra stretta annulla restava in riga e rifai andava a
+         capo da solo, sotto, staccato dal suo gemello -->
+    <div class="tacts">
+      <button class="icon" id="undoBtn" title="Annulla (Ctrl+Z)" aria-label="Annulla">↶</button>
+      <button class="icon" id="redoBtn" title="Rifai (Ctrl+Y)" aria-label="Rifai">↷</button>
+      <button class="icon" id="theme" title="Chiaro o scuro" aria-label="Cambia tema">◐</button>
+      <button class="icon" id="moreBtn" title="Altro" aria-label="Altro" aria-expanded="false">⋯</button>
+    </div>
   </div>
   <div class="moremenu" id="moremenu">
     <div class="mm">
@@ -5240,7 +5256,8 @@ function lateBar(){
       (primo.date===ultimo.date?"":" al "+fmt(parse(ultimo.date)))+"</u>"+
     '<button data-l="vai">Vai al primo</button>'+
     '<button data-l="sposta" title="Li rimette avanti alla stessa ora, senza far '+
-      'superare a un giorno le ore che hai già fatto in un giorno">Sposta avanti</button>';
+      'superare a un giorno le ore che hai già fatto in un giorno. Il blocco che hai '+
+      'cominciato oggi resta dov\'è">Sposta avanti</button>';
   box.querySelectorAll("button").forEach(b=>{
     b.onclick=()=>{
       if(b.dataset.l==="sposta"){spostaArretrati();return;}
@@ -6682,7 +6699,7 @@ function selInfo(){
   const uno=n===1?selRuns[Object.keys(selRuns)[0]]:null;
   el.innerHTML="<b>"+(uno?(uno.len===1?"mezz’ora":"blocco")+" "+slotTime(uno.start)+"–"+slotTime(uno.start+uno.len)
       :n+" blocchi · "+hrs(tot))+"</b>"+
-    "<span>copia C · incolla V · fatto F · elimina ⌫ · esci Esc</span>";
+    "<span>copia ⌘C · taglia ⌘X · incolla ⌘V · fatto F · elimina ⌫ · esci Esc</span>";
   const rip=document.createElement("button");
   rip.className="btn";
   rip.innerHTML=icon("RIP",13)+"<span>Ripeti ogni settimana…</span>";
@@ -8420,6 +8437,7 @@ const KEYS=[
     [["⌘/Ctrl","Z"],"Annulla"],
     [["⌘/Ctrl","Y"],"Rifai"],
     [["⌘/Ctrl","C"],"Copia i blocchi selezionati"],
+    [["⌘/Ctrl","X"],"Taglia: li toglie da lì per incollarli altrove (le parti già fatte restano)"],
     [["⌘/Ctrl","V"],"Incolla nella casella col fuoco — ci arrivi con le frecce"]]]
 ];
 function ksList(){
