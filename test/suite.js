@@ -236,6 +236,7 @@
     var conta=function(){var k=0;for(var i=0;i<6;i++){
       var v=at(ck(oggi,MATT+i))[0];if(v&&v.done)k++;}return k;};
     fine();fine();                    /* 45 + 12 = 57 */
+    pomPause();                       /* finita la pausa aspetta: premi Avvia */
     var a57=conta();
     var c=pomConf("SCH");
     state.pomRun.ends=Date.now()+(c.s-32)*60000;          /* 89 minuti */
@@ -697,6 +698,37 @@
     var d=state.log[k]||{};
     return (d[it[0].id+"|ESE"]===30&&d[it[1].id+"|ESE"]===30)?true:
       "ha diviso così: "+JSON.stringify(d);});
+  /* 14 novembre: "dopo la pausa non si avvii automaticamente il blocco di
+     studio, lo devo avviare io" */
+  t("finita la pausa la sessione aspetta che la avvii tu",function(){
+    return alleSette(function(){
+    pulisci();apri();
+    placeRun(oggi,MATT,{i:it[0].id,a:"ESE",len:6},0);
+    pomStart("ESE",[]);
+    fine();                                 /* sessione finita: pausa */
+    var inPausa=state.pomRun.phase!=="work"&&state.pomRun.paused==null;
+    fine();                                 /* pausa finita da sola */
+    var r=state.pomRun,c=pomConf("ESE");
+    var ferma=r.phase==="work"&&r.paused===c.s*60000&&!!r.attesa&&!pomTick;
+    var m0=maturato(r);r.ends=Date.now()-60*60000;var m1=maturato(r);
+    var avvia=(document.querySelector('#pombar button[data-p="pause"]')||{}).textContent||"";
+    pomPause();                             /* premi Avvia */
+    var parte=state.pomRun.paused==null&&!state.pomRun.attesa;
+    pomStop(true);
+    if(!inPausa)return "a fine sessione non e' partita la pausa";
+    if(!ferma)return "finita la pausa la sessione e' partita da sola";
+    if(m1!==m0)return "da ferma maturano minuti";
+    if(avvia.indexOf("Avvia")<0)return "il tasto dice "+avvia;
+    return parte?true:"Avvia non la fa partire";});});
+  t("saltare la pausa fa partire subito la sessione",function(){
+    return alleSette(function(){
+    pulisci();apri();
+    placeRun(oggi,MATT,{i:it[0].id,a:"ESE",len:6},0);
+    pomStart("ESE",[]);
+    fine();pomAdvance(false);
+    var r=state.pomRun,ok=r.phase==="work"&&r.paused==null&&!r.attesa;
+    pomStop(true);
+    return ok?true:"saltata la pausa la sessione e' ferma";});});
   t("riavvia riporta la fase all'inizio",function(){
     pulisci();apri();
     pomStart("ESE",[]);
@@ -982,6 +1014,33 @@
     var dopo=arretrati().length;
     return (dopo>0&&dopo<prima)?true:"prima "+prima+", dopo "+dopo+
       " (ne doveva spostare alcuni e lasciare gli altri)";});
+
+  /* 14 novembre: "Sposta avanti" si era portato via il resto del blocco che
+     stavi studiando oggi, a timer fermo, perche' la sua ora era passata. */
+  t("sposta avanti lascia stare il blocco di oggi gia' cominciato",function(){
+    return allOra(20,function(){
+    pulisci();apri();
+    var h=14*PERQ,ieri=iso(addDays(new Date(),-1));
+    placeRun(oggi,h,{i:it[0].id,a:"SCH",len:6},0);         /* 14-17 */
+    for(var j=0;j<2;j++){var a=at(ck(oggi,h+j)).slice();a[0]=Object.assign({},a[0],{done:1});setAt(ck(oggi,h+j),a);}
+    placeRun(oggi,9*PERQ,{i:it[1].id,a:"LET",len:2},0);    /* mai cominciato */
+    placeRun(ieri,h,{i:it[2].id,a:"ESE",len:2},0);
+    var resto=arretrati().filter(function(b){return b.date===oggi&&b.start===h+2;}).length;
+    spostaArretrati();
+    var rimasto=0;for(var k=2;k<6;k++){var v=at(ck(oggi,h+k))[0];if(v&&v.i===it[0].id&&!v.done)rimasto++;}
+    var letta=runAt(oggi,9*PERQ,0),ese=runAt(ieri,h,0);
+    if(resto)return "il resto del blocco conta come arretrato";
+    if(rimasto!==4)return "del blocco di oggi sono rimaste "+rimasto+" mezz'ore da fare su 4";
+    if(letta||ese)return "gli arretrati veri non si sono spostati";
+    return true;});});
+  /* e domani, se e' rimasto da fare, e' un arretrato come gli altri */
+  t("il blocco cominciato e non finito ieri e' arretrato",function(){
+    return allOra(20,function(){
+    pulisci();apri();
+    var h=14*PERQ,ieri=iso(addDays(new Date(),-1));
+    placeRun(ieri,h,{i:it[0].id,a:"SCH",len:4},0);
+    var a=at(ck(ieri,h)).slice();a[0]=Object.assign({},a[0],{done:1});setAt(ck(ieri,h),a);
+    return eq(arretrati().filter(function(b){return b.date===ieri;}).length,1,"arretrati di ieri ");});});
 
   /* ---------- la riga del ritmo ---------- */
   t("il ritmo dice quante ore a settimana servono",function(){
@@ -2303,6 +2362,29 @@
     var sopravvissuti=at(ck(G[3],H0)).filter(function(v){return v&&v.a==="ESE";}).length;
     return (affiancato===2&&pieno===MAXLANE&&sopravvissuti===MAXLANE)?true:
       "affiancati "+affiancato+" (attesi 2) · con tre piene "+pieno+", ne sopravvivono "+sopravvissuti;});
+
+  /* 14 novembre: ⌘X non faceva niente */
+  t("tagliare toglie il blocco e incollare lo rimette dove vuoi",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0+4,{i:it[0].id,a:"SCH",len:2,n:"cap. 5"},0);render();
+    toggleSel(G[0],H0+4,0);
+    window.dispatchEvent(new KeyboardEvent("keydown",{key:"x",metaKey:true,bubbles:true}));
+    var via=!runAt(G[0],H0+4,0);
+    cursor={date:G[2],slot:H0+6,lane:0};pasteBlocks();
+    var q=runAt(G[2],H0+6,0);clearSel();
+    if(!via)return "il blocco tagliato e' rimasto al suo posto";
+    if(!q||q.i!==it[0].id||q.len!==2||q.n!=="cap. 5")return "incollato male: "+JSON.stringify(q);
+    return true;});
+  t("tagliare non butta le mezz'ore gia' fatte",function(){
+    pulisci();apri();clearSel();
+    placeRun(G[0],H0,{i:it[0].id,a:"SCH",len:2,done:1},0);
+    placeRun(G[0],H0+2,{i:it[0].id,a:"SCH",len:2},0);render();
+    toggleSel(G[0],H0,0);toggleSel(G[0],H0+2,0);
+    cutBlocks();
+    var fatto=runAt(G[0],H0,0),dafare=runAt(G[0],H0+2,0);
+    var clip=(state.blockClip||[]).length;clearSel();
+    return (fatto&&fatto.done&&!dafare&&clip===1)?true:
+      "fatto "+!!(fatto&&fatto.done)+", da fare rimasto "+!!dafare+", negli appunti "+clip;});
 
   t("incollare due volte nello stesso posto non fa due blocchi",function(){
     pulisci();apri();clearSel();

@@ -102,6 +102,8 @@
         var tx=document.getElementById("semBody")?document.getElementById("semBody").innerText:"";
         if(/NaN|undefined|Infinity/.test(tx))g(d+" nei grafici si legge NaN/undefined");}
       nowLine();autoLessons();promemoria();copiaGiorno();
+      /* finita la pausa la sessione aspetta: lo studente preme Avvia */
+      if(state.pomRun&&state.pomRun.attesa)pomPause();
       var r=state.pomRun;if(r&&!r.paused){if(Date.now()>=r.ends)pomAdvance(true);else spuntaMaturato(r);}
       if(mm%5===0)runsOf(d).forEach(function(x){
         var fine=(x.start+x.len)*30,adesso=h*60+mm;
@@ -113,6 +115,8 @@
           /* un blocco agganciato al timer non e' in ritardo: lo stai facendo */
           var sotto=state.pomRun&&(state.pomRun.linked||[]).some(function(b2){
             return b2.date===d&&b2.lane===x.lane&&b2.start>=x.start&&b2.start<x.start+x.len;});
+          /* e nemmeno il resto di un blocco di oggi gia' cominciato */
+          if(bloccoCominciato(d,x))sotto=true;
           if(late&&adesso<fine)g(d+" "+slotTime(x.start)+" in ritardo prima della fine");
           if(!x.v.done&&!late&&!sotto&&adesso>fine+1)g(d+" "+slotTime(x.start)+" non fatto dopo la fine ma non in ritardo");
         }

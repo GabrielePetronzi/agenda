@@ -1107,6 +1107,12 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
   border-radius:var(--r-sm);font-family:"DM Mono",monospace;font-size:11px;padding:8px 12px;
   cursor:pointer;min-height:32px}
 .pombar .pbtn button:hover{color:var(--tx);border-color:var(--tx3)}
+/* pausa finita, la sessione aspetta te: Avvia e' l'unico tasto che conta
+   adesso, e la scritta "pausa finita" non e' un avviso ma l'informazione */
+.pombar.attesa .pmeta u.nolink{color:var(--action)}
+.pombar.attesa .pico{color:var(--action)}
+.pombar .pbtn button.pgo{background:var(--action);border-color:var(--action);color:var(--bg);font-weight:500}
+.pombar .pbtn button.pgo:hover{color:var(--bg);filter:brightness(1.08)}
 .pmrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0;
   border-bottom:1px solid var(--line-soft)}
 .pmrow:last-child{border-bottom:0}
@@ -2716,6 +2722,7 @@ window.addEventListener("keydown",e=>{
   if(k==="z"&&!e.shiftKey){e.preventDefault();undo();}
   else if(k==="y"||(k==="z"&&e.shiftKey)){e.preventDefault();redo();}
   else if(k==="c"){e.preventDefault();copyBlocks();}
+  else if(k==="x"){e.preventDefault();cutBlocks();}
   else if(k==="v"){e.preventDefault();pasteBlocks();}
 });
 /* fuori dai modificatori: Esc annulla la selezione, Canc elimina i blocchi scelti */
@@ -4704,14 +4711,24 @@ function pomAdvance0(auto){
       toast("Niente altro di "+cosa+" per "+FASCE[f]+": timer fermato");
       pomStop(true);return;
     }
-    if(auto)notify("Pausa finita","Riprendi con "+actOf(r.act).n.toLowerCase());
+    if(auto)notify("Pausa finita","Quando sei pronto premi Avvia: "+actOf(r.act).n.toLowerCase());
     r.cycle=r.phase==="long"?1:r.cycle+1;
     r.phase="work";delete r.quota;
     r.base=r.spesi||0;                 /* da qui conta la sessione nuova */
     r.ends=Date.now()+c.s*60000;
     if(agganciaDaSolo(r))redrawLinked();
+    /* Finita la pausa da sola, la sessione non parte: aspetta che la avvii
+       tu (14 novembre: "dopo la pausa non si avvii automaticamente il blocco
+       di studio, lo devo avviare io"). Ferma all'inizio, il tempo non scorre
+       e nessuna mezz'ora matura finche' non premi Avvia. Se invece la pausa
+       la salti tu, sei gia' li': la sessione parte subito. */
+    if(auto){
+      r.paused=c.s*60000;r.attesa=1;
+      clearInterval(pomTick);pomTick=null;
+      save();pomRender();return;
+    }
   }
-  r.paused=null;save();pomRender();pomLoop();
+  r.paused=null;delete r.attesa;save();pomRender();pomLoop();
 }
 /* riporta la fase in corso al suo inizio */
 function pomRestart(){
@@ -4741,7 +4758,7 @@ function redrawLinked(){
 }
 function pomPause(){
   const r=state.pomRun;if(!r)return;
-  if(r.paused){r.ends=Date.now()+r.paused;r.paused=null;pomLoop();}
+  if(r.paused!=null){r.ends=Date.now()+r.paused;r.paused=null;delete r.attesa;pomLoop();}
   else{r.paused=Math.max(0,r.ends-Date.now());clearInterval(pomTick);pomTick=null;}
   save();pomRender();
 }
@@ -4810,8 +4827,8 @@ function pomRender(onlyTime){
      cui non scorre niente. Nella barra si leggeva "Pausa" e il pulsante
      diceva "Riprendi": impossibile capire che il conto era fermo, e che
      quindi nessuna mezz'ora sarebbe mai scattata. */
-  const fermo=r.paused!=null;
-  const eti=(fermo?"FERMO · ":"")+(r.phase==="work"?actOf(r.act).n
+  const fermo=r.paused!=null,attesa=fermo&&r.attesa;
+  const eti=(attesa?"PRONTO · ":fermo?"FERMO · ":"")+(r.phase==="work"?actOf(r.act).n
     :(r.phase==="long"?"Pausa lunga":"Pausa"));
   /* A quale blocco sta andando il tempo. Senza questa riga un timer partito
      con l'attivita' sbagliata nella colonna girava senza agganciarsi a
@@ -4827,10 +4844,11 @@ function pomRender(onlyTime){
   /* Anche da fermo si deve leggere a quale blocco va il tempo. Prima la riga
      "in pausa" prendeva tutto il posto e nascondeva proprio la risposta alla
      domanda di chi guarda il timer fermo: "e questo, cosa mi spunta?". */
-  const nota=(fermo?'<u class="nolink">in pausa: il tempo non scorre</u> · ':"")+
+  const nota=(attesa?'<u class="nolink">pausa finita: parte quando premi Avvia</u> · '
+             :fermo?'<u class="nolink">in pausa: il tempo non scorre</u> · ':"")+
     (dove?"spunta "+dove:'<u class="nolink">nessun blocco agganciato</u>');
   const prima=bar.classList.contains("on");
-  bar.className="pombar on "+r.phase+(r.paused!=null?" pause":"");
+  bar.className="pombar on "+r.phase+(r.paused!=null?" pause":"")+(attesa?" attesa":"");
   bar.innerHTML=
     '<div class="pfill" style="width:'+pct+'%"></div>'+
     '<div class="pin">'+
@@ -4839,8 +4857,10 @@ function pomRender(onlyTime){
       '<span class="pmeta"><b>'+eti+"</b><i>"+nota+
         " · ciclo "+r.cycle+" di "+c.n+"</i></span>"+
       '<span class="pbtn">'+
-        '<button data-p="pause" title="'+(r.paused!=null?"Riprendi":"Metti in pausa")+'">'+
-          (r.paused!=null?icon("PLY",12)+"<span>Riprendi</span>"
+        '<button data-p="pause"'+(attesa?' class="pgo"':"")+' title="'+
+          (attesa?"Avvia la sessione":r.paused!=null?"Riprendi":"Metti in pausa")+'">'+
+          (attesa?icon("PLY",12)+"<span>Avvia</span>"
+          :r.paused!=null?icon("PLY",12)+"<span>Riprendi</span>"
                          :icon("PSE",12)+"<span>Pausa</span>")+"</button>"+
         '<button data-p="restart" title="Riporta il conto all\'inizio">'+
           icon("RIP",12)+"<span>Riavvia</span></button>"+
@@ -5102,7 +5122,25 @@ function inRitardo(dateIso,r){
       b.start>=r.start&&b.start<r.start+r.len))return false;
   const oggi=iso(new Date());
   if(dateIso>oggi)return false;
+  /* Un blocco di oggi gia' cominciato non e' in ritardo: lo stai facendo,
+     anche a timer fermo o in pausa e anche se la sua ora e' passata. Il 14
+     novembre "Sposta avanti" si e' portato via il resto del blocco che stavi
+     studiando: metà era fatta, l'ora di fine era passata, e la parte da
+     fare e' finita su un altro giorno. Se a fine giornata resta da fare,
+     domani conta come arretrato come tutti gli altri. */
+  if(dateIso>=giornoStudio()&&bloccoCominciato(dateIso,r))return false;
   return dateIso<oggi||r.start+r.len<=oraAdesso();
+}
+/* Il pezzo da fare di un blocco di cui un pezzo e' gia' fatto: la griglia li
+   disegna come due blocchi (fatto e da fare), ma sono la stessa materia e la
+   stessa attivita', di seguito, sulla stessa corsia. */
+function bloccoCominciato(dateIso,r){
+  const v0=r.v,stesso=v=>v&&v.i===v0.i&&v.a===v0.a;
+  for(let sl=r.start-1;sl>=HOURS[0];sl--){
+    const v=at(ck(dateIso,sl))[r.lane];if(!stesso(v))break;if(vero(v))return true;}
+  for(let sl=r.start+r.len;sl<=HOURS[HOURS.length-1];sl++){
+    const v=at(ck(dateIso,sl))[r.lane];if(!stesso(v))break;if(vero(v))return true;}
+  return false;
 }
 function arretrati(){
   const pre=PRE(),giorni={},out=[];
@@ -6796,10 +6834,12 @@ function ripassoSegna(r,id){
   afterEdit(fra.length?"Ripasso diviso fra "+fra.map(x=>m[x].short||m[x].name).join(", ")
                       :"Ripasso di nuovo libero");
 }
-function copyBlocks(){
-  const keys=Object.keys(selRuns);
-  if(!keys.length){toast("Nessun blocco selezionato");return;}
-  const runs=keys.map(k=>selRuns[k]);
+function copyBlocks(runs,verbo){
+  if(!runs){
+    const keys=Object.keys(selRuns);
+    if(!keys.length){toast("Nessun blocco selezionato");return;}
+    runs=keys.map(k=>selRuns[k]);
+  }
   let minDay=null,minSlot=null;
   runs.forEach(r=>{
     const t=parse(r.date).getTime();
@@ -6815,7 +6855,26 @@ function copyBlocks(){
      quello di oggi — e poi sulla griglia, dove nessuno se lo aspettava. */
   const m=map();
   const elenco=runs.map(r=>(m[r.i]?m[r.i].short:"?")+" "+hrs(r.len)).join(", ");
+  if(verbo)return elenco;
   save();toast("Copiat"+(runs.length===1?"o":"i")+": "+elenco);
+}
+/* Taglia (⌘X / Ctrl+X): copia e toglie dalla griglia, poi ⌘V lo mette dove
+   vuoi. Il 14 novembre non c'era: ⌘X non faceva niente e il blocco restava
+   li'. Le mezz'ore fatte davvero non si tagliano: incollando la spunta non
+   viaggia, e tagliarle vorrebbe dire buttare ore studiate. Restano dove sono
+   e si sposta solo la parte da fare. */
+function cutBlocks(){
+  const keys=Object.keys(selRuns);
+  if(!keys.length){toast("Nessun blocco selezionato: ⌘-clic su un blocco, poi ⌘X");return;}
+  const tutti=keys.map(k=>selRuns[k]);
+  const runs=tutti.filter(r=>!vero(r));
+  if(!runs.length){toast("Sono già fatti: le ore studiate non si tagliano");return;}
+  const elenco=copyBlocks(runs,true);
+  runs.forEach(r=>clearRun(r.date,r.start,r.len,r.lane));
+  selRuns={};
+  const fermi=tutti.length-runs.length;
+  afterEdit("Tagliat"+(runs.length===1?"o":"i")+": "+elenco+" · ⌘V dove lo vuoi"+
+    (fermi?" · le parti fatte restano":""));
 }
 function pasteBlocks(dove){
   if(!state.blockClip||!state.blockClip.length){toast("Niente da incollare");return;}
