@@ -471,6 +471,33 @@ body.dropping td.c.dropok{background:var(--tint-hover);
   line-height:1}
 .blk.tardi:hover .tick{box-shadow:inset 0 0 0 2px #C5221F}
 html[data-row="micro"] .blk.tardi .tick::after{font-size:9px}
+/* ---------- oggi ---------- */
+.oggibar{display:none}
+.oggibar.on{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;margin:0 0 12px;
+  padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.oggibar .oh{display:flex;flex-direction:column;margin-right:6px;line-height:1.2}
+.oggibar .oh b{font-size:12.5px;font-weight:600;color:var(--tx)}
+.oggibar .oh u{text-decoration:none;font-family:"DM Mono",monospace;font-size:9.5px;color:var(--tx3)}
+.oggibar .on0{font-size:12px;color:var(--tx3)}
+.ochip{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 4px 0 8px;
+  border:1px solid var(--line);border-left:3px solid var(--c,var(--tx3));border-radius:var(--r-sm);
+  background:var(--raised);color:var(--tx2);font-size:11.5px;cursor:pointer;max-width:100%}
+.ochip:hover{border-color:var(--tx3);border-left-color:var(--c,var(--tx3));color:var(--tx)}
+.ochip .ot{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);white-space:nowrap}
+.ochip .on{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ochip .on b{font-weight:500;color:var(--tx)}
+.ochip .os{font-family:"DM Mono",monospace;font-size:10px;white-space:nowrap;padding-right:4px}
+.ochip.ok{opacity:.55}
+.ochip.ok .os{color:var(--done)}
+.ochip.late .os{color:var(--late)}
+.ochip.run{border-color:var(--action);border-left-color:var(--c,var(--action));
+  box-shadow:0 0 0 1px var(--action)}
+.ochip.run .os{color:var(--action)}
+.ochip.next{outline:2px dashed var(--action);outline-offset:1px}
+.ochip .og{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
+  border-radius:50%;border:0;background:var(--action);color:var(--bg);cursor:pointer;flex:0 0 auto;padding:0}
+.ochip .og:hover{filter:brightness(1.1)}
+.ochip.nog{padding-right:8px}
 .selbar{display:none}
 /* La barra della selezione galleggia in basso, sopra alla griglia. Stava in
    fila sopra la griglia: compariva al primo clic e spingeva giu' tutto di
@@ -770,6 +797,9 @@ td.c .selmezz{position:absolute;z-index:3;pointer-events:none;border-radius:5px;
   box-shadow:0 0 0 2px var(--action),0 0 0 3px rgba(0,0,0,.3),inset 0 0 0 1px rgba(0,0,0,.25);
   background:color-mix(in srgb,var(--action) 30%,transparent)}
 .blk.running{box-shadow:0 0 0 2px var(--action),0 0 0 4px rgba(139,147,255,.24)}
+/* toccato dalla riga di oggi: un lampo per dire "e' questo" */
+.blk.lampo{animation:lampo 1.2s ease-out}
+@keyframes lampo{0%,40%{box-shadow:0 0 0 3px var(--action)}100%{box-shadow:0 0 0 0 transparent}}
 /* il blocco che Avvia prenderebbe: tratteggiato, perche' non e' ancora
    partito niente — quando parte diventa il contorno pieno qui sopra */
 .blk.avviaqui{outline:2px dashed var(--action);outline-offset:1px}
@@ -1235,7 +1265,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media print{
   .topbar,.moremenu,.diag,.sidebar,.gridbar,.status,.selbar,.modeflag,.pacts,
-  .modal,.toast,.pombar,.sum{display:none!important}
+  .modal,.toast,.pombar,.sum,.oggibar{display:none!important}
   .shell{display:block;padding:0}
   :root{--bg:#fff;--surface:#fff;--raised:#fff;--sunken:#f4f4f4;--tx:#000;--tx2:#444;
         --tx3:#777;--line:#bbb;--line-soft:#ddd}
@@ -1337,9 +1367,6 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
         <div class="tools" id="voci" style="margin-top:9px"></div>
       </div>
 
-      <div class="cfubar" id="cfubar"></div>
-      <div class="propinfo" id="propinfo"></div>
-      <div class="propinfo indietro" id="indietro"></div>
       <div class="searchbox">
         <input id="q" type="search" placeholder="Cerca in tutto il piano" aria-label="Cerca una materia">
         <button id="qClear" title="Azzera la ricerca">✕</button>
@@ -1350,8 +1377,16 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
            tutto loro. Se non ce ne sono, non c'e' niente da vedere. -->
       <div id="exList"></div>
     </div>
-
-
+    <!-- 15 novembre: il riepilogo stava fra il titolo "Materie" e l'elenco,
+         e per scegliere la materia da dipingere bisognava scendere oltre tre
+         riquadri da leggere. Ora la colonna segue il gesto — attivita',
+         timer, materia — e il riepilogo del percorso chiude la colonna. -->
+    <div class="sec">
+      <p class="lbl" data-ico="CAL">Il percorso</p>
+      <div class="cfubar" id="cfubar"></div>
+      <div class="propinfo" id="propinfo"></div>
+      <div class="propinfo indietro" id="indietro"></div>
+    </div>
   </aside>
 
   <main class="canvas">
@@ -1387,6 +1422,9 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
 
     <p class="status" id="status" role="status" aria-live="polite"></p>
     <p class="modeflag" id="modeflag" role="status" aria-live="assertive"></p>
+    <!-- la giornata in una riga: cosa c'e' oggi, cosa e' fatto, e da dove
+         far partire il timer senza cercare il blocco in griglia -->
+    <div class="oggibar" id="oggibar"></div>
     <div class="selbar" id="selbar"></div>
     <div class="latebar ripbar" id="filebar"></div>
     <div class="latebar ripbar" id="ripbar"></div>
@@ -3451,7 +3489,12 @@ function shiftDays(dir){
 function dayLabel(){
   const el=document.getElementById("dLab");if(!el)return;
   const v=span();
-  el.textContent=v===7?"Lun–Dom":(v===1?DSH[state.from]:DSH[state.from]+"–"+DSH[state.to]);
+  el.textContent=v===7?"1 settimana":(v===1?DSH[state.from]:DSH[state.from]+"–"+DSH[state.to]);
+  /* in vista settimana le frecce vanno di una settimana, quelle in alto di
+     quattro: con "Lun–Dom" in mezzo non si capiva cosa spostassero */
+  const pv=document.getElementById("dPrev"),nx=document.getElementById("dNext");
+  const cosa=v===7?"Una settimana":(v===1?"Un giorno":v+" giorni");
+  if(pv)pv.title=cosa+" indietro";if(nx)nx.title=cosa+" avanti";
 }
 
 function colorClashes(){
@@ -4213,7 +4256,7 @@ function graficiAlPasso(){
   if(k===grafMezz)return;
   grafMezz=k;semSummary();lateBar();
 }
-setInterval(()=>{nowLine();autoLessons();promemoria();copiaGiorno();graficiAlPasso();},60000);
+setInterval(()=>{nowLine();autoLessons();promemoria();copiaGiorno();graficiAlPasso();oggiPresto();},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){nowLine();autoLessons();graficiAlPasso();}});
 
 /* ============================================================
@@ -4835,6 +4878,7 @@ function beep(){
 function pomRender(onlyTime){
   const bar=document.getElementById("pombar");
   const r=state.pomRun;
+  if(!onlyTime)oggiPresto();
   if(!r){bar.className="pombar";bar.innerHTML="";stickyOffsets();return;}
   const c=pomConf(r.act);
   const left=r.paused!=null?r.paused:Math.max(0,r.ends-Date.now());
@@ -4961,7 +5005,7 @@ var avviaQui=null;
 function segnaAvviaQui(b){
   const n=b?{date:b.date,start:b.start,lane:b.lane}:null,v=avviaQui;
   if((!n&&!v)||(n&&v&&n.date===v.date&&n.start===v.start&&n.lane===v.lane))return;
-  avviaQui=n;
+  avviaQui=n;oggiPresto();
   /* solo la classe, senza ridisegnare il giorno: pomPanel arriva anche nel
      mezzo di un tocco, e un blocco rifatto sotto il dito perde il gesto */
   document.querySelectorAll(".blk.avviaqui").forEach(e=>e.classList.remove("avviaqui"));
@@ -5358,6 +5402,79 @@ function lateBar(){
         if(el)el.scrollIntoView({block:"center",behavior:"smooth"});
       }
     };
+  });
+}
+
+/* ---------- oggi ----------
+   I blocchi della giornata di studio (fino alle quattro di notte vale ancora
+   ieri, come per il timer) in una riga: materia, attivita', orario e stato.
+   Il ▶ avvia il timer su quel blocco, come "Avvia su un blocco" e un tocco:
+   e' la strada piu' corta, e sul telefono — dove la colonna degli strumenti
+   sta sotto tutta la griglia — l'unica a portata di pollice. Toccare il
+   resto del blocco lo mostra in griglia. Spunte qui non se ne mettono: quelle
+   restano al timer e al quadratino del blocco. */
+function blocchiDelGiorno(d){
+  const m=map(),out=[];
+  runsOf(d).filter(r=>m[r.v.i]).sort((a,b)=>a.lane-b.lane||a.start-b.start).forEach(r=>{
+    const u=out[out.length-1];
+    if(u&&u.lane===r.lane&&u.i===r.v.i&&u.a===r.v.a&&u.start+u.len===r.start){u.len+=r.len;u.parti.push(r);return;}
+    out.push({date:d,lane:r.lane,start:r.start,len:r.len,i:r.v.i,a:r.v.a,parti:[r]});
+  });
+  return out.sort((a,b)=>a.start-b.start||a.lane-b.lane);
+}
+var oggiT=0;
+function oggiPresto(){if(!oggiT)oggiT=requestAnimationFrame(()=>{oggiT=0;oggiBar();});}
+function oggiBar(){
+  const box=document.getElementById("oggibar");if(!box)return;
+  const d=giornoStudio(),m=map(),p=state.pomRun;
+  const bs=blocchiDelGiorno(d);
+  const dt=parse(d);
+  let fatte=0,studio=0;
+  bs.forEach(b=>{if(daSola(b.a))return;studio+=b.len;
+    b.parti.forEach(r=>{if(vero(r.v))fatte+=r.len;});});
+  box.className="oggibar on";
+  box.innerHTML='<span class="oh"><b>Oggi</b><u>'+DSH[(dt.getDay()+6)%7].toLowerCase()+" "+fmt(dt)+
+    (studio?" · "+hrs(fatte)+" su "+hrs(studio):"")+"</u></span>"+
+    (bs.length?"":'<span class="on0">Niente in piano: scegli materia e attività e dipingi in griglia.</span>');
+  bs.forEach(b=>{
+    const o=m[b.i],a=actOf(b.a),solo=daSola(b.a);
+    const fatto=b.parti.every(r=>vero(r.v)||(solo&&r.v.done));
+    const dafare=b.parti.find(r=>!vero(r.v));
+    const corre=p&&(p.linked||[]).some(x=>x.date===d&&x.lane===b.lane&&x.start>=b.start&&x.start<b.start+b.len);
+    const tardi=!corre&&b.parti.some(r=>inRitardo(d,r));
+    const fattoN=b.parti.reduce((n,r)=>n+(vero(r.v)?r.len:0),0);
+    const prossimo=!p&&avviaQui&&avviaQui.date===d&&avviaQui.lane===b.lane&&
+      avviaQui.start>=b.start&&avviaQui.start<b.start+b.len;
+    const el=document.createElement("div");
+    el.className="ochip"+(fatto?" ok":"")+(corre?" run":"")+(tardi?" late":"")+(prossimo?" next":"");
+    el.style.setProperty("--c",o.color||state.colors[b.i]||autoColor(b.i));
+    el.setAttribute("role","button");el.tabIndex=0;
+    el.dataset.start=b.start;el.dataset.lane=b.lane;
+    const stato=corre?"● in corso":fatto?"✓":tardi?"! saltato":
+      (fattoN?hrs(fattoN)+"/"+hrs(b.len):"");
+    el.innerHTML='<span class="ot">'+slotTime(b.start)+"–"+slotTime(b.start+b.len)+"</span>"+
+      '<span class="on"><b>'+esc(o.short||o.name)+"</b> · "+esc(a.n.toLowerCase())+"</span>"+
+      (stato?'<span class="os">'+stato+"</span>":"");
+    el.title=o.name+" · "+a.n+" · "+slotTime(b.start)+"–"+slotTime(b.start+b.len)+" — tocca per vederlo in griglia";
+    const puo=!solo&&!fatto&&!corre&&dafare;
+    if(puo){
+      const g=document.createElement("button");
+      g.className="og";g.innerHTML=icon("PLY",11);
+      g.title="Avvia il timer su questo blocco";g.setAttribute("aria-label","Avvia il timer su "+o.name+" "+a.n);
+      g.onclick=e=>{e.stopPropagation();pomFromCell(d,dafare.start,b.lane);};
+      el.appendChild(g);
+    }else el.classList.add("nog");
+    const mostra=()=>{
+      const cerca=()=>document.querySelector('.blk[data-date="'+d+'"][data-lane="'+b.lane+'"][data-start="'+(dafare||b).start+'"]')||
+        document.querySelector('.blk[data-date="'+d+'"][data-lane="'+b.lane+'"]');
+      let bl=cerca();
+      if(!bl){const t=document.getElementById("wToday");if(t)t.click();bl=cerca();}
+      if(bl){bl.scrollIntoView({block:"center",behavior:"smooth"});
+        bl.classList.add("lampo");setTimeout(()=>bl.classList.remove("lampo"),1200);}
+    };
+    el.onclick=mostra;
+    el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();mostra();}};
+    box.appendChild(el);
   });
 }
 
@@ -6557,6 +6674,7 @@ function drawDay(dateIso,scope){
   root.querySelectorAll('td.c[data-date="'+dateIso+'"]').forEach(td=>{
     cell(td,m);td.dataset.lanes=lanesOf(dateIso);
   });
+  if(dateIso===giornoStudio())oggiPresto();
   const rr=runsOf(dateIso),cw=clusters(rr),memoD={};
   rr.forEach((r,ri)=>{
     const o=m[r.v.i];if(!o)return;
@@ -8578,7 +8696,7 @@ function render(){
   applySpan();controls();picklist();tools();examList();weeknav();panels();status();modeFlag();selInfo();
   lateBar();
   if(state.pomRun&&nelPianoDelTimer(state.pomRun,()=>agganciaDaSolo(state.pomRun)))save(null,true);
-  pomPanel();pomRender();
+  pomPanel();pomRender();oggiBar();
   semSummary();
   if(autoRow())redrawGrid();
 }

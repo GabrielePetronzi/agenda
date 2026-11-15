@@ -774,6 +774,31 @@
     if(resta)return "in griglia resta segnato un blocco di un'altra materia";
     if(altri.indexOf("esercizi alle 15:00")<0)return "manca il tasto per gli esercizi di oggi: "+altri;
     return altri.indexOf(big)>=0?true:"manca il tasto per tornare a Big Data: "+altri;});});
+  /* 15 novembre: la riga di oggi, col ▶ per partire da li' */
+  t("la riga di oggi elenca i blocchi, e il ▶ avvia il timer su quello",function(){
+    return alleSette(function(){
+    pulisci();apri();
+    placeRun(oggi,9*PERQ,{i:it[0].id,a:"SCH",len:4},0);
+    var a=at(ck(oggi,9*PERQ)).slice();a[0]=Object.assign({},a[0],{done:1});setAt(ck(oggi,9*PERQ),a);
+    placeRun(oggi,11*PERQ,{i:it[1].id,a:AUTOACT,len:2},0);
+    placeRun(oggi,15*PERQ,{i:it[2].id,a:"LET",len:2},0);
+    render();oggiBar();
+    var chips=document.querySelectorAll("#oggibar .ochip");
+    var testo=[].map.call(chips,function(c){return c.textContent;}).join(" | ");
+    var lez=document.querySelector('#oggibar .ochip[data-start="'+(11*PERQ)+'"] .og');
+    var go=document.querySelector('#oggibar .ochip[data-start="'+(15*PERQ)+'"] .og');
+    if(go)go.click();
+    var r=state.pomRun,ag=r&&(r.linked||[])[0];
+    oggiBar();
+    var corre=document.querySelector('#oggibar .ochip[data-start="'+(15*PERQ)+'"]');
+    var inCorso=!!(corre&&corre.classList.contains("run"));
+    pomStop(true);
+    if(chips.length!==3)return "blocchi nella riga: "+chips.length+" ("+testo+")";
+    if(testo.indexOf("0,5 h/2 h")<0&&testo.indexOf("½")<0&&!/h\/2 h/.test(testo))return "il blocco a meta' non dice quanto e' fatto: "+testo;
+    if(lez)return "la lezione ha il ▶, ma non ha timer";
+    if(!go)return "la lettura non ha il ▶";
+    if(!ag||ag.start!==15*PERQ||r.act!=="LET")return "il ▶ non ha avviato la lettura delle 15";
+    return inCorso?true:"la riga non dice che e' in corso";});});
   t("il timer che aspetta Avvia segue la materia scelta; quello che corre no",function(){
     return alleSette(function(){
     pulisci();apri();
