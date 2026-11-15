@@ -720,15 +720,54 @@
     if(m1!==m0)return "da ferma maturano minuti";
     if(avvia.indexOf("Avvia")<0)return "il tasto dice "+avvia;
     return parte?true:"Avvia non la fa partire";});});
-  t("saltare la pausa fa partire subito la sessione",function(){
+  /* 15 novembre: "se metto salta anche la sessione di studio dopo non deve
+     partire in automatico, devo sempre avviarlo io" */
+  t("anche saltando la pausa la sessione aspetta Avvia",function(){
     return alleSette(function(){
     pulisci();apri();
     placeRun(oggi,MATT,{i:it[0].id,a:"ESE",len:6},0);
     pomStart("ESE",[]);
     fine();pomAdvance(false);
-    var r=state.pomRun,ok=r.phase==="work"&&r.paused==null&&!r.attesa;
+    var r=state.pomRun,c=pomConf("ESE");
+    var ok=r.phase==="work"&&r.paused===c.s*60000&&!!r.attesa&&!pomTick;
     pomStop(true);
-    return ok?true:"saltata la pausa la sessione e' ferma";});});
+    return ok?true:"saltata la pausa la sessione e' partita da sola";});});
+  /* 15 novembre: cambiando materia il blocco riconosciuto deve cambiare
+     subito, non al gesto dopo */
+  t("cliccando un'altra materia Avvia passa al suo blocco",function(){
+    return alleSette(function(){
+    pulisci();apri();
+    var pen=state.brush,att=state.act;
+    placeRun(oggi,9*PERQ,{i:it[0].id,a:"SCH",len:4},0);
+    placeRun(oggi,15*PERQ,{i:it[1].id,a:"SCH",len:4},0);
+    state.act="SCH";state.brush=it[0].id;picklist();pomPanel();
+    var riga=function(id){return Array.prototype.find.call(document.querySelectorAll(".prow"),
+      function(b){var n=b.querySelector(".pnn");return n&&n.textContent===map()[id].name;});};
+    var b1=riga(it[1].id);
+    if(b1)b1.click();else{state.brush=it[1].id;materiaScelta();}
+    var scritta=(document.querySelector("#pomtools .pomgo")||{}).textContent||"";
+    var nome=map()[it[1].id].short||map()[it[1].id].name;
+    state.brush=pen;state.act=att;picklist();pomPanel();
+    if(!b1)return "non trovo la riga della materia nell'elenco";
+    return (scritta.indexOf(nome)>=0&&scritta.indexOf("15:00")>=0)?true:"il pulsante dice: "+scritta;});});
+  t("il timer che aspetta Avvia segue la materia scelta; quello che corre no",function(){
+    return alleSette(function(){
+    pulisci();apri();
+    var pen=state.brush;
+    placeRun(oggi,9*PERQ,{i:it[0].id,a:"SCH",len:4},0);
+    placeRun(oggi,15*PERQ,{i:it[1].id,a:"SCH",len:4},0);
+    pomStart("SCH",[{date:oggi,start:9*PERQ,lane:0}]);
+    state.brush=it[1].id;materiaScelta();
+    var corre=state.pomRun.linked[0].start;
+    fine();fine();                              /* sessione, pausa: aspetta */
+    state.brush=it[1].id;materiaScelta();
+    var r=state.pomRun,dopo=r.linked[0].start,mat=r.mat;
+    var barra=(document.querySelector("#pombar .pmeta")||{}).textContent||"";
+    pomStop(true);state.brush=pen;
+    if(corre!==9*PERQ)return "a sessione partita il timer si e' spostato alle "+slotTime(corre);
+    if(dopo!==15*PERQ||mat!==it[1].id)return "in attesa e' rimasto alle "+slotTime(dopo);
+    var nome=map()[it[1].id].short||map()[it[1].id].name;
+    return barra.indexOf(nome)>=0?true:"la barra non dice la materia: "+barra;});});
   t("riavvia riporta la fase all'inizio",function(){
     pulisci();apri();
     pomStart("ESE",[]);
@@ -3282,7 +3321,7 @@
       var txt=document.getElementById("pombar").textContent;
       pomStop(true);
       if(txt.indexOf("in pausa")<0)return "la barra non dice che e' in pausa";
-      return txt.indexOf("spunta 10:00")>=0?true:"la barra da fermo non dice il blocco: "+txt;
+      return /spunta .*10:00 di oggi/.test(txt)?true:"la barra da fermo non dice il blocco: "+txt;
     });});
 
   /* La sera del 23 settembre: timer di videolezione avviato quando in griglia
@@ -3302,7 +3341,7 @@
       pomStop(true);
       if(prima.indexOf("nessun blocco")<0)return "a griglia vuota la barra non lo diceva: "+prima;
       if(!ag||ag.start!==20)return "il timer non si e' preso il blocco nuovo";
-      return dopo.indexOf("spunta 10:00")>=0?true:"la barra non dice il blocco nuovo: "+dopo;
+      return /spunta .*10:00 di oggi/.test(dopo)?true:"la barra non dice il blocco nuovo: "+dopo;
     });});
 
   /* ---- 26 settembre: le spunte oneste e Avvia che sceglie da solo ---- */

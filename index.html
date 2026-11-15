@@ -3554,7 +3554,7 @@ function picklist(){
       /* deselezionare invece la ricerca la tiene: vuol dire "non era quella,
          fammi rivedere i risultati" */
       if(sceglie)chiudiRicerca();
-      save();picklist();tools();status();
+      save();picklist();tools();status();materiaScelta();
     };
     b.querySelector(".swatch").onclick=e=>{
       e.stopPropagation();openColor=openColor===o.id?null:o.id;picklist();
@@ -3715,7 +3715,7 @@ function indietroInfo(){
       (o.blocca.length?'<span class="ib">⚠ propedeutico: blocca '+esc(o.blocca.map(nomeCorso).join(", "))+"</span>":"")+
       "</button>").join("")+"</div>";
   el.querySelectorAll(".ir").forEach(b=>b.onclick=()=>{
-    state.brush=b.dataset.id;state.erase=false;save();picklist();tools();status();});
+    state.brush=b.dataset.id;state.erase=false;save();picklist();tools();status();materiaScelta();});
 }
 function propInfo(){
   const el=document.getElementById("propinfo");if(!el)return;
@@ -3917,7 +3917,7 @@ function tools(){
     b.innerHTML='<i style="background:'+m[o.id].color+'"></i>'+o.name;
     b.onclick=()=>{
       state.brush=(state.brush===o.id)?null:o.id;
-      state.erase=false;save();picklist();tools();status();
+      state.erase=false;save();picklist();tools();status();materiaScelta();
     };
     v.appendChild(b);
   });
@@ -4733,12 +4733,13 @@ function pomAdvance0(auto){
     r.base=r.spesi||0;                 /* da qui conta la sessione nuova */
     r.ends=Date.now()+c.s*60000;
     if(agganciaDaSolo(r))redrawLinked();
-    /* Finita la pausa da sola, la sessione non parte: aspetta che la avvii
-       tu (14 novembre: "dopo la pausa non si avvii automaticamente il blocco
-       di studio, lo devo avviare io"). Ferma all'inizio, il tempo non scorre
-       e nessuna mezz'ora matura finche' non premi Avvia. Se invece la pausa
-       la salti tu, sei gia' li': la sessione parte subito. */
-    if(auto){
+    /* Finita la pausa, la sessione non parte: aspetta che la avvii tu (14
+       novembre: "dopo la pausa non si avvii automaticamente il blocco di
+       studio, lo devo avviare io"). Ferma all'inizio, il tempo non scorre e
+       nessuna mezz'ora matura finche' non premi Avvia. Vale anche quando la
+       pausa la salti (15 novembre: "se metto salta anche la sessione di
+       studio dopo non deve partire in automatico"). */
+    {
       r.paused=c.s*60000;r.attesa=1;
       clearInterval(pomTick);pomTick=null;
       save();pomRender();return;
@@ -4851,11 +4852,17 @@ function pomRender(onlyTime){
      niente, l'avviso spariva dopo tre secondi e a fine sessione non si
      spuntava nulla: sembrava che la spunta automatica non funzionasse. */
   const ag=nelPianoDelTimer(r,()=>(r.linked||[]).filter(b=>at(ck(b.date,b.start))[b.lane]));
+  /* e di che materia: e' la cosa che cambia quando ne scegli un'altra */
+  const mat=ag.length===1?nelPianoDelTimer(r,()=>{
+    const v=at(ck(ag[0].date,ag[0].start))[ag[0].lane],o=v&&map()[v.i];
+    return o?(o.short||o.name):"";}):"";
   const altrove=r.dove&&r.dove.piano!==(state.piano||PIANO_BASE)&&PIANI[r.dove.piano];
   const dove=ag.length&&altrove
     ? (ag.length===1?slotTime(ag[0].start):ag.length+" blocchi")+" · "+PIANI[r.dove.piano].nome
     : ag.length
-    ? (ag.length===1?slotTime(ag[0].start)+" di oggi":ag.length+" blocchi")
+    ? (ag.length===1?(mat?esc(mat)+" ":"")+slotTime(ag[0].start)+
+        (ag[0].date===giornoStudio()||ag[0].date===iso(new Date())?" di oggi":" del "+fmt(parse(ag[0].date)))
+      :ag.length+" blocchi")
     : null;
   /* Anche da fermo si deve leggere a quale blocco va il tempo. Prima la riga
      "in pausa" prendeva tutto il posto e nascondeva proprio la risposta alla
@@ -4910,6 +4917,37 @@ function setDoneQuiet(dateIso,start,lane,v){
   }
 }
 
+/* Hai cambiato materia: il blocco che il timer riconosce cambia subito.
+   Il 15 novembre: scelta una materia e lo schema, cliccando un'altra materia
+   il pulsante Avvia restava sul blocco della prima — si aggiornava solo al
+   gesto dopo. Ora lo ridisegno a ogni clic. E se il timer e' fermo ad
+   aspettarti (pausa finita, la sessione non e' ancora partita), anche lui
+   passa al blocco di oggi di quella materia, della sua stessa attivita': e'
+   il momento giusto per decidere su cosa fare la sessione che viene. A
+   sessione partita invece il timer non si sposta: cliccare una materia per
+   dipingere non deve portarsi via i minuti che stai facendo. */
+function materiaScelta(){
+  const r=state.pomRun;
+  if(r&&r.attesa&&state.brush&&!daSola(r.act)){
+    const g=nelPianoDelTimer(r,()=>slotDiOggi(r.act,state.brush,true));
+    const ora=(r.linked||[])[0];
+    if(g&&!(ora&&ora.date===g.date&&ora.lane===g.lane&&ora.start>=g.start&&ora.start<g.start+g.len)){
+      const vecchi=(r.linked||[]).map(b=>b.date);
+      r.linked=[{date:g.date,start:g.start,lane:g.lane}];
+      r.mat=g.i;r.autoAg=1;
+      save();pomRender();
+      [...new Set(vecchi)].forEach(d=>drawDay(d));redrawLinked();
+      const m=map()[g.i];
+      toast("La prossima sessione spunta "+(m?(m.short||m.name)+" ":"")+
+        actOf(r.act).n.toLowerCase()+" delle "+slotTime(g.start));
+    }else if(!g){
+      const m=map()[state.brush];
+      if(m&&m.kind!=="g")toast("Oggi "+m.name+" non ha "+actOf(r.act).n.toLowerCase()+
+        " da fare: il timer resta dov'è");
+    }
+  }
+  pomPanel();
+}
 /* pannello di avvio e impostazioni */
 function pomPanel(){
   const box=document.getElementById("pomtools");box.innerHTML="";
@@ -7247,7 +7285,7 @@ function sdEnd(drop){
   cursor={date:date,slot:start,lane:lane};
   drawDay(date);
   save("Aggiunto "+hrs(len));commit();
-  picklist();tools();status();refreshMetrics();
+  picklist();tools();status();refreshMetrics();materiaScelta();
 }
 /* arma una riga dell'elenco: il tocco breve resta la selezione di sempre */
 function sdArm(el,o){
