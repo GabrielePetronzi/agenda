@@ -770,6 +770,9 @@ td.c .selmezz{position:absolute;z-index:3;pointer-events:none;border-radius:5px;
   box-shadow:0 0 0 2px var(--action),0 0 0 3px rgba(0,0,0,.3),inset 0 0 0 1px rgba(0,0,0,.25);
   background:color-mix(in srgb,var(--action) 30%,transparent)}
 .blk.running{box-shadow:0 0 0 2px var(--action),0 0 0 4px rgba(139,147,255,.24)}
+/* il blocco che Avvia prenderebbe: tratteggiato, perche' non e' ancora
+   partito niente — quando parte diventa il contorno pieno qui sopra */
+.blk.avviaqui{outline:2px dashed var(--action);outline-offset:1px}
 /* Il quadratino era solo un bordo su un elemento trasparente: dentro ci passava
    il motivo, e un quadratino pieno di trama da lontano sembra già spuntato.
    Ora ha il fondo del blocco — background:inherit prende il colore della materia
@@ -4418,8 +4421,12 @@ function askNotify(){
    riconoscere dalla materia e dall'attivita' che si doveva spuntare Big
    Data della mattina." La materia scelta pero' resta accesa anche dopo che
    hai dipinto: se oggi non ha blocchi di quell'attivita', vale come prima. */
+/* 15 novembre: con una materia scelta e' un vincolo, non una preferenza.
+   Scelta Programmazione dichiarativa, che oggi di schema non aveva niente,
+   Avvia restava su "Big data schema 11:30": sembrava che non avesse visto il
+   clic. Ora dice che di quella materia oggi non c'e' niente da fare. */
 function bloccoDaAvviare(){
-  return daSola(state.act)?null:slotDiOggi(state.act,state.brush);
+  return daSola(state.act)?null:slotDiOggi(state.act,state.brush,!!state.brush);
 }
 /* solo: la materia non e' una preferenza ma un vincolo */
 /* Dopo mezzanotte e prima delle quattro si guarda prima la sera prima: il
@@ -4468,7 +4475,7 @@ function agganciaDaSolo(r){
   if((r.linked||[]).some(b=>restaDelBlocco(b)))return 0;
   /* la materia della sessione, una volta presa, e' un vincolo; prima del
      primo aggancio conta la materia scelta, come per Avvia */
-  const g=r.mat?slotDiOggi(r.act,r.mat,true):slotDiOggi(r.act,state.brush);
+  const g=r.mat?slotDiOggi(r.act,r.mat,true):slotDiOggi(r.act,state.brush,!!state.brush);
   if(!g)return 0;
   r.linked=[{date:g.date,start:g.start,lane:g.lane}];
   r.mat=g.i;
@@ -4948,6 +4955,19 @@ function materiaScelta(){
   }
   pomPanel();
 }
+/* Il blocco che Avvia prenderebbe, segnato in griglia prima di partire:
+   il pulsante lo dice a parole, la griglia lo fa vedere dov'e'. */
+var avviaQui=null;
+function segnaAvviaQui(b){
+  const n=b?{date:b.date,start:b.start,lane:b.lane}:null,v=avviaQui;
+  if((!n&&!v)||(n&&v&&n.date===v.date&&n.start===v.start&&n.lane===v.lane))return;
+  avviaQui=n;
+  /* solo la classe, senza ridisegnare il giorno: pomPanel arriva anche nel
+     mezzo di un tocco, e un blocco rifatto sotto il dito perde il gesto */
+  document.querySelectorAll(".blk.avviaqui").forEach(e=>e.classList.remove("avviaqui"));
+  if(n)document.querySelectorAll('.blk[data-date="'+n.date+'"][data-start="'+n.start+
+    '"][data-lane="'+n.lane+'"]').forEach(e=>{if(!e.classList.contains("running"))e.classList.add("avviaqui");});
+}
 /* pannello di avvio e impostazioni */
 function pomPanel(){
   const box=document.getElementById("pomtools");box.innerHTML="";
@@ -4956,6 +4976,7 @@ function pomPanel(){
      fare (quello in corso, se no quello saltato, se no il prossimo) — sempre
      dell'attivita' con cui lo avvii — e il pulsante dice quale. */
   const dopo=sel.length?null:bloccoDaAvviare();
+  segnaAvviaQui(state.pomRun?null:dopo);
   const act=dopo?dopo.a:state.act;
   if(!act){
     const p0=document.createElement("button");
@@ -5000,8 +5021,12 @@ function pomPanel(){
   /* il pulsante dice anche di che materia e' il blocco: e' li' che il 24
      ottobre si sarebbe visto subito che stava per prendere quello sbagliato */
   const mo=dopo?map()[dopo.i]:null;
+  /* la materia scelta che oggi non ha niente di quest'attivita': lo dice il
+     pulsante stesso, invece di prendersi in silenzio un'altra materia */
+  const mb=!dopo&&!sel.length&&state.brush?map()[state.brush]:null;
   go.innerHTML=icon(act,15)+"Avvia "+c.s+" min"+
-    (dopo?" · "+(mo?esc(mo.short||mo.name)+" ":"")+actOf(act).n.toLowerCase()+" "+slotTime(dopo.start):"");
+    (dopo?" · "+(mo?esc(mo.short||mo.name)+" ":"")+actOf(act).n.toLowerCase()+" "+slotTime(dopo.start)
+     :mb?" · "+esc(mb.short||mb.name)+": niente "+actOf(act).n.toLowerCase()+" oggi":"");
   go.title=sel.length
     ? "Al termine segna come fatti i "+sel.length+" blocchi selezionati"
     : (dopo?"Prende da solo il blocco di "+actOf(act).n.toLowerCase()+(mo?" di "+mo.name:"")+" delle "+
@@ -5032,6 +5057,32 @@ function pomPanel(){
     }
   };
   box.appendChild(go);
+  /* ...e se oggi quella materia ha un blocco di un'altra attivita', basta un
+     clic per passare a quello */
+  if(mb){
+    const alt=slotDiOggi(null,state.brush,true);
+    if(alt&&alt.a!==act){
+      const sw=document.createElement("button");
+      sw.className="tool";
+      sw.innerHTML=icon(alt.a,15)+"Oggi ha "+actOf(alt.a).n.toLowerCase()+" alle "+slotTime(alt.start);
+      sw.title="Passa a "+actOf(alt.a).n+": Avvia prende quel blocco";
+      sw.onclick=()=>pickAct(alt.a);
+      box.appendChild(sw);
+    }
+    /* e il contrario: quest'attivita' oggi ce l'ha un'altra materia. La
+       materia scelta resta accesa anche dopo che hai dipinto, quindi questa
+       e' la strada di ritorno, a un clic */
+    const altra=slotDiOggi(act,null);
+    if(altra&&altra.i!==state.brush){
+      const ma=map()[altra.i];
+      const sw2=document.createElement("button");
+      sw2.className="tool";
+      sw2.innerHTML=icon(act,15)+(ma?esc(ma.short||ma.name)+" ":"")+actOf(act).n.toLowerCase()+" "+slotTime(altra.start);
+      sw2.title="Scegli "+(ma?ma.name:"quella materia")+": Avvia prende quel blocco";
+      sw2.onclick=()=>{state.brush=altra.i;state.erase=false;save();picklist();tools();status();materiaScelta();};
+      box.appendChild(sw2);
+    }
+  }
   box.appendChild(pick);
 
   if(sel.length){
@@ -6528,7 +6579,8 @@ function drawDay(dateIso,scope){
       bl.className="blk"+(striscia?(due?" mini2":" mini"):"")+
         (r.v.done&&!tardi?" done":"")+(r.v.done&&!vero(r.v)?" amano":"")+(tardi?" tardi":"")+
         /* il contorno e' del blocco scelto intero, non della sua prima mezz'ora */
-        ((selRuns[selKey(dateIso,r.start,r.lane)]||{}).len===r.len?" selblk":"")+(run?" running":"");
+        ((selRuns[selKey(dateIso,r.start,r.lane)]||{}).len===r.len?" selblk":"")+(run?" running":"")+
+        (!run&&avviaQui&&avviaQui.date===dateIso&&avviaQui.lane===r.lane&&avviaQui.start===r.start?" avviaqui":"");
       bl.dataset.lane=r.lane;bl.dataset.start=r.start;bl.dataset.date=dateIso;
       bl.dataset.att=r.v.a;
       const fra=ripLibero(r.v)?divisoFra(r.v,dateIso,PRE(),memoD):null;

@@ -750,6 +750,30 @@
     state.brush=pen;state.act=att;picklist();pomPanel();
     if(!b1)return "non trovo la riga della materia nell'elenco";
     return (scritta.indexOf(nome)>=0&&scritta.indexOf("15:00")>=0)?true:"il pulsante dice: "+scritta;});});
+  /* 15 novembre, gli screenshot: scelta dichiarativa, che di schema oggi
+     non ha niente, Avvia restava su "Big data schema 11:30" e la griglia non
+     segnava niente */
+  t("una materia senza blocchi di quell'attivita' non ripiega su un'altra",function(){
+    return alleSette(function(){
+    pulisci();apri();
+    var pen=state.brush,att=state.act;
+    placeRun(oggi,11*PERQ,{i:it[0].id,a:"SCH",len:4},0);
+    placeRun(oggi,15*PERQ,{i:it[1].id,a:"ESE",len:2},0);
+    render();
+    state.act="SCH";state.brush=it[0].id;materiaScelta();
+    var segnato=document.querySelectorAll('.blk.avviaqui[data-date="'+oggi+'"][data-start="'+(11*PERQ)+'"]').length;
+    state.brush=it[1].id;materiaScelta();
+    var scritta=(document.querySelector("#pomtools .pomgo")||{}).textContent||"";
+    var altri=[].map.call(document.querySelectorAll("#pomtools .tool"),function(b){return b.textContent;}).join(" | ");
+    var resta=document.querySelectorAll(".blk.avviaqui").length;
+    var big=map()[it[0].id].short||map()[it[0].id].name;
+    state.brush=pen;state.act=att;pomPanel();
+    if(!segnato)return "con Big Data scelta la griglia non segna il blocco delle 11";
+    if(scritta.indexOf(big)>=0)return "scelta un'altra materia il pulsante dice ancora: "+scritta;
+    if(scritta.indexOf("niente schema")<0)return "il pulsante non dice che non c'e' niente: "+scritta;
+    if(resta)return "in griglia resta segnato un blocco di un'altra materia";
+    if(altri.indexOf("esercizi alle 15:00")<0)return "manca il tasto per gli esercizi di oggi: "+altri;
+    return altri.indexOf(big)>=0?true:"manca il tasto per tornare a Big Data: "+altri;});});
   t("il timer che aspetta Avvia segue la materia scelta; quello che corre no",function(){
     return alleSette(function(){
     pulisci();apri();
@@ -3393,7 +3417,7 @@
       var d=iso(new Date());
       placeRun(d,18,{i:it[0].id,a:"SCH",len:4},0);     /* schema 9-11, saltato */
       placeRun(d,24,{i:it[1].id,a:"LET",len:2},0);     /* lettura 12-13, saltata */
-      state.act="LET";
+      state.act="LET";state.brush=null;              /* nessuna materia scelta */
       var b=avvia(),testo=b?b.textContent:"";
       var r=state.pomRun,ag=r&&(r.linked||[])[0],act=r&&r.act;
       fine();
@@ -3428,7 +3452,7 @@
       autoLessons();
       var dasolo=!!(at(ck(d,36))[0]||{}).done;
       var inDebito=arretrati().some(function(x){return x.start===36;});
-      state.act="PAI";avvia();fine();
+      state.act="PAI";state.brush=null;avvia();fine();
       var q=[0,1].map(function(k){return vero(at(ck(d,36+k))[0])?"■":"□";}).join("");
       pomStop(true);
       if(dasolo)return "passata l'ora si e' spuntato da solo";
