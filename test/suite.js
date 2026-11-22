@@ -1149,6 +1149,55 @@
     return visti.length===0?true:
       "manca "+manca+" min, oltre il preavviso: non doveva avvisare, invece "+visti.length;});
 
+  /* 22 novembre: "a volte parte il suono di fine anche quando sono a meta'".
+     Il promemoria del blocco dopo suonava come la fine della sessione. */
+  t("il promemoria non suona come la fine, e col timer acceso sta zitto",function(){
+    var vb=beep,vd=ding,s=[],run=state.pomRun;
+    beep=function(){s.push("fine");};ding=function(){s.push("avviso");};
+    try{
+      state.pomRun={act:"ESE",phase:"work",cycle:1,ends:Date.now()+60000,paused:null,t0:Date.now()};
+      notify("Fra 5 minuti: Schema","x",true);
+      var acceso=s.join();s=[];
+      state.pomRun=null;
+      notify("Fra 5 minuti: Schema","x",true);
+      var spento=s.join();s=[];
+      notify("Sessione finita","Pausa di 5 minuti");
+      var fine=s.join();
+    }finally{beep=vb;ding=vd;state.pomRun=run;}
+    return (acceso===""&&spento==="avviso"&&fine==="fine")?true:
+      "timer acceso: ["+acceso+"] spento: ["+spento+"] fine sessione: ["+fine+"]";});
+  t("il promemoria passa come avviso, non come fine",function(){
+    pulisci();apri();
+    var vero=notify,tipi=[];
+    notify=function(t2,b2,av){tipi.push(!!av);};
+    var n=new Date(),adesso=n.getHours()*60+n.getMinutes();
+    var prossima=Math.ceil((adesso+1)/30)*30, slot=prossima/30;
+    if(HOURS.indexOf(slot)<0||prossima-adesso>PREAVVISO){notify=vero;return true;}
+    placeRun(oggi,slot,{i:it[0].id,a:"SCH",len:2},0);
+    avvisati.clear();promemoria();
+    notify=vero;
+    return (tipi.length===1&&tipi[0])?true:"avvisi: "+JSON.stringify(tipi);});
+  /* Pausa nell'altra scheda: questa, allineandosi, deve fermarsi anche lei.
+     Restava accesa sul vecchio orario di fine e suonava a meta' sessione. */
+  t("la pausa messa in un'altra scheda ferma anche questa",function(){
+    pulisci();
+    var t0=Date.now()-10*60000;
+    state.pomRun={act:"ESE",phase:"work",cycle:1,ends:Date.now()+35*60000,paused:null,t0:t0};
+    var d=JSON.parse(payload());
+    d.pomRun=JSON.parse(JSON.stringify(state.pomRun));
+    d.pomRun.paused=35*60000;d.pomRun.agg=Date.now();
+    adopt(d);
+    var preso=state.pomRun.paused===35*60000;
+    /* e al contrario: arriva una copia piu' vecchia della stessa sessione */
+    state.pomRun={act:"ESE",phase:"work",cycle:1,ends:Date.now()+35*60000,paused:20*60000,t0:t0,agg:Date.now()};
+    var d2=JSON.parse(payload());
+    d2.pomRun=JSON.parse(JSON.stringify(state.pomRun));
+    d2.pomRun.paused=null;d2.pomRun.agg=Date.now()-60000;
+    adopt(d2);
+    var tenuto=state.pomRun.paused===20*60000;
+    state.pomRun=null;
+    return (preso&&tenuto)?true:"pausa dell'altra scheda presa: "+preso+" · copia vecchia ignorata: "+tenuto;});
+
   t("non avvisa per un blocco lontano né per il lavoro",function(){
     pulisci();apri();
     var vero=notify,visti=[];

@@ -2260,7 +2260,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="15 nov 2026 · a";
+const VERSIONE="22 nov 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2421,7 +2421,7 @@ function allineaSeServe(){
   copiaSalva(payload(),Object.keys(state.cells||{}).length);
   adopt(d);sv.ts=d.ts||Date.now();
   const b=body(payload());sv.localSaved=b;
-  histInit();render();
+  histInit();render();pomRiallinea();
   toast("Aggiornato da un'altra scheda");
   return true;
 }
@@ -2629,7 +2629,7 @@ async function ghPull(loud){
            riverserebbe sopra a quello appena arrivato, e il salvataggio
            dentro applySnap la rispedirebbe pure nel gist */
         histInit();
-        render();
+        render();pomRiallinea();
         toast("Aggiornato dall'altro dispositivo");
       }else{
         ghKnown(rts);
@@ -2681,7 +2681,7 @@ function conflict(remote,rts){
     el.classList.remove("open");
     adopt(remote);sv.ts=rts;ghKnown(rts);
     const pl=payload();if(sv.local&&lsSet(pl))sv.localSaved=body(pl);
-    histInit();render();toast("Presa la versione dell'altro dispositivo");
+    histInit();render();pomRiallinea();toast("Presa la versione dell'altro dispositivo");
   };
   el.classList.add("open");
 }
@@ -2837,10 +2837,18 @@ function adopt(d){
      sulla scheda e il timer non c'era piu'. Ora quello di qui resta, a meno
      che di la' sia stato fermato dopo che e' partito (pomStopTs) o ce ne
      sia uno avviato dopo. */
+  /* La stessa sessione (stesso t0) vista da due schede: vince quella
+     toccata per ultima (agg: pausa, ripresa, Ricomincia, cambio di fase).
+     Prima a parita' di t0 restava sempre quella di qui: mettevi in pausa
+     nell'altra scheda, o ricominciavi, e questa continuava a contare sul
+     vecchio orario di fine — e a meta' sessione suonava la fine (22
+     novembre: "parte il suono di fine anche quando sono a meta'"). */
   if(mio){
     const suo=state.pomRun;
+    const agg=r=>r.agg||r.t0||0;
     if(!suo){if((state.pomStopTs||0)<=(mio.t0||0))state.pomRun=mio;}
-    else if((suo.t0||0)<=(mio.t0||0))state.pomRun=mio;
+    else if((suo.t0||0)<(mio.t0||0))state.pomRun=mio;
+    else if((suo.t0||0)===(mio.t0||0)&&agg(suo)<=agg(mio))state.pomRun=mio;
   }
   if(!PIANI[state.piano]||PIANI[state.piano].nascosto)state.piano=PIANO_BASE;
   applicaPiano();
@@ -4208,7 +4216,7 @@ function promemoria(){
     avvisati.add(k);
     const o=m[r.v.i],titolo="Fra "+Math.max(1,Math.round(manca))+" minuti: "+actOf(r.v.a).n;
     const corpo=(o?o.name+" · ":"")+slotTime(r.start)+"–"+slotTime(r.start+r.len);
-    notify(titolo,corpo);
+    notify(titolo,corpo,true);
     if(!w_notifOK()&&!document.hidden)toast(titolo+" · "+corpo);
   });
 }
@@ -4370,6 +4378,15 @@ function logMin(id){
 }
 
 let pomTick=null;
+/* Dopo aver preso il piano da un'altra scheda o dal gist, il conto alla
+   rovescia di qui segue il timer arrivato: fermo se di la' e' in pausa,
+   acceso se di la' e' ripartito. */
+function pomRiallinea(){
+  const r=state.pomRun;
+  if(r&&r.paused==null)pomLoop();
+  else{clearInterval(pomTick);pomTick=null;}
+  pomRender();
+}
 let pomPick=false;          /* in attesa che tocchi il blocco su cui avviare */
 function pomAskBlock(on){
   pomPick=!!on;
@@ -4653,6 +4670,7 @@ function pomAdvance(auto){
 }
 function pomAdvance0(auto){
   const r=state.pomRun;if(!r)return;
+  r.agg=Date.now();
   const c=pomConf(r.act);
   if(r.phase==="work"){
     /* a fine sessione conta tutta la durata, se la salti conta solo il girato */
@@ -4769,7 +4787,7 @@ function pomRestart(){
   const r=state.pomRun;if(!r)return;
   const c=pomConf(r.act);
   const dur=(r.phase==="work"?c.s:(r.phase==="long"?c.l:c.b))*60000;
-  r.ends=Date.now()+dur;
+  r.ends=Date.now()+dur;r.agg=Date.now();
   if(r.paused!=null)r.paused=dur;
   save();pomRender();if(r.paused==null)pomLoop();
   toast("Ripartito da "+Math.round(dur/60000)+" min");
@@ -4792,6 +4810,7 @@ function redrawLinked(){
 }
 function pomPause(){
   const r=state.pomRun;if(!r)return;
+  r.agg=Date.now();
   if(r.paused!=null){r.ends=Date.now()+r.paused;r.paused=null;delete r.attesa;pomLoop();}
   else{r.paused=Math.max(0,r.ends-Date.now());clearInterval(pomTick);pomTick=null;}
   save();pomRender();
@@ -4800,7 +4819,9 @@ function pomLoop(){
   clearInterval(pomTick);
   pomTick=setInterval(()=>{
     const r=state.pomRun;
-    if(!r||r.paused){clearInterval(pomTick);pomTick=null;return;}
+    /* fermo e' "paused presente", anche a zero: con !r.paused un timer
+       fermo a 0:00 era preso per acceso e suonava la fine da solo */
+    if(!r||r.paused!=null){clearInterval(pomTick);pomTick=null;return;}
     if(Date.now()>=r.ends){pomAdvance(true);return;}
     const ag=nelPianoDelTimer(r,()=>agganciaDaSolo(r));
     if(ag){save(null,true);redrawLinked();pomRender();}
@@ -4810,11 +4831,20 @@ function pomLoop(){
     pomRender(true);
   },1000);
 }
-function notify(t,b){
+/* avviso=true e' il promemoria di un blocco che sta per cominciare. Prima
+   suonava uguale alla fine della sessione: col timer acceso, dieci minuti
+   prima del blocco dopo partiva l'accordo della fine a sessione ancora
+   aperta (22 novembre: "a volte parte il suono di fine anche quando sono a
+   meta', all'inizio o comunque non ho ancora finito"). Ora il promemoria ha
+   un suono suo, una nota sola e piu' bassa, e col timer acceso sta zitto:
+   stai gia' studiando, e l'unico suono che deve arrivarti e' la fine. */
+function notify(t,b,avviso){
+  const zitto=!!(avviso&&state.pomRun);
   try{
-    if(w_notifOK())new Notification(t,{body:b,silent:false});
+    if(w_notifOK())new Notification(t,{body:b,silent:zitto});
   }catch(e){}
-  beep();
+  if(zitto)return;
+  if(avviso)ding();else beep();
 }
 function w_notifOK(){
   return typeof Notification!=="undefined"&&Notification.permission==="granted";
@@ -4839,6 +4869,20 @@ function beep(){
       g.gain.exponentialRampToValueAtTime(.001,t+.32);
       o.start(t);o.stop(t+.34);
     });
+  }catch(e){}
+}
+/* il promemoria: una nota sola, corta e piano — non si confonde con la fine */
+function ding(){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g);g.connect(audioCtx.destination);
+    o.frequency.value=880;o.type="sine";
+    const t=audioCtx.currentTime;
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.08,t+.01);
+    g.gain.exponentialRampToValueAtTime(.001,t+.18);
+    o.start(t);o.stop(t+.2);
   }catch(e){}
 }
 
