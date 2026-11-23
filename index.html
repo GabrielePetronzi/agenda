@@ -427,7 +427,9 @@ body.dropping td.c.dropok{background:var(--tint-hover);
 
 .printhead{display:none}
 .status{font-family:"DM Mono",monospace;font-size:11px;color:var(--tx2);
-  margin:3px 0;min-height:14px;line-height:1.4}
+  margin:0;line-height:1.35;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+@media (max-width:700px){.gridbar .status{flex-basis:100%;order:9}}
 .status b{color:var(--tx);font-weight:500;letter-spacing:.02em}
 /* Il debito: blocchi che l'ora di adesso ha superato senza che li spuntassi.
    Sta sopra le settimane e non si chiude da solo, perché è quello il punto: o
@@ -526,7 +528,7 @@ html[data-fit="compact"] .tin{padding:4px var(--pad) 4px}
 html[data-fit="compact"] .ctxpick .lbl{display:none}
 html[data-fit="compact"] .shell{padding-top:4px}
 html[data-fit="compact"] .gridbar{padding:4px 0 4px}
-html[data-fit="compact"] .status{margin:4px 0 4px;min-height:0;font-size:10px}
+html[data-fit="compact"] .status{font-size:10px}
 html[data-fit="compact"] .phead{margin-bottom:3px}
 html[data-fit="compact"] .ptitle{padding:0}
 html[data-fit="compact"] th{padding-bottom:3px}
@@ -538,12 +540,14 @@ html[data-fit="compact"] th s{font-size:12.5px}
    ============================================================ */
 .panel{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
 .panel:first-of-type{border-top:0;margin-top:0;padding-top:0}
-.phead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5px}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 2px}
+/* l'intestazione della settimana piu' bassa: lo spazio va alle ore */
+.phead .pacts .icon.sm{width:26px;height:26px;min-height:26px}
 .ptitle{background:none;border:0;color:inherit;cursor:pointer;text-align:left;padding:2px 0;
   display:flex;align-items:baseline;gap:8px;flex:1;min-width:0}
 .ptitle .chev{display:flex;align-items:center;color:var(--tx3);transition:transform .16s}
 .ptitle .chev.open{transform:rotate(90deg)}
-.ptitle b{font-family:"Familjen Grotesk",sans-serif;font-size:15px;font-weight:600;
+.ptitle b{font-family:"Familjen Grotesk",sans-serif;font-size:14px;font-weight:600;
   letter-spacing:-.01em}
 .ptitle u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10.5px;
   color:var(--tx3)}
@@ -581,7 +585,7 @@ table{border-collapse:collapse;table-layout:fixed;width:100%;min-width:440px;
    costano ventotto, e si leggono uguale: quattordici pixel sono mezz'ora di
    giornata in piu' a schermo. */
 th{padding:0 0 4px;text-align:center;font-weight:500;border:0;vertical-align:bottom}
-th.hc{width:40px;border:0}
+th.hc{width:48px;border:0}
 th u{display:inline;text-decoration:none;font-family:"DM Mono",monospace;font-size:9px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);line-height:1.2}
 th s{display:inline;text-decoration:none;font-family:"Familjen Grotesk",sans-serif;
@@ -599,9 +603,9 @@ th.exam u::after{content:" ●";color:var(--warn)}
    niente, e non si capiva se il numero valesse per la riga sopra o per
    quella sotto. Ora ogni riga ha il suo orario, centrato nella mezz'ora a
    cui si riferisce: l'ora intera piu' marcata, la mezza piu' leggera. */
-td.hr{font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx2);text-align:right;
+td.hr{font-family:"DM Mono",monospace;font-size:12.5px;font-weight:500;color:var(--tx);text-align:right;
   padding:0 7px 0 0;vertical-align:middle;height:var(--row);line-height:1;border:0;white-space:nowrap}
-td.hr.mezza{font-size:9px;color:var(--tx3)}
+td.hr.mezza{font-size:11px;font-weight:400;color:var(--tx2)}
 /* la mezz'ora sotto il puntatore: il suo orario si accende a sinistra e
    una banda leggera segue la riga fino all'ultimo giorno della settimana */
 td.hr.qui{color:var(--action);font-weight:600}
@@ -748,8 +752,8 @@ html[data-row="micro"] .blk.mini em s.soloico{display:flex}
    e basta, che è il pezzo che sostituisce il motivo */
 html[data-row="micro"] .blk.mini em s.soloico i{display:none}
 html[data-row="micro"] .tick{width:10px;height:10px;top:2px;right:2px}
-html[data-row="micro"] td.hr{font-size:9px}
-html[data-row="micro"] td.hr.mezza{font-size:8px}
+html[data-row="micro"] td.hr{font-size:11.5px}
+html[data-row="micro"] td.hr.mezza{font-size:10px}
 html[data-row="tight"] .blk em{padding:2px 6px 0}
 html[data-row="tight"] .blk.mini em{padding:0 18px 0 6px}
 html[data-row="tight"] .blk em b{font-size:11px;padding-right:15px}
@@ -1383,7 +1387,10 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
         <button class="btn" id="wToday" title="Torna alla settimana corrente">Oggi</button>
       </div>
 
-      <span class="spacer"></span>
+      <!-- 23 novembre, "ottimizza lo spazio sopra": la riga dei messaggi
+           stava da sola fra la barra e la griglia; ora sta nel vuoto della
+           barra, e quei venti pixel vanno alle ore -->
+      <p class="status" id="status" role="status" aria-live="polite"></p>
 
       <div class="grp">
         <div class="seg" id="segSpan" aria-label="Quanti giorni mostrare"></div>
@@ -1399,7 +1406,6 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
       </div>
     </div>
 
-    <p class="status" id="status" role="status" aria-live="polite"></p>
     <p class="modeflag" id="modeflag" role="status" aria-live="assertive"></p>
     <div class="selbar" id="selbar"></div>
     <div class="latebar ripbar" id="filebar"></div>
@@ -2284,7 +2290,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · e";
+const VERSIONE="23 nov 2026 · f";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -6235,7 +6241,7 @@ function doRepeat(){
 
 function wipeWeek(p){
   panelDates(p).forEach(d=>HOURS.forEach(hr=>delete state.cells[ck(iso(d),hr)]));
-  save("Settimana "+(p+1)+" svuotata");commit();panels();refreshMetrics();
+  save("Settimana "+(p+1)+" svuotata · ⌘Z per annullare");commit();panels();refreshMetrics();
 }
 
 /* all'avvio si apre la settimana che contiene oggi e si chiudono le altre:
@@ -6310,10 +6316,11 @@ function buildPanel(p,m){
   },!state.clip,armed==="p"+p?"armed":"","PST");
   if(armed==="p"+p)paste.innerHTML=icon("PST",13)+"<span>Sovrascrivo?</span>";
   const rep=voce("Ripeti nelle prossime…",()=>{acts.classList.remove("open");openRepeat(p);},false,"","RIP");
-  const wipe=voce(armed==="w"+p?"Confermi?":"Svuota la settimana",()=>{
-    if(armed==="w"+p){armed=null;clearTimeout(armTmr);acts.classList.remove("open");wipeWeek(p);}
-    else{armed="w"+p;panels();clearTimeout(armTmr);armTmr=setTimeout(()=>{armed=null;panels();},4000);}
-  },false,armed==="w"+p?"armed":"","TRS");
+  /* 23 novembre: "per lo svuota settimana non mi chiedere piu' la
+     conferma". Si annulla con ⌘Z come tutto il resto. */
+  const wipe=voce("Svuota la settimana",()=>{
+    acts.classList.remove("open");wipeWeek(p);
+  },false,"","TRS");
   const cal=voce("Scegli il giorno d'inizio",()=>{acts.classList.remove("open");openMonth(dates[0]);},false,"","CAL");
 
   menu.appendChild(copy);menu.appendChild(paste);menu.appendChild(rep);
