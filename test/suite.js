@@ -362,6 +362,24 @@
     var pct=riga?riga.childNodes[0].textContent:"",sotto=riga&&riga.querySelector("u")?riga.querySelector("u").textContent:"";
     if(pct!==Math.round(4/tg*100)+"%")return "percentuale "+pct+" invece di "+Math.round(4/tg*100)+"%";
     return eq(sotto,"4/"+tg+" h","riga sotto ");});
+  /* 23 novembre: cancellato il blocco riconosciuto, l'avviso deve sparire
+     subito, come quando cambi materia o attivita' */
+  t("cancellato il blocco da avviare, l'avviso si aggiorna da solo",function(){
+    pulisci();apri();
+    var n=new Date(),ora=n.getHours()*PERQ+(n.getMinutes()>=30?1:0),og=iso(n);
+    if(ora>=24*PERQ-1)return true;
+    var vA=state.act,vB=state.brush;
+    state.act="ESE";state.brush=it[0].id;
+    placeRun(og,ora,{i:it[0].id,a:"ESE",len:2},0);drawDay(og);pomPanel();
+    var prima=avviaQui&&avviaQui.date===og;
+    clearRun(og,ora,2,0);drawDay(og);
+    refreshMetrics();                       /* quello che fa ogni modifica */
+    var dopo=avviaQui,txt=(document.querySelector("#pomtools .pomgo")||{}).textContent||"";
+    state.act=vA;state.brush=vB;pomPanel();
+    if(!prima)return "il blocco non era riconosciuto";
+    if(dopo)return "l'avviso e' rimasto sul blocco cancellato";
+    return /\d+:\d0$/.test(txt)?"il pulsante dice ancora un orario: "+txt:true;});
+
   /* ---------- calendario Apple (.ics) ---------- */
   t("il calendario fa un evento per blocco, anche se e' fatto a meta'",function(){
     pulisci();apri();

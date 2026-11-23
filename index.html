@@ -2283,7 +2283,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · c";
+const VERSIONE="23 nov 2026 · d";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -6943,6 +6943,12 @@ function scheduleMetrics(){
   metTmr=setTimeout(refreshMetrics,60);
 }
 function refreshMetrics(){
+  /* 23 novembre: scelte materia e attivita', il blocco da avviare si
+     riconosce e si segna; ma cancellato quel blocco l'avviso restava li',
+     perche' si ricalcolava solo cambiando la scelta. refreshMetrics passa
+     dopo ogni modifica alla griglia (tratto, cancella, incolla, annulla,
+     svuota): da qui l'avviso segue la griglia in tempo reale. */
+  pomPanel();
   document.querySelectorAll(".psum").forEach(el=>{
     const p=+el.dataset.p;
     el.replaceWith(panelSummary(p,map()));
