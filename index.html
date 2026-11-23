@@ -352,6 +352,19 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 #picklist .prow.insu{box-shadow:inset 0 3px 0 var(--action)}
 #picklist .prow.ingiu{box-shadow:inset 0 -3px 0 var(--action)}
 .dragghost.riordina b{display:none}
+/* ---------- meno guida a schermo (23 novembre) ----------
+   "Ci sono troppe cose ripetute a schermo, tipo di guida: vorrei fosse
+   minimale e intuitivo gia' solo guardando". Quello che si capisce dal
+   controllo stesso non ha piu' la sua etichetta; le spiegazioni restano
+   nei suggerimenti al passaggio del mouse e nell'elenco tasti (?). */
+.topbar .ctxpick .lbl{display:none}
+.sec:has(#pomtools:empty){display:none}
+.propinfo:empty{display:none}
+@media (hover:hover){
+  .prow em.dat.vuota{visibility:hidden}
+  .prow:hover em.dat.vuota,.prow:focus-visible em.dat.vuota{visibility:visible}
+}
+.ptitle u.pchiusa{color:var(--tx3);opacity:.8}
 /* i calendari delle materie, in "Sincronizza dispositivi" */
 .calmats{display:flex;flex-direction:column;gap:2px;margin-top:4px;max-height:46vh;overflow-y:auto}
 .calmat{display:flex;align-items:center;gap:8px;padding:6px 2px;border-top:1px solid var(--line-soft)}
@@ -1558,9 +1571,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
   <div class="sheet bk">
     <div class="mhead"><b>Sincronizza dispositivi</b><button id="syClose">✕</button></div>
     <p style="font-size:12.5px;color:var(--tx2);margin:0 0 12px;line-height:1.55">
-      Il piano viene tenuto in un <b>gist segreto</b> sul tuo account GitHub. Incolla qui un token
-      con il solo permesso <code>gist</code> e ripeti l'operazione sull'altro dispositivo:
-      da quel momento si allineano da soli.</p>
+      Incolla un token GitHub col solo permesso <code>gist</code>, qui e sull'altro dispositivo.</p>
     <input id="syTok" type="password" placeholder="ghp_… oppure github_pat_…" spellcheck="false"
       style="width:100%;border:1px solid var(--line);background:var(--cell);color:var(--tx);
       padding:10px;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px">
@@ -1569,12 +1580,8 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
     <div id="syCal" hidden style="margin:14px 0 0;padding:12px;border:1px solid var(--line);border-radius:8px">
       <b style="font-size:12.5px">Calendario Apple</b>
       <p style="font-size:11.5px;color:var(--tx2);margin:6px 0 8px;line-height:1.5">
-        Un calendario per materia, col suo colore: iscriviti a quelle che vuoi. Quando il
-        Mac chiede dove metterlo scegli <b>iCloud</b>, cosi' arriva anche sull'iPhone.
-        Si aggiornano da soli; quello che cambi nel calendario non torna qui. Una materia
-        che prende i primi blocchi compare qui sotto e va iscritta anche lei. Se eri
-        iscritto al calendario unico, togli quell'iscrizione o i blocchi compaiono due volte.
-        Chi ha i link vede il piano: non condividerli.</p>
+        Un calendario per materia, col suo colore. Iscrivendoti scegli <b>iCloud</b>,
+        cosi' lo vedi anche sull'iPhone.</p>
       <p id="syCalMsg" hidden style="font-size:11.5px;color:var(--tx2);margin:6px 0 0;line-height:1.5"></p>
       <div id="syCalVivo">
       <div id="syCalMat" class="calmats"></div>
@@ -1587,10 +1594,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
       <button id="syOff">Scollega</button>
     </div>
     <p style="font-size:11px;color:var(--tx3);margin:12px 0 0;line-height:1.5">
-      Il token resta solo su questo dispositivo e non finisce mai nel gist né su GitHub Pages:
-      è salvato in chiaro nella memoria del browser, quindi chi usa questo profilo può leggerlo.
-      Dagli il solo permesso <code>gist</code> e revocalo dalle impostazioni di GitHub
-      se il dispositivo non è più tuo.</p>
+      Il token resta in questo browser, in chiaro: revocalo da GitHub se il dispositivo non è più tuo.</p>
   </div>
 </div>
 
@@ -2318,7 +2322,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · k";
+const VERSIONE="23 nov 2026 · l";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4111,7 +4115,7 @@ function indietroInfo(){
   const r=esamiIndietro(),L=r.lista;
   const dove=state.year+"º anno, "+(r.cur>=2?"2º semestre":"1º semestre");
   if(!L.length){
-    el.innerHTML='<p class="pt">Esami rimasti indietro</p><p class="vuoto">Nessuno: sei in pari al '+dove+".</p>";
+    el.innerHTML="";            /* in pari: niente da dire */
     return;
   }
   const bl=L.filter(o=>o.blocca.length).length;
@@ -4130,8 +4134,7 @@ function propInfo(){
   const el=document.getElementById("propinfo");if(!el)return;
   const L=propPiano();
   const tit='<p class="pt">Propedeuticità</p>';
-  if(L===undefined){el.innerHTML=tit+'<p class="vuoto">Non ancora inserite per questo piano.</p>';return;}
-  if(!L.length){el.innerHTML=tit+'<p class="vuoto">Nessuna: puoi dare gli esami in qualunque ordine.</p>';return;}
+  if(L===undefined||!L.length){el.innerHTML="";return;}
   const m={};allCourses().forEach(o=>m[o.id]=o);
   const p=state.pass||{};
   const nome=id=>esc(m[id]?m[id].name:id);
@@ -4358,25 +4361,15 @@ function modeFlag(){
 function status(){
   const m=map(),el=document.getElementById("status");
   const clip=state.clip?'<span style="color:var(--tx3)"> — appunti: '+state.clip.label+" ("+hrs(state.clip.hours)+")</span>":"";
-  if(state.erase){el.innerHTML="<b>CANCELLA</b> · tocca o trascina le mezz'ore da togliere · "+
-    "Cancella, E o Esc per uscire"+clip;return;}
+  /* dice solo cosa stai per dipingere; a riposo tace */
+  if(state.erase){el.innerHTML="<b>CANCELLA</b> · Esc per uscire"+clip;return;}
   if(!state.brush||!m[state.brush]){
+    const tranne=(state.ripMx||[]).filter(id=>m[id]);
     el.innerHTML=state.act==="RIP"
-      ? "<b>RIPASSO</b> · si divide fra le materie della settimana"+
-          ((state.ripMx||[]).filter(id=>m[id]).length
-          ?", tranne "+state.ripMx.filter(id=>m[id]).map(id=>m[id].short||m[id].name).join(", "):"")+
-          " — sotto le attività spegni quelle che non ripassi"+clip
-      : (state.act==="LAV"
-        ? "<b>LAVORO</b> · senza materia, in oliva"+clip
-        : state.act==="NAS"
-        ? "<b>NASPI</b> · senza materia, in pesca"+clip
-        : state.act==="PAI"
-        ? "<b>MASTER PAI</b> · senza materia, in malva"+clip
-        : state.act==="ARR"
-        ? "<b>ARRAMPICATA</b> · senza materia, in verde"+clip
-        : state.act==="CLA"
-        ? "<b>CLAUDE</b> · senza materia, in corallo chiaro — o scegli una materia"+clip
-        : "Scegli una materia o una voce."+clip);
+      ? "<b>RIPASSO</b> · "+(tranne.length?"tranne "+tranne.map(id=>m[id].short||m[id].name).join(", "):"tutte le materie della settimana")+clip
+      : LIBERE[state.act]&&state.act!=="RIP"
+        ? "<b>"+actOf(state.act).n.toUpperCase()+"</b>"+clip
+        : clip;
     return;
   }
   el.innerHTML="<b>"+m[state.brush].name.toUpperCase()+"</b> · "+
@@ -5427,10 +5420,6 @@ function pomPanel(){
     p0.title="Poi tocchi un blocco della griglia: la sessione prende la sua attività";
     p0.onclick=()=>pomAskBlock(!pomPick);
     box.appendChild(p0);
-    const h=document.createElement("span");
-    h.className="pomhint";
-    h.textContent="Nessuna attività scelta: scegline una, o tocca il blocco da cui partire.";
-    box.appendChild(h);
     return;
   }
   const c=pomConf(act);
@@ -5443,14 +5432,8 @@ function pomPanel(){
   pick.onclick=()=>pomAskBlock(!pomPick);
 
   if(daSola(act)){
-    const h=document.createElement("span");
-    h.className="pomhint";
-    /* il nome giusto per ognuna: con la NASPI o l'arrampicata scelte diceva
-       "Il lavoro" */
-    h.innerHTML=({LEZ:"La lezione",LAV:"Il lavoro",NAS:"La NASPI",ARR:"L'arrampicata"}[act]||actOf(act).n)+
-      (spuntiTu(act)?" non ha pomodoro: la spunti tu, col quadratino del blocco, quando l'hai fatta."
-                    :" non ha pomodoro: si spunta da sola quando l'ora è passata.");
-    box.appendChild(h);
+    /* niente pomodoro per queste: la sezione sparisce (vedi .sec:has),
+       resta solo il conto di oggi se c'e' */
     const t0=pomToday();
     const s0=document.createElement("span");
     s0.className="pomhint";
@@ -5956,7 +5939,7 @@ function semSummary(){
   }).filter(Boolean).sort((a,b)=>(a.gg==null)-(b.gg==null)||(a.gg-b.gg)||a.o.name.localeCompare(b.o.name));
   if(righe.length){
     h+='<div class="graf"><h4>Ce la fai per l’esame?</h4>'+
-      '<p class="gsub">Per ogni materia: le ore fatte, dove arrivi col ritmo di adesso e dove dovresti essere</p>'+
+
       '<div class="gleg"><span><i class="k lf"></i>fatte</span>'+
         '<span><i class="k lp"></i>col tuo ritmo</span>'+
         '<span><i class="k ld"></i>dove dovresti essere</span>'+
@@ -6227,8 +6210,8 @@ function corsa(r,giorni,primoG,ultimoG,inPiano){
   else if(!manca){esito="ok";testo="<b>Obiettivo raggiunto</b>: "+num1(ora)+" h su "+tgt+".";}
   else if(!conData){
     esito="nd";
-    testo=aSett>0?"Col tuo ritmo arrivi all’obiettivo in <b>"+inMesi(Math.ceil(manca/alGiorno))+"</b>. Metti la data d’esame per sapere se basta."
-      :"Nell’ultimo mese niente di fatto. Metti la data d’esame per sapere quanto serve.";
+    testo=aSett>0?"Col tuo ritmo arrivi all’obiettivo in <b>"+inMesi(Math.ceil(manca/alGiorno))+"</b>."
+      :"Nell’ultimo mese niente di fatto.";
   }else if(!giorniRest){esito="ko";testo="L’esame è oggi: mancano "+num1(manca)+" h all’obiettivo.";}
   else{
     const diff=aSett-serveG*7;
@@ -6418,9 +6401,10 @@ function buildPanel(p,m){
   if(closed){
     const c=countPanel(p);let g=0,gd=0;
     Object.keys(c).forEach(i=>{g+=c[i].tot;gd+=c[i].done;});
-    const s2=document.createElement("p");s2.className="closedline";
-    s2.textContent=g?hrs(gd)+" fatte su "+hrs(g)+" pianificate":"settimana vuota";
-    sec.appendChild(s2);
+    /* il riassunto della settimana chiusa sta nella sua riga, non sotto */
+    const u2=document.createElement("u");u2.className="pchiusa";
+    u2.textContent=g?"· "+hrs(gd)+" su "+hrs(g):"· vuota";
+    ttl.appendChild(u2);
     return sec;
   }
 
@@ -7273,7 +7257,7 @@ function selInfo(){
   const uno=n===1?selRuns[Object.keys(selRuns)[0]]:null;
   el.innerHTML="<b>"+(uno?(uno.len===1?"mezz’ora":"blocco")+" "+slotTime(uno.start)+"–"+slotTime(uno.start+uno.len)
       :n+" blocchi · "+hrs(tot))+"</b>"+
-    "<span>copia ⌘C · taglia ⌘X · incolla ⌘V · fatto F · elimina ⌫ · esci Esc</span>";
+    "";
   const rip=document.createElement("button");
   rip.className="btn";
   rip.innerHTML=icon("RIP",13)+"<span>Ripeti ogni settimana…</span>";
