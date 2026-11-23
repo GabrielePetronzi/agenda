@@ -421,6 +421,20 @@
     if(!ok||dopo[0]!==prima[2]||dopo[1]!==prima[0])return "in cima: "+dopo.slice(0,3).join(",");
     return (giu&&dopo2[0]===prima[0]&&dopo2[1]===prima[1]&&dopo2[2]===prima[2])?true:"rimesso al suo posto: "+dopo2.slice(0,3).join(",");});
 
+  /* 23 novembre: "non vedo il calendario apple" — il riquadro c'e' sempre */
+  t("il riquadro del calendario c'e' sempre e dice cosa manca",function(){
+    var v={on:gh.on,gist:gh.gist,owner:gh.owner,err:gh.err};
+    var box=document.getElementById("syCal"),msg=document.getElementById("syCalMsg"),vivo=document.getElementById("syCalVivo");
+    gh.on=false;gh.err="";calUI();
+    var a=!box.hidden&&!msg.hidden&&vivo.hidden&&/collega/i.test(msg.textContent);
+    gh.on=true;gh.gist="abc123";gh.owner=null;calUI();
+    var b=!box.hidden&&!msg.hidden&&vivo.hidden;
+    gh.owner="qualcuno";calUI();
+    var c=!box.hidden&&msg.hidden&&!vivo.hidden&&document.getElementById("syCalLink").value===
+      "https://gist.githubusercontent.com/qualcuno/abc123/raw/piano.ics";
+    gh.on=v.on;gh.gist=v.gist;gh.owner=v.owner;gh.err=v.err;calUI();
+    return (a&&b&&c)?true:"scollegato="+a+" senza proprietario="+b+" pronto="+c;});
+
   /* ---------- calendario nei due sensi (ponte) ---------- */
   /* un giorno della settimana a schermo che sia almeno domani: dal
      calendario non si mette niente nel passato */

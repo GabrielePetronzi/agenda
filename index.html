@@ -1562,6 +1562,8 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
         I blocchi del piano, dalle ultime quattro settimane in avanti, come calendario
         a cui iscriversi. Si aggiorna da solo a ogni sincronizzazione; quello che cambi
         nel calendario non torna qui. Chi ha il link vede il piano: non condividerlo.</p>
+      <p id="syCalMsg" hidden style="font-size:11.5px;color:var(--tx2);margin:6px 0 0;line-height:1.5"></p>
+      <div id="syCalVivo">
       <input id="syCalLink" readonly spellcheck="false"
         style="width:100%;border:1px solid var(--line);background:var(--cell);color:var(--tx);
         padding:8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10.5px">
@@ -1571,6 +1573,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
         <button id="syCalCopia" class="tool" title="Copia l'indirizzo del calendario">Copia il link</button>
       </div>
       <p id="syPonte" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin:10px 0 0;line-height:1.5"></p>
+      </div>
     </div>
     <div class="mfoot" style="flex-wrap:wrap">
       <button id="syConnect">Collega</button>
@@ -2309,7 +2312,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · i";
+const VERSIONE="23 nov 2026 · j";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2609,7 +2612,8 @@ window.addEventListener("pagehide",()=>{clearTimeout(sv.timer);flush(true);});
    Il token resta solo in questo dispositivo, non finisce mai nel gist.
    Vince sempre la copia con il timestamp più recente.
    ============================================================ */
-const TOKKEY="piano-6272-token",GISTKEY="piano-6272-gist",TSKEY="piano-6272-allineato";
+const TOKKEY="piano-6272-token",GISTKEY="piano-6272-gist",TSKEY="piano-6272-allineato",
+      OWNKEY="piano-6272-gist-owner";
 const GDESC="piano-settimanale-6272";
 let gh={token:null,gist:null,busy:false,timer:null,lastPull:0,err:"",on:false};
 
@@ -2618,6 +2622,7 @@ function ghRead(){
     gh.token=localStorage.getItem(TOKKEY)||null;
     gh.gist=localStorage.getItem(GISTKEY)||null;
     gh.knownTs=+(localStorage.getItem(TSKEY)||0)||0;
+    gh.owner=gh.owner||localStorage.getItem(OWNKEY)||null;
   }catch(e){}
   gh.on=!!gh.token;
 }
@@ -2776,7 +2781,11 @@ function ghSchedule(){
    calendario non torna qui. */
 const CAL_FILE="piano.ics";
 const CAL_DA=28;                 /* giorni indietro: il passato lontano non serve */
-function calProprietario(g){if(g&&g.owner&&g.owner.login)gh.owner=g.owner.login;}
+function calProprietario(g){
+  if(!(g&&g.owner&&g.owner.login))return;
+  gh.owner=g.owner.login;
+  try{localStorage.setItem(OWNKEY,gh.owner);}catch(e){}
+}
 function calLink(){
   return gh.gist&&gh.owner?"https://gist.githubusercontent.com/"+gh.owner+"/"+gh.gist+"/raw/"+CAL_FILE:"";
 }
@@ -2998,11 +3007,23 @@ setInterval(()=>{
      con l'app aperta: prima solo aprendola o tornandoci sopra */
   if(gh.on&&!document.hidden&&Date.now()-gh.lastPull>55000)ghPull();
 },60000);
+/* 23 novembre: "non vedo in sincronizza dispositivi il calendario apple".
+   Il riquadro compariva solo se l'app sapeva gia' di chi e' il gist, cosa
+   che impara da una sincronizzazione riuscita: prima restava nascosto senza
+   dire perche'. Ora c'e' sempre, e dice cosa manca. */
 function calUI(){
   const box=document.getElementById("syCal");if(!box)return;
-  const l=calLink();
-  if(!gh.on||!l){box.hidden=true;return;}
+  const l=calLink(),msg=document.getElementById("syCalMsg"),vivo=document.getElementById("syCalVivo");
   box.hidden=false;
+  if(!gh.on||!l){
+    vivo.hidden=true;msg.hidden=false;
+    msg.textContent=!gh.on
+      ?"Il calendario sta nel gist della sincronizzazione: collega prima il token qui sopra."
+      :(gh.err?"Non riesco a leggere il gist: "+gh.err+". Riprova con Sincronizza ora."
+              :"Sto preparando il link del calendario…");
+    return;
+  }
+  vivo.hidden=false;msg.hidden=true;
   document.getElementById("syCalLink").value=l;
   document.getElementById("syCalApri").href=l.replace(/^https:/,"webcal:");
   const pt=document.getElementById("syPonte"),g=gh.ponte;
@@ -8760,6 +8781,11 @@ document.getElementById("syncBtn").onclick=()=>{
   document.getElementById("syTok").value=gh.token||"";
   syState();
   document.getElementById("syncModal").classList.add("open");
+  /* il link vuole il nome del proprietario del gist, e il file deve esserci:
+     se manca l'uno o l'altro si va a prenderli adesso */
+  if(gh.on&&(!calLink()||gh.icsInviato===undefined))
+    ghPush(false).then(()=>{if(!calLink())return ghFind().then(()=>ghApi("/gists/"+gh.gist)).then(calProprietario);})
+      .catch(e=>{gh.err=e.message||"errore";}).then(()=>syState());
 };
 document.getElementById("syCalCopia").onclick=()=>{
   const l=calLink();if(!l)return;
@@ -8789,6 +8815,7 @@ document.getElementById("syNow").onclick=async()=>{
   await ghPull(true);await ghPush(false);syState();
 };
 document.getElementById("syOff").onclick=()=>{
+  try{localStorage.removeItem(OWNKEY);}catch(e){}gh.owner=null;
   ghStore(null);document.getElementById("syTok").value="";
   syState();updateSync();toast("Scollegato");
 };
