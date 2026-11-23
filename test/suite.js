@@ -362,6 +362,36 @@
     var pct=riga?riga.childNodes[0].textContent:"",sotto=riga&&riga.querySelector("u")?riga.querySelector("u").textContent:"";
     if(pct!==Math.round(4/tg*100)+"%")return "percentuale "+pct+" invece di "+Math.round(4/tg*100)+"%";
     return eq(sotto,"4/"+tg+" h","riga sotto ");});
+  /* ---------- calendario Apple (.ics) ---------- */
+  t("il calendario fa un evento per blocco, anche se e' fatto a meta'",function(){
+    pulisci();apri();
+    var id=it[0].id;
+    placeRun(G[1],H0,{i:id,a:"ESE",len:4},0);
+    /* la prima ora fatta col timer, la seconda da fare */
+    for(var q=0;q<2;q++){var k=ck(G[1],H0+q),arr=at(k).slice();arr[0]=Object.assign({},arr[0],{done:1});setAt(k,arr);}
+    placeRun(G[2],H0,{i:id,a:"LET",len:2,done:1},0);
+    var bs=blocchiCalendario();
+    if(bs.length!==2)return "eventi: "+bs.length+" invece di 2 ("+bs.map(function(x){return x.titolo+" "+x.len;}).join(" / ")+")";
+    var a=bs.filter(function(x){return x.date===G[1];})[0],c=bs.filter(function(x){return x.date===G[2];})[0];
+    if(a.len!==4||a.fatte!==2||/✓/.test(a.titolo))return "blocco a meta': "+JSON.stringify(a);
+    if(!/^✓ /.test(c.titolo))return "blocco fatto senza ✓: "+c.titolo;
+    return true;});
+  t("il file .ics ha orari giusti e righe corte",function(){
+    pulisci();apri();
+    placeRun(G[1],H0,{i:it[0].id,a:"ESE",len:3,n:"capitolo 4, esercizi; tutti quelli con l'asterisco e anche le domande di ripasso in fondo"},0);
+    var ics=calIcs(),righe=ics.split("\r\n");
+    if(ics.indexOf("BEGIN:VCALENDAR")!==0||!/END:VCALENDAR\r\n$/.test(ics))return "non e' un calendario";
+    var lunga=righe.filter(function(r){return new TextEncoder().encode(r).length>75;});
+    if(lunga.length)return "riga oltre 75 byte: "+lunga[0];
+    var un=ics.replace(/\r\n /g,"");
+    var s1=/DTSTART:(\d{8}T\d{6}Z)/.exec(un),e1=/DTEND:(\d{8}T\d{6}Z)/.exec(un);
+    if(!s1||!e1)return "manca l'orario";
+    var dd=function(x){return Date.UTC(+x.slice(0,4),+x.slice(4,6)-1,+x.slice(6,8),+x.slice(9,11),+x.slice(11,13));};
+    var atteso=new Date(G[1]+"T00:00:00");atteso.setHours(Math.floor(H0/2),(H0%2)*30);
+    if(dd(s1[1])!==atteso.getTime())return "inizio "+s1[1]+" invece di "+atteso.toISOString();
+    if(dd(e1[1])-dd(s1[1])!==90*60000)return "durata sbagliata";
+    return /DESCRIPTION:.*capitolo 4\\, esercizi\\; tutti/.test(un)?true:"nota non protetta: "+un;});
+
   /* 23 novembre: ⌘V va dove sta il puntatore, se ci sei arrivato dopo
      l'ultimo clic; se no nella casella cliccata */
   t("incolla dove sta il puntatore, non nella casella del blocco copiato",function(){

@@ -1522,6 +1522,21 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
       padding:10px;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px">
     <p id="syState" style="font-family:'DM Mono',monospace;font-size:10.5px;
       color:var(--tx3);margin:10px 0 0"></p>
+    <div id="syCal" hidden style="margin:14px 0 0;padding:12px;border:1px solid var(--line);border-radius:8px">
+      <b style="font-size:12.5px">Calendario Apple</b>
+      <p style="font-size:11.5px;color:var(--tx2);margin:6px 0 8px;line-height:1.5">
+        I blocchi del piano, dalle ultime quattro settimane in avanti, come calendario
+        a cui iscriversi. Si aggiorna da solo a ogni sincronizzazione; quello che cambi
+        nel calendario non torna qui. Chi ha il link vede il piano: non condividerlo.</p>
+      <input id="syCalLink" readonly spellcheck="false"
+        style="width:100%;border:1px solid var(--line);background:var(--cell);color:var(--tx);
+        padding:8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10.5px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <a id="syCalApri" class="tool" style="text-decoration:none"
+          title="Apre Calendario e ti iscrive al piano">Iscriviti in Calendario</a>
+        <button id="syCalCopia" class="tool" title="Copia l'indirizzo del calendario">Copia il link</button>
+      </div>
+    </div>
     <div class="mfoot" style="flex-wrap:wrap">
       <button id="syConnect">Collega</button>
       <button id="syNow">Sincronizza ora</button>
@@ -2260,7 +2275,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · a";
+const VERSIONE="23 nov 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2614,6 +2629,7 @@ async function ghPull(loud){
   try{
     await ghFind();
     const g=await ghApi("/gists/"+gh.gist);
+    calProprietario(g);
     const f=g.files&&g.files["piano.json"];
     if(f&&f.content){
       const d=JSON.parse(f.content);
@@ -2668,8 +2684,14 @@ async function ghPush(loud,force){
         ghKnown(rts);
       }
     }
-    await ghApi("/gists/"+gh.gist,{method:"PATCH",body:JSON.stringify({
-      files:{"piano.json":{content:payload()}}})});
+    const files={"piano.json":{content:payload()}};
+    /* il calendario va solo quando cambia: ogni PATCH e' una revisione del
+       gist, e il file .ics di un semestre non e' piccolo */
+    const ics=calIcs();
+    if(ics!==gh.icsInviato)files[CAL_FILE]={content:ics};
+    const g2=await ghApi("/gists/"+gh.gist,{method:"PATCH",body:JSON.stringify({files:files})});
+    calProprietario(g2);
+    gh.icsInviato=ics;
     ghKnown(sv.ts);
     gh.err="";if(loud)toast("Sincronizzato");
   }catch(e){gh.err=e.message||"errore";if(loud)toast("Sync: "+gh.err);}
@@ -2697,6 +2719,114 @@ function ghSchedule(){
   if(!gh.on)return;
   clearTimeout(gh.timer);
   gh.timer=setTimeout(()=>ghPush(),4000);
+}
+
+/* ---------- calendario Apple (.ics) ----------
+   23 novembre: "esportare sul calendario Apple sia del Mac che del
+   telefono". Ogni sincronizzazione scrive nel gist anche piano.ics, i
+   blocchi del piano come eventi; Calendario si iscrive al suo indirizzo e
+   lo rilegge da solo. Va in una direzione sola: quello che cambi nel
+   calendario non torna qui. */
+const CAL_FILE="piano.ics";
+const CAL_DA=28;                 /* giorni indietro: il passato lontano non serve */
+function calProprietario(g){if(g&&g.owner&&g.owner.login)gh.owner=g.owner.login;}
+function calLink(){
+  return gh.gist&&gh.owner?"https://gist.githubusercontent.com/"+gh.owner+"/"+gh.gist+"/raw/"+CAL_FILE:"";
+}
+/* I blocchi del piano aperto, uno per evento. Si leggono dalle mezz'ore
+   salvate e non dalla griglia, che mostra solo la fascia scelta. Un blocco
+   fatto a meta' resta un evento solo: separato in parte fatta e parte da
+   fare (come lo disegna la griglia) cambierebbe a ogni mezz'ora spuntata
+   dal timer, e nel calendario un blocco sparirebbe e rinascerebbe mentre
+   lo stai facendo. */
+function blocchiCalendario(){
+  const pid=state.piano||PIANO_BASE,m=map(),gruppi={},memo={};
+  const dal=iso(addDays(new Date(),-CAL_DA));
+  Object.keys(state.cells).forEach(k=>{
+    const p=k.split(".");
+    if((p.length===5?p[0]:PIANO_BASE)!==pid)return;
+    const dt=p[p.length-2];if(dt<dal)return;
+    const g=p.slice(0,-1).join(".");
+    (gruppi[g]=gruppi[g]||{dt:dt,pre:p.slice(0,-2).join(".")+".",sl:{}}).sl[+p[p.length-1]]=at(k);
+  });
+  const stesso=(a,b)=>a&&b&&a.i===b.i&&a.a===b.a&&chiaveEscl(a)===chiaveEscl(b);
+  const out=[];
+  Object.keys(gruppi).sort().forEach(g=>{
+    const G=gruppi[g];
+    let lanes=0;Object.keys(G.sl).forEach(s=>{lanes=Math.max(lanes,G.sl[s].length);});
+    for(let L=0;L<lanes;L++){
+      let cur=null;
+      const chiudi=()=>{if(cur)out.push(cur);cur=null;};
+      for(let s=0;s<24*PERQ;s++){
+        const v=(G.sl[s]||[])[L];
+        if(cur&&stesso(cur.v,v)){cur.len++;if(vero(v))cur.fatte++;continue;}
+        chiudi();
+        if(v&&m[v.i])cur={v:v,dt:G.dt,pre:G.pre,lane:L,start:s,len:1,fatte:vero(v)?1:0};
+      }
+      chiudi();
+    }
+  });
+  return out.map(r=>{
+    const o=m[r.v.i],att=actOf(r.v.a).n;
+    let tit=o.name;
+    if(ripLibero(r.v)){
+      const fra=divisoFra(r.v,r.dt,r.pre,memo);
+      tit="Ripasso"+(fra.length?" · "+fra.map(x=>m[x]?(m[x].short||m[x].name):"?").join(", "):"");
+    }else if(o.name.toLowerCase()!==att.toLowerCase())tit+=" · "+att;
+    if(r.fatte===r.len)tit="✓ "+tit;
+    const pulito=x=>String(x).replace(/[^A-Za-z0-9]/g,"_");
+    return {uid:"agenda-"+pulito(r.pre)+r.dt+"-"+r.start+"-"+r.lane+"-"+pulito(r.v.i)+"-"+r.v.a+"@agenda",
+      date:r.dt,start:r.start,len:r.len,lane:r.lane,i:r.v.i,a:r.v.a,titolo:tit,
+      nota:r.v.n||"",fatte:r.fatte};
+  });
+}
+/* l'ora di una mezz'ora, in UTC come la vuole il formato: cosi' l'ora
+   legale la risolve il browser e non c'e' un fuso da dichiarare */
+function calOra(dt,slot){
+  const d=parse(dt);d.setHours(0,0,0,0);
+  const t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),Math.floor(slot/PERQ),(slot%PERQ)*(60/PERQ));
+  return t.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
+}
+function calTesto(x){return String(x).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");}
+/* righe al massimo di 75 byte, le successive cominciano con uno spazio */
+function calPiega(riga){
+  const enc=new TextEncoder();
+  if(enc.encode(riga).length<=75)return riga;
+  const out=[];let cur="",n=0;
+  for(const ch of riga){
+    const b=enc.encode(ch).length;
+    if(n+b>(out.length?74:75)){out.push(cur);cur="";n=0;}
+    cur+=ch;n+=b;
+  }
+  out.push(cur);
+  return out.join("\r\n ");
+}
+function calEvento(b,stamp){
+  const desc=[actOf(b.a).n+" · "+hrs(b.len)+(b.fatte?" · "+hrs(b.fatte)+" fatte":"")];
+  if(b.nota)desc.push(b.nota);
+  return ["BEGIN:VEVENT","UID:"+b.uid,"DTSTAMP:"+stamp,
+    "DTSTART:"+calOra(b.date,b.start),"DTEND:"+calOra(b.date,b.start+b.len),
+    "SUMMARY:"+calTesto(b.titolo),"DESCRIPTION:"+calTesto(desc.join("\n")),
+    "END:VEVENT"];
+}
+function calIcs(){
+  /* il timbro non cambia a ogni giro, se no il file risulterebbe sempre
+     cambiato e ogni salvataggio lo rispedirebbe */
+  const stamp="20260101T000000Z";
+  const righe=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//agenda//piano//IT","CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH","X-WR-CALNAME:Agenda studio","X-PUBLISHED-TTL:PT15M",
+    "REFRESH-INTERVAL;VALUE=DURATION:PT15M"];
+  blocchiCalendario().forEach(b=>calEvento(b,stamp).forEach(r=>righe.push(r)));
+  righe.push("END:VCALENDAR");
+  return righe.map(calPiega).join("\r\n")+"\r\n";
+}
+function calUI(){
+  const box=document.getElementById("syCal");if(!box)return;
+  const l=calLink();
+  if(!gh.on||!l){box.hidden=true;return;}
+  box.hidden=false;
+  document.getElementById("syCalLink").value=l;
+  document.getElementById("syCalApri").href=l.replace(/^https:/,"webcal:");
 }
 /* tornando sulla pagina controlla se l'altro dispositivo ha modificato */
 document.addEventListener("visibilitychange",()=>{
@@ -8342,6 +8472,7 @@ document.getElementById("bkRestore").onclick=()=>{
 
 /* ---------- sincronizzazione ---------- */
 function syState(){
+  calUI();
   const el=document.getElementById("syState");
   if(!gh.on)el.textContent="Non collegato.";
   else if(gh.err)el.textContent="Errore: "+gh.err;
@@ -8354,6 +8485,12 @@ document.getElementById("syncBtn").onclick=()=>{
   document.getElementById("syTok").value=gh.token||"";
   syState();
   document.getElementById("syncModal").classList.add("open");
+};
+document.getElementById("syCalCopia").onclick=()=>{
+  const l=calLink();if(!l)return;
+  const fatto=()=>toast("Link del calendario copiato");
+  if(navigator.clipboard)navigator.clipboard.writeText(l).then(fatto,()=>{
+    const i=document.getElementById("syCalLink");i.select();document.execCommand("copy");fatto();});
 };
 document.getElementById("syClose").onclick=()=>document.getElementById("syncModal").classList.remove("open");
 document.getElementById("syncModal").onclick=e=>{
