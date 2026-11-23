@@ -25,14 +25,18 @@
   --tint-today:rgba(139,147,255,.07); --tint-hover:rgba(139,147,255,.13);
   --row:28px;   /* altezza di uno slot da 30 minuti: la regola JS in autoRow() */
 }
+/* 23 novembre: "migliora assolutamente il tema chiaro". Era crema e beige,
+   con un weekend marroncino: sembrava ingiallito. Ora e' neutro e freddo,
+   la griglia bianca su un fondo appena grigio, le linee che si vedono e il
+   testo piu' deciso. */
 html[data-theme="light"]{
-  --bg:#F2F0EA; --surface:#FBFAF6; --raised:#FFFFFF; --sunken:#E8E5DC;
-  --line:#DEDACF; --line-soft:#EAE6DC;
-  --tx:#23231F; --tx2:#52504C; --tx3:#69675D;   /* 13.8 · 7.1 · 5.0 sul fondo */
+  --bg:#F3F4F7; --surface:#FFFFFF; --raised:#FFFFFF; --sunken:#F0F1F5;
+  --line:#D9DCE4; --line-soft:#E7E9EF;
+  --tx:#14161B; --tx2:#454B59; --tx3:#626878;   /* 17 · 8.6 · 5.2 sul fondo */
   --action:#4A54D6; --done:#2F8A5F; --warn:#B4483E; --late:#C5221F;
   --studio:#D9482B; --riposo:#108A66; --pronto:#B87A0A;
-  --shadow:0 1px 2px rgba(60,54,40,.07), 0 10px 26px -14px rgba(60,54,40,.28);
-  --tint-today:rgba(74,84,214,.07); --tint-hover:rgba(74,84,214,.11);
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 10px 28px -14px rgba(16,24,40,.22);
+  --tint-today:rgba(74,84,214,.05); --tint-hover:rgba(74,84,214,.09);
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--tx)}
@@ -83,7 +87,7 @@ body.amouse td.c:focus-visible{outline:none}
 .seg button:hover{color:var(--tx)}
 .seg button[aria-pressed="true"]{background:var(--raised);color:var(--tx);
   box-shadow:0 1px 2px rgba(0,0,0,.25)}
-html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px rgba(60,54,40,.12)}
+html[data-theme="light"] .seg button[aria-pressed="true"]{box-shadow:0 1px 2px rgba(16,24,40,.1),0 0 0 1px rgba(16,24,40,.04)}
 .icon{width:31px;height:31px;border-radius:var(--r-sm);border:1px solid var(--line);
   background:var(--surface);color:var(--tx2);cursor:pointer;font-size:14px;flex:0 0 auto;
   display:inline-flex;align-items:center;justify-content:center;transition:color .13s,border-color .13s}
@@ -818,7 +822,17 @@ html[data-row="tight"] .blk em s{font-size:10.5px}
 html[data-row="tight"] .tick{width:12px;height:12px;top:3px;right:3px}
 .blk{transition:filter .12s,box-shadow .12s}
 .blk:hover{filter:brightness(1.08)}
-html[data-theme="light"] .blk:hover{filter:brightness(.96)}
+html[data-theme="light"] .blk:hover{filter:brightness(.97)}
+/* I blocchi nel tema chiaro: i colori pieni delle materie sono fatti per il
+   fondo scuro e sul bianco pesavano, col motivo che diventava rumore. Qui il
+   fondo e' una tinta chiara della materia, il colore pieno sta in una
+   striscia a sinistra, e il motivo si fa piu' leggero. Il ripasso resta
+   grigio (e' il colore della sua voce, --mc). */
+html[data-theme="light"] .blk{background:color-mix(in srgb,var(--mc) 30%,#fff)!important;
+  border-left:3px solid var(--mc)}
+html[data-theme="light"] .blk:not(.selblk):not(.running){box-shadow:0 0 0 1px color-mix(in srgb,var(--mc) 35%,transparent),0 1px 2px rgba(16,24,40,.06)}
+html[data-theme="light"] .blk em span.tr{opacity:.5}
+html[data-theme="light"] .blk.done::after{background:repeating-linear-gradient(45deg,rgba(20,22,27,.13) 0 3px,transparent 3px 8px)}
 /* La mezz'ora con la nota è l'unico caso che non ha una fascia libera sotto il
    testo: le due righe riempiono il blocco. Lì il motivo resta una maschera, e
    lavora in orizzontale sulla destra. */
@@ -1188,6 +1202,8 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
   background:var(--fase);color:#14161B;font-family:"DM Mono",monospace;font-size:9.5px;
   font-weight:600;letter-spacing:.1em;vertical-align:1px}
 html[data-theme="light"] .pombar .pfase{color:#fff}
+html[data-theme="light"] .pombar .pfill{background:linear-gradient(90deg,color-mix(in srgb,var(--fase) 3%,transparent),color-mix(in srgb,var(--fase) 12%,transparent))}
+html[data-theme="light"] .pombar.on{background:color-mix(in srgb,var(--fase) 5%,var(--surface))}
 .pombar .pin{position:relative;display:flex;align-items:center;gap:16px;
   max-width:1440px;margin:0 auto;padding:12px var(--pad)}
 .pombar .pico{flex:0 0 auto;color:var(--fase);display:flex;font-size:15px}
@@ -2359,7 +2375,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · n";
+const VERSIONE="23 nov 2026 · o";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -7071,7 +7087,7 @@ function drawDay(dateIso,scope){
          se lo cambi li' cambia anche qui. */
       const fondo=r.v.a==="RIP"?(state.colors[GENID]||autoColor(GENID)):o.color;
       bl.style.background=fondo;
-      bl.style.setProperty("--bc",fondo);
+      bl.style.setProperty("--bc",fondo);bl.style.setProperty("--mc",fondo);
       bl.style.setProperty("--tr",ATRAMA[r.v.a]||"none");
       /* sempre nera: i fondi sono tutti chiari apposta, così non c'è un blocco
          con la scritta bianca e uno con la nera a seconda della materia */
