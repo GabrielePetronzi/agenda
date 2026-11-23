@@ -430,10 +430,29 @@
     gh.on=true;gh.gist="abc123";gh.owner=null;calUI();
     var b=!box.hidden&&!msg.hidden&&vivo.hidden;
     gh.owner="qualcuno";calUI();
-    var c=!box.hidden&&msg.hidden&&!vivo.hidden&&document.getElementById("syCalLink").value===
-      "https://gist.githubusercontent.com/qualcuno/abc123/raw/piano.ics";
+    var link=[].map.call(document.querySelectorAll("#syCalMat a"),function(x){return x.getAttribute("href");});
+    var c=!box.hidden&&msg.hidden&&!vivo.hidden&&link.indexOf("webcal://gist.githubusercontent.com/qualcuno/abc123/raw/piano.ics")>=0;
     gh.on=v.on;gh.gist=v.gist;gh.owner=v.owner;gh.err=v.err;calUI();
     return (a&&b&&c)?true:"scollegato="+a+" senza proprietario="+b+" pronto="+c;});
+
+  /* 23 novembre: un calendario per materia, col suo colore */
+  t("un calendario per materia, coi suoi blocchi e il suo colore",function(){
+    pulisci();apri();
+    placeRun(G[1],H0,{i:it[0].id,a:"ESE",len:2},0);
+    placeRun(G[2],H0,{i:it[0].id,a:"LET",len:2},0);
+    placeRun(G[2],H0+4,{i:it[1].id,a:"LET",len:2},0);
+    var v=gh.fileGist;gh.fileGist=[calFileDi(it[2].id)];      /* una terza c'era gia' nel gist */
+    var cs=calPerMateria();gh.fileGist=v;
+    var a=cs.filter(function(c){return c.id===it[0].id;})[0],b=cs.filter(function(c){return c.id===it[1].id;})[0],
+        c=cs.filter(function(c){return c.id===it[2].id;})[0];
+    if(!a||!b)return "mancano dei calendari: "+cs.map(function(x){return x.nome;}).join(", ");
+    if(a.n!==2||b.n!==1)return "blocchi: "+a.n+" e "+b.n;
+    if((a.ics.match(/BEGIN:VEVENT/g)||[]).length!==2)return "il calendario della prima ha altri eventi";
+    var col=(state.colors[it[0].id]||autoColor(it[0].id)).toUpperCase();
+    if(a.ics.indexOf("X-APPLE-CALENDAR-COLOR:"+col)<0)return "manca il colore "+col;
+    if(a.ics.replace(/\r\n /g,"").indexOf("X-WR-CALNAME:Agenda · "+it[0].name)<0)return "manca il nome";
+    if(!c||c.n!==0||/BEGIN:VEVENT/.test(c.ics))return "la materia svuotata non viene svuotata anche nel gist";
+    return /^cal-[A-Za-z0-9_]+\.ics$/.test(a.file)?true:"nome del file: "+a.file;});
 
   /* ---------- calendario nei due sensi (ponte) ---------- */
   /* un giorno della settimana a schermo che sia almeno domani: dal

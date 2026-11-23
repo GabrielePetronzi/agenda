@@ -352,6 +352,16 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 #picklist .prow.insu{box-shadow:inset 0 3px 0 var(--action)}
 #picklist .prow.ingiu{box-shadow:inset 0 -3px 0 var(--action)}
 .dragghost.riordina b{display:none}
+/* i calendari delle materie, in "Sincronizza dispositivi" */
+.calmats{display:flex;flex-direction:column;gap:2px;margin-top:4px;max-height:46vh;overflow-y:auto}
+.calmat{display:flex;align-items:center;gap:8px;padding:6px 2px;border-top:1px solid var(--line-soft)}
+.calmat:first-child{border-top:0}
+.calmat i{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
+.calmat span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.calmat b{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.calmat u{text-decoration:none;font-family:"DM Mono",monospace;font-size:9.5px;color:var(--tx3)}
+.calmat .tool{padding:4px 8px;font-size:11px;text-decoration:none;flex:0 0 auto}
+.calvuoto{font-size:11.5px;color:var(--tx3);margin:4px 0}
 .dragghost{position:fixed;z-index:90;pointer-events:none;display:flex;align-items:center;
   gap:8px;max-width:220px;padding:6px 10px;border-radius:var(--r-sm);
   background:var(--raised);border:1px solid var(--line);box-shadow:var(--shadow);
@@ -1559,19 +1569,15 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
     <div id="syCal" hidden style="margin:14px 0 0;padding:12px;border:1px solid var(--line);border-radius:8px">
       <b style="font-size:12.5px">Calendario Apple</b>
       <p style="font-size:11.5px;color:var(--tx2);margin:6px 0 8px;line-height:1.5">
-        I blocchi del piano, dalle ultime quattro settimane in avanti, come calendario
-        a cui iscriversi. Si aggiorna da solo a ogni sincronizzazione; quello che cambi
-        nel calendario non torna qui. Chi ha il link vede il piano: non condividerlo.</p>
+        Un calendario per materia, col suo colore: iscriviti a quelle che vuoi. Quando il
+        Mac chiede dove metterlo scegli <b>iCloud</b>, cosi' arriva anche sull'iPhone.
+        Si aggiornano da soli; quello che cambi nel calendario non torna qui. Una materia
+        che prende i primi blocchi compare qui sotto e va iscritta anche lei. Se eri
+        iscritto al calendario unico, togli quell'iscrizione o i blocchi compaiono due volte.
+        Chi ha i link vede il piano: non condividerli.</p>
       <p id="syCalMsg" hidden style="font-size:11.5px;color:var(--tx2);margin:6px 0 0;line-height:1.5"></p>
       <div id="syCalVivo">
-      <input id="syCalLink" readonly spellcheck="false"
-        style="width:100%;border:1px solid var(--line);background:var(--cell);color:var(--tx);
-        padding:8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10.5px">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-        <a id="syCalApri" class="tool" style="text-decoration:none"
-          title="Apre Calendario e ti iscrive al piano">Iscriviti in Calendario</a>
-        <button id="syCalCopia" class="tool" title="Copia l'indirizzo del calendario">Copia il link</button>
-      </div>
+      <div id="syCalMat" class="calmats"></div>
       <p id="syPonte" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin:10px 0 0;line-height:1.5"></p>
       </div>
     </div>
@@ -2312,7 +2318,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · j";
+const VERSIONE="23 nov 2026 · k";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2737,13 +2743,17 @@ async function ghPush(loud,force){
     const files={"piano.json":{content:payload()}};
     /* il calendario va solo quando cambia: ogni PATCH e' una revisione del
        gist, e il file .ics di un semestre non e' piccolo */
-    const ics=calIcs();
+    const bsCal=blocchiCalendario(),ics=calIcs(bsCal);
     if(ics!==gh.icsInviato)files[CAL_FILE]={content:ics};
+    gh.calInviati=gh.calInviati||{};
+    const perMat=calPerMateria(bsCal);
+    perMat.forEach(c=>{if(gh.calInviati[c.file]!==c.ics)files[c.file]={content:c.ics};});
     const cj=calJson();
     if(cj!==gh.jsonInviato)files[CAL_JSON]={content:cj};
     const g2=await ghApi("/gists/"+gh.gist,{method:"PATCH",body:JSON.stringify({files:files})});
     calProprietario(g2);
     gh.icsInviato=ics;gh.jsonInviato=cj;
+    perMat.forEach(c=>{gh.calInviati[c.file]=c.ics;});
     ghKnown(sv.ts);
     gh.err="";if(loud)toast("Sincronizzato");
   }catch(e){gh.err=e.message||"errore";if(loud)toast("Sync: "+gh.err);}
@@ -2782,12 +2792,13 @@ function ghSchedule(){
 const CAL_FILE="piano.ics";
 const CAL_DA=28;                 /* giorni indietro: il passato lontano non serve */
 function calProprietario(g){
+  if(g&&g.files)gh.fileGist=Object.keys(g.files);
   if(!(g&&g.owner&&g.owner.login))return;
   gh.owner=g.owner.login;
   try{localStorage.setItem(OWNKEY,gh.owner);}catch(e){}
 }
-function calLink(){
-  return gh.gist&&gh.owner?"https://gist.githubusercontent.com/"+gh.owner+"/"+gh.gist+"/raw/"+CAL_FILE:"";
+function calLink(file){
+  return gh.gist&&gh.owner?"https://gist.githubusercontent.com/"+gh.owner+"/"+gh.gist+"/raw/"+(file||CAL_FILE):"";
 }
 /* I blocchi del piano aperto, uno per evento. Si leggono dalle mezz'ore
    salvate e non dalla griglia, che mostra solo la fascia scelta. Un blocco
@@ -2870,16 +2881,36 @@ function calEvento(b,stamp){
     "SUMMARY:"+calTesto(b.titolo),"DESCRIPTION:"+calTesto(calDesc(b)),
     "END:VEVENT"];
 }
-function calIcs(){
+function calIcsDi(bs,nome,colore){
   /* il timbro non cambia a ogni giro, se no il file risulterebbe sempre
      cambiato e ogni salvataggio lo rispedirebbe */
   const stamp="20260101T000000Z";
   const righe=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//agenda//piano//IT","CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH","X-WR-CALNAME:Agenda studio","X-PUBLISHED-TTL:PT15M",
+    "METHOD:PUBLISH","X-WR-CALNAME:"+calTesto(nome),"X-PUBLISHED-TTL:PT15M",
     "REFRESH-INTERVAL;VALUE=DURATION:PT15M"];
-  blocchiCalendario().forEach(b=>calEvento(b,stamp).forEach(r=>righe.push(r)));
+  if(colore)righe.push("X-APPLE-CALENDAR-COLOR:"+colore.toUpperCase());
+  bs.forEach(b=>calEvento(b,stamp).forEach(r=>righe.push(r)));
   righe.push("END:VCALENDAR");
   return righe.map(calPiega).join("\r\n")+"\r\n";
+}
+function calIcs(bs){return calIcsDi(bs||blocchiCalendario(),"Agenda studio");}
+/* 23 novembre: "vorrei che il calendario apple conservasse anche il
+   colore". Calendario colora i calendari, non i singoli eventi: quindi un
+   calendario per materia, col colore della materia (quello della barretta
+   del blocco), a cui ci si iscrive uno per uno. Il nome del file segue l'id
+   della materia, cosi' rinominarla non rompe l'iscrizione. Si scrivono le
+   materie che hanno blocchi, e quelle gia' nel gist anche se si sono
+   svuotate: se no il loro calendario resterebbe fermo coi blocchi di prima. */
+const calFileDi=id=>"cal-"+String(id).replace(/[^A-Za-z0-9]/g,"_")+".ics";
+function calPerMateria(bs){
+  bs=bs||blocchiCalendario();
+  const m=map(),gia=new Set((gh.fileGist||[]).filter(f=>/^cal-.*\.ics$/.test(f))),per={};
+  bs.forEach(b=>{(per[b.i]=per[b.i]||[]).push(b);});
+  return inOrdine(items()).filter(o=>per[o.id]||gia.has(calFileDi(o.id))).map(o=>{
+    const col=state.colors[o.id]||autoColor(o.id);
+    return {id:o.id,nome:o.name,colore:col,file:calFileDi(o.id),n:(per[o.id]||[]).length,
+      ics:calIcsDi(per[o.id]||[],"Agenda · "+o.name,col)};
+  });
 }
 /* ---------- calendario nei due sensi: il ponte ----------
    23 novembre: "se cambio dal telefono nel calendario qualcosa della
@@ -3024,8 +3055,21 @@ function calUI(){
     return;
   }
   vivo.hidden=false;msg.hidden=true;
-  document.getElementById("syCalLink").value=l;
-  document.getElementById("syCalApri").href=l.replace(/^https:/,"webcal:");
+  const lista=document.getElementById("syCalMat");lista.innerHTML="";
+  const riga=(nome,colore,link,info)=>{
+    const r=document.createElement("div");r.className="calmat";
+    r.innerHTML='<i style="background:'+(colore||"var(--tx3)")+'"></i><span><b></b><u></u></span>'+
+      '<a class="tool" title="Apre Calendario e ti iscrive a questo calendario">Iscriviti</a>'+
+      '<button class="tool" type="button" title="Copia il link di questo calendario">Copia</button>';
+    r.querySelector("b").textContent=nome;r.querySelector("u").textContent=info;
+    r.querySelector("a").href=link.replace(/^https:/,"webcal:");
+    r.querySelector("button").onclick=()=>calCopia(link);
+    lista.appendChild(r);
+  };
+  const mats=calPerMateria().filter(c=>c.n);
+  if(!mats.length)lista.innerHTML='<p class="calvuoto">Nessun blocco dalle ultime quattro settimane in avanti.</p>';
+  mats.forEach(c=>riga(c.nome,c.colore,calLink(c.file),c.n+(c.n===1?" blocco":" blocchi")+" · "+c.colore.toUpperCase()));
+  riga("Tutto in un calendario solo",null,l,"un colore solo per tutte le materie");
   const pt=document.getElementById("syPonte"),g=gh.ponte;
   if(pt)pt.textContent=g&&g.ts
     ?"Nei due sensi: ponte attivo · ultimo giro "+new Date(g.ts).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+
@@ -8787,12 +8831,13 @@ document.getElementById("syncBtn").onclick=()=>{
     ghPush(false).then(()=>{if(!calLink())return ghFind().then(()=>ghApi("/gists/"+gh.gist)).then(calProprietario);})
       .catch(e=>{gh.err=e.message||"errore";}).then(()=>syState());
 };
-document.getElementById("syCalCopia").onclick=()=>{
-  const l=calLink();if(!l)return;
+function calCopia(l){
+  if(!l)return;
   const fatto=()=>toast("Link del calendario copiato");
-  if(navigator.clipboard)navigator.clipboard.writeText(l).then(fatto,()=>{
-    const i=document.getElementById("syCalLink");i.select();document.execCommand("copy");fatto();});
-};
+  const aMano=()=>{const t=document.createElement("textarea");t.value=l;document.body.appendChild(t);
+    t.select();try{document.execCommand("copy");fatto();}catch(e){}t.remove();};
+  if(navigator.clipboard)navigator.clipboard.writeText(l).then(fatto,aMano);else aMano();
+}
 document.getElementById("syClose").onclick=()=>document.getElementById("syncModal").classList.remove("open");
 document.getElementById("syncModal").onclick=e=>{
   if(e.target.id==="syncModal")e.currentTarget.classList.remove("open");
