@@ -505,8 +505,8 @@ html[data-row="micro"] .blk.tardi .tick::after{font-size:9px}
    fila sopra la griglia: compariva al primo clic e spingeva giu' tutto di
    sessantaquattro pixel, e il blocco appena toccato scappava da sotto il
    mouse — il clic dopo prendeva la mezz'ora sbagliata (27 settembre). */
-@keyframes selbarin{from{opacity:0;translate:0 10px}to{opacity:1;translate:0 0}}
-.selbar.on{animation:selbarin .14s ease-out}
+@keyframes selbarin{from{opacity:0;translate:0 8px;scale:.96}to{opacity:1;translate:0 0;scale:1}}
+.selbar.on{animation:selbarin .12s cubic-bezier(.2,.9,.3,1.15)}
 .selbar.on{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
   width:max-content;max-width:calc(100vw - 32px);
@@ -521,6 +521,29 @@ body.consel .toast{bottom:84px}
   body.consel .toast{bottom:18px}
 }
 .selbar b{font-family:"DM Mono",monospace;font-size:12px;font-weight:500;color:var(--action)}
+/* la scheda della selezione */
+.selbar.on{border-color:color-mix(in srgb,var(--action) 55%,var(--line));border-radius:12px;
+  background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);box-shadow:0 12px 32px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.03) inset;
+  padding:10px;gap:10px}
+.selbar .sbcard{display:flex;align-items:center;gap:10px;width:100%;min-width:0}
+.selbar .sbcol{display:flex;flex-direction:column;gap:2px;align-self:stretch;width:5px;flex:0 0 auto}
+.selbar .sbcol i{flex:1;border-radius:3px;min-height:6px}
+.selbar .sbtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.selbar .sbtxt b{font-family:"Familjen Grotesk",sans-serif;font-size:13.5px;font-weight:600;color:var(--tx);
+  letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.selbar .sbtxt u,.selbar .sbora u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.selbar .sbora{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:0 0 auto}
+.selbar .sbora b{font-size:14px;color:var(--tx);letter-spacing:-.02em}
+.selbar .sbact{display:flex;gap:5px;width:100%}
+.selbar .sbb{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:6px 2px 5px;border:1px solid var(--line);border-radius:8px;background:var(--raised);color:var(--tx2);
+  cursor:pointer;transition:background .1s,color .1s,border-color .1s,transform .08s}
+.selbar .sbb span{font-family:"DM Mono",monospace;font-size:9.5px;color:inherit}
+.selbar .sbb:hover{color:var(--tx);border-color:var(--tx3);background:var(--surface)}
+.selbar .sbb:active{transform:scale(.95)}
+.selbar .sbb.via:hover{color:var(--warn);border-color:var(--warn)}
 /* 9 novembre: "rendi piu' intuitiva la scelta delle materie per il
    ripasso". Tre porte: la scritta dentro il blocco (si apre il riquadro
    qui sotto), la riga "Ripasso di" sotto le attivita' prima di dipingere,
@@ -818,7 +841,6 @@ td.c .selmezz{position:absolute;z-index:3;pointer-events:none;border-radius:5px;
 /* 23 novembre: "rendi piu' scattante e figa l'anteprima quando seleziono
    uno slot occupato". Il riquadro compare gia' alla pressione (anteprima,
    piu' tenue), con uno scatto breve, e dice dentro di se' che ore prende. */
-td.c .selmezz.anteprima{background:color-mix(in srgb,var(--action) 22%,transparent);animation-duration:.09s}
 td.c .selmezz[data-t]::after{content:attr(data-t);position:absolute;right:3px;top:50%;transform:translateY(-50%);
   font-family:"DM Mono",monospace;font-size:9.5px;line-height:1;font-weight:500;letter-spacing:.02em;
   padding:2px 4px;border-radius:3px;background:var(--action);color:#fff;white-space:nowrap;
@@ -2322,7 +2344,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · l";
+const VERSIONE="23 nov 2026 · m";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -7218,16 +7240,6 @@ function segnaSelezione(giorni){
     });
   });
 }
-/* alla pressione su un blocco: il riquadro della mezz'ora c'e' gia', prima
-   ancora di sapere se diventera' un clic o uno spostamento */
-function anteprimaSel(td,r,off){
-  document.querySelectorAll(".selmezz.anteprima").forEach(e=>e.remove());
-  const bl=document.querySelector('.blk[data-date="'+r.date+'"][data-start="'+r.start+'"][data-lane="'+r.lane+'"]');
-  if(!bl||r.len===1)return;
-  const q=riquadroSel(bl,r.start,{start:r.start+off,len:1});
-  q.classList.add("anteprima");
-  bl.parentElement.appendChild(q);
-}
 function toggleSel(dateIso,slot,lane){
   const r=runAt(dateIso,slot,lane);
   if(!r)return false;
@@ -7252,18 +7264,47 @@ function selInfo(){
   document.body.classList.toggle("consel",!!n);
   if(!n){el.className="selbar";el.innerHTML="";pomPanel();
     const l=document.getElementById("selLbl");if(l)l.classList.remove("on");return;}
-  let tot=0;Object.keys(selRuns).forEach(k=>tot+=selRuns[k].len);
+  /* 23 novembre: "rendi piu' bella e figa l'anteprima che esce". Una
+     scheda: il colore della materia, cosa e', quando, e le azioni come
+     pulsanti — prima c'erano le scorciatoie scritte in fila. */
+  const sel=Object.keys(selRuns).map(k=>selRuns[k]),m=map();
+  let tot=0;sel.forEach(r=>tot+=r.len);
+  const uno=n===1?sel[0]:null;
+  const firma=sel.map(r=>selKey(r.date,r.start,r.lane)+"/"+r.len).sort().join();
+  if(el.dataset.firma!==firma||!el.classList.contains("on")){
+    el.classList.remove("on");void el.offsetWidth;   /* rifa' l'entrata a ogni scelta nuova */
+    el.dataset.firma=firma;
+  }
   el.className="selbar on";
-  const uno=n===1?selRuns[Object.keys(selRuns)[0]]:null;
-  el.innerHTML="<b>"+(uno?(uno.len===1?"mezz’ora":"blocco")+" "+slotTime(uno.start)+"–"+slotTime(uno.start+uno.len)
-      :n+" blocchi · "+hrs(tot))+"</b>"+
-    "";
-  const rip=document.createElement("button");
-  rip.className="btn";
-  rip.innerHTML=icon("RIP",13)+"<span>Ripeti ogni settimana…</span>";
-  rip.title="Ricopia questi blocchi nelle settimane successive, stesso giorno e stessa ora";
-  rip.onclick=openRepeatBlocks;
-  el.appendChild(rip);
+  const esc2=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const colori=[...new Set(sel.map(r=>(m[r.i]&&m[r.i].color)||"var(--tx3)"))].slice(0,4);
+  let tit,sotto,ora,dur;
+  if(uno){
+    const o=m[uno.i],d=parse(uno.date);
+    tit=o?o.name:"?";
+    sotto=actOf(uno.a).n+" · "+DSH[(d.getDay()+6)%7].toLowerCase()+" "+d.getDate();
+    ora=slotTime(uno.start)+"–"+slotTime(uno.start+uno.len);
+    dur=uno.len===1?"30 min":hrs(uno.len);
+  }else{
+    tit=n+" blocchi";
+    const mat=[...new Set(sel.map(r=>m[r.i]?(m[r.i].short||m[r.i].name):"?"))];
+    sotto=mat.slice(0,3).join(", ")+(mat.length>3?"…":"");
+    ora=hrs(tot);dur="in tutto";
+  }
+  el.innerHTML='<div class="sbcard"><span class="sbcol">'+colori.map(c=>'<i style="background:'+c+'"></i>').join("")+'</span>'+
+    '<span class="sbtxt"><b>'+esc2(tit)+'</b><u>'+esc2(sotto)+'</u></span>'+
+    '<span class="sbora"><b>'+ora+'</b><u>'+dur+'</u></span></div>';
+  const az=document.createElement("div");az.className="sbact";
+  const tutteFatte=sel.every(r=>r.done);
+  [["CPY","Copia","Copia (⌘C), poi ⌘V dove vuoi",()=>copyBlocks()],
+   ["MOV","Taglia","Taglia (⌘X), poi ⌘V dove vuoi",()=>cutBlocks()],
+   ["TCK",tutteFatte?"Da fare":"Fatto",tutteFatte?"Segna da fare (F)":"Segna come fatto (F)",()=>toggleDoneSel()],
+   ["RIP","Ripeti","Ricopia nelle settimane successive, stesso giorno e ora",()=>openRepeatBlocks()],
+   ["TRS","Elimina","Elimina (⌫)",()=>deleteSel(),"via"]].forEach(([ic,t,tip,fn,cl])=>{
+    const b=document.createElement("button");b.type="button";b.className="sbb"+(cl?" "+cl:"");
+    b.innerHTML=icon(ic,14)+"<span>"+t+"</span>";b.title=tip;b.onclick=fn;az.appendChild(b);
+  });
+  el.appendChild(az);
   if(uno)ripassoMaterie(el,uno);
   pomPanel();
 }
@@ -7719,7 +7760,16 @@ function wire(t){
       const r=runAt(td.dataset.date,+td.dataset.h,lane)||anyRunAt(td.dataset.date,+td.dataset.h);
       if(r){armMove={run:r,off:(+td.dataset.h)-r.start,x:e.clientX,y:e.clientY,
         mm:!!(e.target.closest&&e.target.closest(".mmlink"))};
-        if(!armMove.mm&&!(e.ctrlKey||e.metaKey))anteprimaSel(td,Object.assign({date:td.dataset.date},r),armMove.off);
+        /* 23 novembre: "ancora piu' scattante". La mezz'ora si sceglie
+           alla pressione, non al rilascio: se poi il dito si muove diventa
+           uno spostamento e la scelta si toglie. Toccare quella gia' scelta
+           da sola la toglie, ma al rilascio: se no trascinarla la perdeva. */
+        if(!armMove.mm&&!(e.ctrlKey||e.metaKey)){
+          const q=Math.max(0,Math.min(r.len-1,armMove.off|0));
+          const mz=r.len===1?r:Object.assign({},r,{start:r.start+q,len:1,n:q?undefined:r.n});
+          const ks=Object.keys(selRuns),k0=selKey(mz.date,mz.start,mz.lane);
+          if(!(ks.length===1&&selRuns[k0]&&selRuns[k0].len===mz.len)){selezionaSolo(mz);armMove.pre=true;}
+        }
         return;}
     }
 
@@ -8025,6 +8075,8 @@ window.addEventListener("pointermove",e=>{
   if(armMove&&!drag){
     if(Math.abs(e.clientX-armMove.x)<4&&Math.abs(e.clientY-armMove.y)<4)return;
     const r=armMove.run;
+    /* la scelta fatta alla pressione era per un clic: e' uno spostamento */
+    if(armMove.pre){selRuns={};selInfo();}
     clearRun(r.date,r.start,r.len,r.lane);
     drag={run:r,off:armMove.off,date:r.date,start:r.start,lane:r.lane};
     armMove=null;
@@ -8082,9 +8134,9 @@ function selezionaSolo(r){
   segnaSelezione([...giorni]);selInfo();
 }
 ["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,e=>{
-  document.querySelectorAll(".selmezz.anteprima").forEach(x=>x.remove());
   if(armMove&&!drag&&ev==="pointerup"){
-    const r=armMove.run,off=armMove.off,suMm=armMove.mm;armMove=null;
+    const r=armMove.run,off=armMove.off,suMm=armMove.mm,pre=armMove.pre;armMove=null;
+    if(pre)return;                       /* scelta gia' alla pressione */
     /* un clic secco sulla scritta di un ripasso libero apre la scelta delle
        materie; se il dito si muove resta uno spostamento come sempre */
     if(suMm&&!(e.ctrlKey||e.metaKey)){apriRipMm(r);return;}
