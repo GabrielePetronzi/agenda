@@ -78,6 +78,15 @@ body.amouse td.c:focus-visible{outline:none}
 /* sotto i 960 la larghezza non basta più per tenerle in riga */
 @media (max-width:960px){.ctxpick .lbl{display:none}}
 .tin .spacer{flex:1}
+/* il selettore del tempo pieno era nascosto con hidden, ma display:flex lo
+   rimostrava: in alto a sinistra restava un cerchietto vuoto */
+.ctxpick[hidden]{display:none}
+/* il nome dei pulsanti con la sola icona, subito al passaggio del mouse:
+   il suggerimento del browser arriva dopo un secondo e sembrava non ci fosse */
+.qtip{position:fixed;z-index:300;pointer-events:none;background:var(--tx);color:var(--bg);
+  font-size:11.5px;font-weight:500;line-height:1.3;padding:5px 9px;border-radius:7px;max-width:260px;
+  box-shadow:0 6px 18px rgba(0,0,0,.28);opacity:0;translate:0 -3px;transition:opacity .1s,translate .1s}
+.qtip.on{opacity:1;translate:0 0}
 .tacts{display:flex;gap:8px;flex:0 0 auto;margin-left:auto}
 .seg{display:flex;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r-sm);padding:2px;flex:0 0 auto}
@@ -1319,6 +1328,52 @@ html[data-theme="light"] .pombar .pbtn button.pgo{color:#fff}
 .day.exam{box-shadow:inset 0 0 0 1.5px var(--warn)}
 .day .dots{display:flex;gap:2px;height:5px}
 .day .dots i{width:4px;height:4px;border-radius:50%;display:block}
+/* ---------- i pannelli a gruppi (23 novembre) ----------
+   "Migliora l'organizzazione di questo e degli altri simili": titoletti,
+   paragrafi e controlli si alternavano e non si capiva dove guardare. Ora
+   ogni pannello e' fatto di gruppi, come le Impostazioni del telefono: un
+   riquadro per argomento, una riga per cosa, il nome a sinistra con sotto
+   lo stato di adesso in una riga, il controllo a destra. */
+.sgt{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--tx3);margin:18px 0 7px 2px}
+.mhead+.sgt{margin-top:4px}
+.sgrp{background:var(--raised);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.srow{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--line-soft);min-height:52px}
+.srow:first-child{border-top:0}
+.srow.col{flex-direction:column;align-items:stretch;gap:8px}
+.srl{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.srl b{font-size:13.5px;font-weight:500;color:var(--tx)}
+.srl u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx3);line-height:1.45}
+.srl u .warn,.srl u.warn{color:var(--warn)}
+.srl u b{font-size:inherit;color:var(--tx2);font-weight:500}
+.sbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto;
+  border:1px solid var(--line);background:var(--surface);color:var(--tx);border-radius:8px;
+  padding:7px 12px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.sbtn:hover{border-color:var(--tx3)}
+.sbtn.primo{background:var(--action);border-color:var(--action);color:#fff;font-weight:500}
+.sbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.sore{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.sore input{width:54px;text-align:center;border:1px solid var(--line);background:var(--surface);color:var(--tx);
+  border-radius:8px;padding:7px 4px;font-family:"DM Mono",monospace;font-size:13px}
+.sore em{font-style:normal;color:var(--tx3)}
+.sinput{width:100%;border:1px solid var(--line);background:var(--surface);color:var(--tx);
+  padding:9px 10px;border-radius:8px;font-family:"DM Mono",monospace;font-size:12px}
+.snote{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);margin:10px 2px 0;line-height:1.5}
+.sgrp .calmats{max-height:42vh;margin:0}
+.sgrp .calmat{padding:9px 14px;border-top:1px solid var(--line-soft)}
+.sgrp .calmat:first-child{border-top:0}
+.sgrp #syCalMsg{margin:0;padding:12px 14px}
+.sgrp #syPonte{margin:0;padding:9px 14px;border-top:1px solid var(--line-soft)}
+.sgrp .pmrow{padding:10px 14px;border-bottom:0;border-top:1px solid var(--line-soft)}
+.sgrp .pmhead{padding:9px 14px 0}
+.sgrp .bkfile,.sgrp .bklink,.sgrp .bkcopie{margin:0;border:0;border-radius:0;background:none;padding:0}
+.sgrp .bkfile,.sgrp .bklink{display:flex;align-items:center;gap:12px;width:100%}
+.srow:has(> .bklink:empty){display:none}
+.sgrp .bklink u{flex:none}
+.sgrp .bkfile span.srl{flex:1}
+.sgrp textarea#bkText{min-height:56px;max-height:110px}
+.sgrp textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:8px;background:var(--surface);
+  color:var(--tx);padding:8px;resize:vertical}
 .mfoot{margin-top:16px;display:flex;justify-content:space-between;align-items:center;
   gap:10px;flex-wrap:wrap}
 .mfoot span{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
@@ -1384,10 +1439,10 @@ html[data-theme="light"] .pombar .pbtn button.pgo{color:#fff}
     <!-- insieme: a finestra stretta annulla restava in riga e rifai andava a
          capo da solo, sotto, staccato dal suo gemello -->
     <div class="tacts">
-      <button class="icon" id="undoBtn" title="Annulla (Ctrl+Z)" aria-label="Annulla">↶</button>
-      <button class="icon" id="redoBtn" title="Rifai (Ctrl+Y)" aria-label="Rifai">↷</button>
+      <button class="icon" id="undoBtn" title="Annulla (⌘Z)" aria-label="Annulla">↶</button>
+      <button class="icon" id="redoBtn" title="Rifai (⌘⇧Z)" aria-label="Rifai">↷</button>
       <button class="icon" id="theme" title="Chiaro o scuro" aria-label="Cambia tema">◐</button>
-      <button class="icon" id="moreBtn" title="Altro" aria-label="Altro" aria-expanded="false">⋯</button>
+      <button class="btn" id="moreBtn" title="Sincronizza, backup, piano di studi, stampa" aria-label="Menu" aria-expanded="false">Menu</button>
     </div>
   </div>
   <div class="moremenu" id="moremenu">
@@ -1492,8 +1547,8 @@ html[data-theme="light"] .pombar .pbtn button.pgo{color:#fff}
         <button class="icon sm" id="dPrev" title="Giorni precedenti" aria-label="Giorni precedenti">‹</button>
         <span class="dlab" id="dLab"></span>
         <button class="icon sm" id="dNext" title="Giorni successivi" aria-label="Giorni successivi">›</button>
-        <button class="icon sm" id="gdBtn" title="Da dove partono le 4 settimane, ore mostrate, altezza degli slot"
-          aria-label="Settimane e giornata"></button>
+        <button class="btn" id="gdBtn" title="Da dove partono le 4 settimane, ore mostrate, altezza degli slot"
+          aria-label="Settimane e giornata">Giornata</button>
       </div>
 
       <div class="grp sep">
@@ -1544,37 +1599,36 @@ html[data-theme="light"] .pombar .pbtn button.pgo{color:#fff}
 <div class="modal" id="pmModal">
   <div class="sheet bk" style="max-width:520px">
     <div class="mhead"><b>Durate del pomodoro</b><button id="pmClose">✕</button></div>
-    <div id="pmBody"></div>
-    <p class="pmnote">Minuti, tranne <b>cicli</b>: quante sessioni prima della pausa lunga.</p>
+    <div id="pmBody" class="sgrp"></div>
+    <p class="snote">In minuti; cicli = sessioni prima della pausa lunga.</p>
   </div>
 </div>
 
 <div class="modal" id="gdModal">
   <div class="sheet">
     <div class="mhead"><b>Settimane e giornata</b><button id="gdClose">✕</button></div>
-
-    <p class="lbl" data-ico="CAL">Da dove partono le 4 settimane</p>
-    <div class="pmrow" style="padding-top:2px">
-      <span class="nm" id="gdUno"></span>
-      <button class="btn" id="gdUnoBtn">Scegli il giorno</button>
+    <p class="sgt">Settimane</p>
+    <div class="sgrp">
+      <div class="srow">
+        <span class="srl"><b>Prima settimana</b><u id="gdUno"></u></span>
+        <button class="sbtn" id="gdUnoBtn" title="Il giorno scelto apre la Settimana 1">Cambia</button>
+      </div>
     </div>
-    <p class="pmnote">Il giorno che scegli apre la Settimana 1; le frecce poi vanno di quattro in quattro.</p>
-
-    <p class="lbl" style="margin-top:18px" data-ico="CLK">Ore mostrate in griglia</p>
-    <div class="pmrow" style="padding-top:2px">
-      <span class="nm">Dalla prima all'ultima</span>
-      <span class="pair">
-        <label class="f"><input id="dayFrom" type="number" min="0" max="22" step="1"
-          aria-label="La griglia parte dalle"><u>dalle</u></label>
-        <em>→</em>
-        <label class="f"><input id="dayTo" type="number" min="2" max="24" step="1"
-          aria-label="La griglia arriva alle"><u>alle</u></label>
-      </span>
+    <p class="sgt">Giornata</p>
+    <div class="sgrp">
+      <div class="srow">
+        <span class="srl"><b>Ore in griglia</b><u id="dayNote"></u></span>
+        <span class="sore">
+          <input id="dayFrom" type="number" min="0" max="22" step="1" aria-label="La griglia parte dalle" title="Dalle">
+          <em>–</em>
+          <input id="dayTo" type="number" min="2" max="24" step="1" aria-label="La griglia arriva alle" title="Alle">
+        </span>
+      </div>
+      <div class="srow">
+        <span class="srl"><b>Altezza degli slot</b></span>
+        <div class="seg" id="gdSlot" aria-label="Altezza degli slot"></div>
+      </div>
     </div>
-    <p class="pmnote" id="dayNote"></p>
-
-    <p class="lbl" style="margin-top:18px" data-ico="CLK">Altezza degli slot</p>
-    <div class="seg" id="gdSlot" aria-label="Altezza degli slot" style="margin:4px 0 4px;flex-wrap:wrap"></div>
 
   </div>
 </div>
@@ -1623,57 +1677,67 @@ html[data-theme="light"] .pombar .pbtn button.pgo{color:#fff}
 <div class="modal" id="syncModal">
   <div class="sheet bk">
     <div class="mhead"><b>Sincronizza dispositivi</b><button id="syClose">✕</button></div>
-    <p style="font-size:12.5px;color:var(--tx2);margin:0 0 12px;line-height:1.55">
-      Incolla un token GitHub col solo permesso <code>gist</code>, qui e sull'altro dispositivo.</p>
-    <input id="syTok" type="password" placeholder="ghp_… oppure github_pat_…" spellcheck="false"
-      style="width:100%;border:1px solid var(--line);background:var(--cell);color:var(--tx);
-      padding:10px;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px">
-    <p id="syState" style="font-family:'DM Mono',monospace;font-size:10.5px;
-      color:var(--tx3);margin:10px 0 0"></p>
-    <div id="syCal" hidden style="margin:14px 0 0;padding:12px;border:1px solid var(--line);border-radius:8px">
-      <b style="font-size:12.5px">Calendario Apple</b>
-      <p style="font-size:11.5px;color:var(--tx2);margin:6px 0 8px;line-height:1.5">
-        Un calendario per materia, col suo colore. Iscrivendoti scegli <b>iCloud</b>,
-        cosi' lo vedi anche sull'iPhone.</p>
-      <p id="syCalMsg" hidden style="font-size:11.5px;color:var(--tx2);margin:6px 0 0;line-height:1.5"></p>
-      <div id="syCalVivo">
-      <div id="syCalMat" class="calmats"></div>
-      <p id="syPonte" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin:10px 0 0;line-height:1.5"></p>
+    <p class="sgt">GitHub</p>
+    <div class="sgrp">
+      <div class="srow col">
+        <input id="syTok" class="sinput" type="password" placeholder="Token GitHub (permesso gist)" spellcheck="false">
+        <span class="srl"><u id="syState"></u></span>
+      </div>
+      <div class="srow" style="min-height:0">
+        <span class="sbtns" style="flex:1">
+          <button class="sbtn" id="syOff">Scollega</button>
+          <button class="sbtn" id="syNow">Sincronizza ora</button>
+          <button class="sbtn primo" id="syConnect">Collega</button>
+        </span>
       </div>
     </div>
-    <div class="mfoot" style="flex-wrap:wrap">
-      <button id="syConnect">Collega</button>
-      <button id="syNow">Sincronizza ora</button>
-      <button id="syOff">Scollega</button>
+    <p class="sgt">Calendario Apple · uno per materia</p>
+    <div id="syCal" class="sgrp" hidden>
+      <p id="syCalMsg" hidden style="font-size:12px;color:var(--tx2);line-height:1.5"></p>
+      <div id="syCalVivo">
+      <div id="syCalMat" class="calmats"></div>
+      <p id="syPonte" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);line-height:1.5"></p>
+      </div>
     </div>
-    <p style="font-size:11px;color:var(--tx3);margin:12px 0 0;line-height:1.5">
-      Il token resta in questo browser, in chiaro: revocalo da GitHub se il dispositivo non è più tuo.</p>
+    <p class="snote">Iscrivendoti scegli iCloud, cosi' arriva anche sull'iPhone. Il token resta
+      in questo browser: revocalo da GitHub se il dispositivo non e' piu' tuo.</p>
   </div>
 </div>
 
 <div class="modal" id="bkModal">
   <div class="sheet bk">
     <div class="mhead"><b>Backup del piano</b><button id="bkClose">✕</button></div>
-    <p style="font-size:12.5px;color:var(--tx2);margin:0 0 10px;line-height:1.5">
-      Copia questo testo e conservalo, oppure scaricalo. Per rimettere un piano:
-      <b>Carica da file</b> se ne hai uno, o scegli una delle copie qui sotto.</p>
-    <p class="bkstato" id="bkStato"></p>
-    <div class="bkfile" id="bkFileBox"></div>
-    <div class="bklink" id="bkLink"></div>
-    <div class="bkcopie" id="bkCopie"></div>
-    <textarea id="bkText" spellcheck="false" style="font-family:'DM Mono',monospace;font-size:10.5px"></textarea>
+    <p class="sgt">Salva</p>
+    <div class="sgrp">
+      <div class="srow">
+        <span class="srl"><b>File di backup</b><u>Il piano intero in un file .json</u></span>
+        <span class="sbtns"><button class="sbtn" id="bkCopy">Copia</button><button class="sbtn primo" id="bkDl">Scarica</button></span>
+      </div>
+      <div class="srow"><div class="bkfile" id="bkFileBox"></div></div>
+      <div class="srow"><div class="bklink" id="bkLink"></div></div>
+    </div>
+    <p class="sgt">Rimetti</p>
+    <div class="sgrp">
+      <div class="srow">
+        <span class="srl"><b>Da un file</b><u>Un backup scaricato prima</u></span>
+        <button class="sbtn" id="bkLoad">Carica da file</button>
+      </div>
+      <div class="srow col"><span class="srl"><b>Copie automatiche</b></span><div class="bkcopie" id="bkCopie"></div></div>
+      <div class="srow col">
+        <span class="srl"><b>Da un gist</b></span>
+        <div class="bkgist">
+          <input id="bkGist" type="text" placeholder="Link del gist" spellcheck="false" aria-label="Link del gist">
+          <button id="bkGistGo">Recupera</button>
+        </div>
+      </div>
+      <div class="srow col">
+        <span class="srl"><b>Dal testo</b><u>Incolla qui un backup e premi Ripristina</u></span>
+        <textarea id="bkText" spellcheck="false" style="font-family:'DM Mono',monospace;font-size:10.5px"></textarea>
+        <span class="sbtns"><button class="sbtn" id="bkRestore">Ripristina</button></span>
+      </div>
+    </div>
     <input type="file" id="bkFile" accept="application/json,.json,text/plain" hidden>
-    <div class="bkgist">
-      <input id="bkGist" type="text" placeholder="Link del gist, per riprendere il piano da lì"
-        spellcheck="false" aria-label="Link del gist">
-      <button id="bkGistGo">Recupera</button>
-    </div>
-    <div class="mfoot">
-      <button id="bkCopy">Copia</button>
-      <button id="bkDl">Scarica</button>
-      <button id="bkLoad">Carica da file</button>
-      <button id="bkRestore">Ripristina</button>
-    </div>
+    <p class="snote bkstato" id="bkStato"></p>
   </div>
 </div>
 
@@ -2375,7 +2439,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · o";
+const VERSIONE="23 nov 2026 · r";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5613,12 +5677,9 @@ function dayNote(){
   if(!el)return;
   const fuori=outOfRange();
   const ultima=slotTime(HOURS[HOURS.length-1]);
-  /* la descrizione resta neutra: si accende solo la riga che avverte */
-  el.className="pmnote";
-  el.innerHTML="La griglia parte dalle <b>"+dayFrom()+":00</b> e l'ultima riga è quella delle <b>"+
-    ultima+"</b>: "+HOURS.length+" righe da mezz'ora, <b>"+hrs(HOURS.length)+"</b> in tutto."+
-    (fuori?'<br><span class="warn">Fuori da qui hai <b>'+hrs(fuori)+"</b>: non si perde niente, "+
-      "torna in griglia appena riallarghi.</span>":"");
+  /* una riga: cosa si vede; e, se c'e', cosa resta fuori (non si perde) */
+  el.innerHTML=dayFrom()+":00 – "+slotTime(HOURS[HOURS.length-1]+1)+" · "+hrs(HOURS.length)+
+    (fuori?'<br><span class="warn">Fuori da qui '+hrs(fuori)+", non perse: tornano riallargando</span>":"");
 }
 
 /* i quattro campi di ogni attività, definiti una volta sola: testata della
@@ -5637,7 +5698,7 @@ function daySettings(){
   const uno=document.getElementById("gdUno");
   if(uno){
     const a=anchorDate();
-    uno.textContent="Settimana 1: "+fmt(a)+" · fino al "+fmt(addDays(a,7*PANELS-1));
+    uno.textContent=fmt(a)+" → "+fmt(addDays(a,7*PANELS-1))+" · 4 settimane";
     document.getElementById("gdUnoBtn").onclick=()=>{
       document.getElementById("gdModal").classList.remove("open");openMonth(anchorDate());};
   }
@@ -8775,19 +8836,18 @@ function fileBar(){
   const bx=document.getElementById("bkFileBox");
   if(bx){
     if(!fileOK()){
-      bx.innerHTML='<u>Il backup automatico su un file del Mac c’è in Chrome ed Edge. Qui usa <b>Scarica</b>.</u>';
+      bx.innerHTML='<span class="srl"><b>Su un file del Mac</b><u>Solo in Chrome ed Edge: qui usa Scarica</u></span>';
     }else if(fileBk.h){
-      bx.innerHTML='<span><b>Backup su file attivo</b> · '+esc(fileBk.h.name||"file")+" · "+
+      bx.innerHTML='<span class="srl"><b>Su un file del Mac · attivo</b><u>'+esc(fileBk.h.name||"file")+" · "+
         (fileBk.stato==="ok"&&fileBk.quando?"aggiornato alle "+new Date(fileBk.quando).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})
           :fileBk.stato==="pausa"?"in pausa: premi Riattiva":fileBk.stato==="errore"?"errore: "+esc(fileBk.errore)
           :fileBk.stato==="dubbio"?"fermo: il file ha un piano molto più grande, guarda in cima"
           :fileBk.stato==="attesa"?"fermo finché non riprendi il piano dal file":"pronto")+
-        "</span>"+(fileBk.stato==="pausa"?'<button data-f="riattiva">Riattiva</button>':"")+
+        "</u></span>"+(fileBk.stato==="pausa"?'<button data-f="riattiva">Riattiva</button>':"")+
         '<button data-f="cambia">Cambia file</button>';
     }else{
-      bx.innerHTML='<span><b>Backup su file: non attivo.</b> Salva il piano anche su un file del Mac: '+
-        "si aggiorna a ogni modifica e sopravvive se cancelli i dati di navigazione.</span>"+
-        '<button data-f="cambia" class="rip-si">Salva anche su un file</button>';
+      bx.innerHTML='<span class="srl"><b>Su un file del Mac</b><u>Si aggiorna da solo a ogni modifica</u></span>'+
+        '<button data-f="cambia" class="rip-si">Attiva</button>';
     }
     const b=k=>bx.querySelector('[data-f="'+k+'"]');
     if(b("cambia"))b("cambia").onclick=fileScegli;
@@ -8816,16 +8876,13 @@ function bkStato(){
   const box=document.getElementById("bkLink");
   if(box){
     const L=linkRicordo();
+    /* c'e' solo quando serve: senza gist non c'e' niente da mettere nei preferiti */
     box.innerHTML=L
-      ?'<u>Metti questo nei preferiti: riporta il piano anche da un browser '+
-       'svuotato o nuovo.</u><input readonly value="'+L+'"><button id="bkLinkCopy">Copia</button>'
-      :'<u>Recupera una volta da un gist qui sotto: poi qui comparirà un link '+
-       'da mettere nei preferiti, che riporta il piano anche da zero.</u>';
+      ?'<span class="srl"><b>Link di recupero</b><u>Nei preferiti: riporta il piano anche da zero</u></span>'+
+       '<button id="bkLinkCopy">Copia</button>'
+      :"";
     const b=document.getElementById("bkLinkCopy");
-    if(b)b.onclick=async()=>{
-      try{await navigator.clipboard.writeText(L);toast("Link copiato");}
-      catch(e){box.querySelector("input").select();toast("Seleziona e copia");}
-    };
+    if(b)b.onclick=()=>calCopia(L);
   }
 }
 function bkCopieList(){
@@ -9188,12 +9245,40 @@ function ksList(){
   });
 }
 
+/* suggerimento rapido per i pulsanti senza scritta (o con una sola lettera) */
+(function(){
+  let el0=null,t0=null,box=null;
+  const via=()=>{clearTimeout(t0);t0=null;if(box)box.classList.remove("on");el0=null;};
+  const muto=el=>{const tx=(el.textContent||"").replace(/\s+/g,"").length;return tx<=2||el.classList.contains("sbb");};
+  document.addEventListener("pointerover",e=>{
+    if(e.pointerType==="touch")return;
+    const el=e.target.closest&&e.target.closest("button,[role=button],a.tool");
+    if(el===el0)return;
+    via();
+    if(!el||!muto(el))return;
+    const t=el.getAttribute("title")||el.dataset.tt||el.getAttribute("aria-label");
+    if(!t)return;
+    if(el.hasAttribute("title")){el.dataset.tt=t;el.removeAttribute("title");}
+    el0=el;
+    t0=setTimeout(()=>{
+      if(!el.isConnected)return;
+      box=box||Object.assign(document.createElement("div"),{className:"qtip"});
+      if(!box.isConnected)document.body.appendChild(box);
+      box.textContent=el.dataset.tt||t;
+      const r=el.getBoundingClientRect(),w=box.offsetWidth,h=box.offsetHeight;
+      box.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+"px";
+      box.style.top=(r.bottom+h+12>innerHeight?r.top-h-7:r.bottom+7)+"px";
+      box.classList.add("on");
+    },160);
+  });
+  ["pointerdown","scroll","keydown"].forEach(ev=>document.addEventListener(ev,via,true));
+})();
 function iconify(){
-  const solo=[["undoBtn","UND",15],["redoBtn","RED",15],["moreBtn","DOT",15],
+  const solo=[["undoBtn","UND",15],["redoBtn","RED",15],
     ["qClear","XX",12],["wPrev","CHL",14],["wNext","CHR",14],["dPrev","CHL",14],
     ["dNext","CHR",14],["mPrev","CHL",14],["mNext","CHR",14],["pmClose","XX",13],
     ["dyClose","XX",13],["rpClose","XX",13],["syClose","XX",13],["bkClose","XX",13],
-    ["ksClose","XX",13],["gdBtn","CLK",14],["gdClose","XX",13]];
+    ["ksClose","XX",13],["gdClose","XX",13]];
   solo.forEach(([id,k,sz])=>{const e=document.getElementById(id);if(e)e.innerHTML=icon(k,sz);});
   document.querySelectorAll(".lbl[data-ico]").forEach(e=>{
     e.innerHTML=icon(e.dataset.ico,11)+"<span>"+e.textContent.trim()+"</span>";
@@ -9204,7 +9289,10 @@ function iconify(){
   const testo=[["wToday","TDY",13],["eraseBtn","ERS",13],
     ["addBtn","PLS",12],["exAdd","PLS",12],["syncBtn","CLD",13],["backup","SAV",13],
     ["printBtn","PRN",13],["ksBtn","KEY",13],["dyCopy","CPY",12],["dyPaste","PST",12],
-    ["dyWipe","TRS",12],["rpGo","RIP",12],["bkDl","SAV",12],["bkCopy","CPY",12]];
+    ["dyWipe","TRS",12],["rpGo","RIP",12],["bkDl","SAV",12],["bkCopy","CPY",12],
+    /* 23 novembre: "pulsanti che non mi danno idea di cosa sto premendo".
+       Questi due avevano solo un'icona, e l'icona non bastava. */
+    ["gdBtn","CLK",13],["moreBtn","DOT",14]];
   testo.forEach(([id,k,sz])=>{
     const e=document.getElementById(id);
     if(e)e.innerHTML=icon(k,sz)+"<span>"+e.textContent.trim()+"</span>";
@@ -9215,6 +9303,7 @@ function iconify(){
 function themeIcon(){
   const e=document.getElementById("theme");
   if(e)e.innerHTML=icon(state.theme==="dark"?"SUN":"MON",15);
+  if(e)e.title=state.theme==="dark"?"Passa al tema chiaro":"Passa al tema scuro";
 }
 
 function render(){
