@@ -352,13 +352,38 @@
 
   /* ---------- elenco materie ---------- */
   pulisci();apri();
-  t("la percentuale conta le ore messe in piano",function(){
-    var id=it[0].id;
-    for(var k=0;k<10;k++)placeRun(G[0],H0+k*2,{i:id,a:"LET",len:2},0);  /* 10 h */
+  /* 23 novembre: in grande la percentuale, sotto ore fatte/ore totali —
+     un conto solo, le ore fatte sul monte ore */
+  t("la percentuale e la riga sotto dicono le ore fatte sul monte ore",function(){
+    var id=it[0].id,tg=targetH(items()[0].cfu);
+    for(var k=0;k<10;k++)placeRun(G[0],H0+k*2,{i:id,a:"LET",len:2,done:k<4?1:0},0);  /* 10 h, 4 fatte */
     picklist();
     var riga=document.querySelector(".picklist .prow .ph");
-    var pct=riga?riga.childNodes[0].textContent:"";
-    return eq(pct,Math.round(10/targetH(items()[0].cfu)*100)+"%","percentuale ");});
+    var pct=riga?riga.childNodes[0].textContent:"",sotto=riga&&riga.querySelector("u")?riga.querySelector("u").textContent:"";
+    if(pct!==Math.round(4/tg*100)+"%")return "percentuale "+pct+" invece di "+Math.round(4/tg*100)+"%";
+    return eq(sotto,"4/"+tg+" h","riga sotto ");});
+  /* 23 novembre: ⌘V va dove sta il puntatore, se ci sei arrivato dopo
+     l'ultimo clic; se no nella casella cliccata */
+  t("incolla dove sta il puntatore, non nella casella del blocco copiato",function(){
+    pulisci();apri();
+    var id=it[0].id;placeRun(G[1],H0+2,{i:id,a:"ESE",len:4},0);render();
+    var td=document.querySelector('td.c[data-date="'+G[1]+'"][data-h="'+(H0+3)+'"]');
+    puntaQui(td);copyBlocks([runAt(G[1],H0+2,0)],true);
+    var su=document.querySelector('td.c[data-date="'+G[2]+'"][data-h="'+(H0+2)+'"]');
+    sottoMouse={td:su,t:performance.now()+1};
+    pasteBlocks();sottoMouse=null;
+    var la=runAt(G[2],H0+2,0),qui=at(ck(G[1],H0+3)).filter(Boolean).length;
+    if(qui!==1)return "incollato sul giorno del blocco copiato";
+    return (la&&la.len===4)?true:"sul giorno dopo non c'e' il blocco";});
+  t("dopo il clic su una casella libera incolla da li', anche col puntatore altrove prima",function(){
+    pulisci();apri();
+    var id=it[0].id;placeRun(G[1],H0,{i:id,a:"ESE",len:2},0);render();
+    copyBlocks([runAt(G[1],H0,0)],true);
+    var prima=document.querySelector('td.c[data-date="'+G[3]+'"][data-h="'+H0+'"]');
+    sottoMouse={td:prima,t:performance.now()-1000};
+    puntaQui(document.querySelector('td.c[data-date="'+G[2]+'"][data-h="'+(H0+4)+'"]'));
+    pasteBlocks();sottoMouse=null;
+    return (runAt(G[2],H0+4,0)&&!runAt(G[3],H0,0))?true:"non e' andato nella casella cliccata";});
 
   /* ---------- blocchi ---------- */
   pulisci();apri();

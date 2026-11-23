@@ -2260,7 +2260,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="22 nov 2026 · a";
+const VERSIONE="23 nov 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2270,6 +2270,14 @@ let painting=false,val=null,openColor=null,armed=null,armTmr=null,mMonth=null,dr
 let lastTap={sig:null,t:0},tapUndo=null,editId=null;
 let selRuns={};          /* chiave "data.inizio" → blocco selezionato */
 let cursor=null;         /* ultima cella toccata: è qui che incolla */
+let cursorT=0;           /* quando: lo confronta col puntatore del mouse */
+/* La casella sotto il puntatore del mouse o del trackpad, e da quando ci
+   sta. 23 novembre: "il copia e incolla deve andare liscio sia se mi
+   posiziono e basta sul giorno dopo, e quindi riconosce il puntatore dov'e',
+   sia se clicco uno slot libero". ⌘V incollava sempre nell'ultima casella
+   cliccata: cliccato il blocco per copiarlo e portato il puntatore sul
+   giorno dopo, la copia finiva sul giorno prima, di fianco all'originale. */
+let sottoMouse=null;
 let rz=null;             /* ridimensionamento in corso */
 let armMove=null;        /* presa sul corpo di un blocco, non ancora partita */
 
@@ -3556,14 +3564,15 @@ function picklist(){
           ';opacity:.3"></i><i class="dn" style="width:'+
           Math.min(100,(fh/PERQ)/tgt*100)+"%;background:"+o.color+'"></i><u class="mid"></u></span>':"")+
         tag+"</span></span>"+
-      /* Il numero grande è quanto hai messo in piano rispetto al monte ore:
-         è quello che si muove mentre pianifichi, ed è la domanda che ci si fa
-         guardando l'elenco. Le ore fatte — quelle spuntate — stanno sotto e
-         nella parte piena della barra. Prima il numero grande erano le ore
-         fatte e sotto c'era scritto "0 h su 150 h" senza dire di che ore
-         parlasse: uno riempiva la settimana e non vedeva muoversi niente. */
-      '<span class="ph">'+(tgt?Math.round((h/PERQ)/tgt*100)+"%":(h?hrs(h):"—"))+
-        (tgt?"<u>"+ore(h)+"/"+tgt+" h · "+ore(fh)+" ✓</u>"
+      /* Un numero solo, detto due volte in due modi: in grande la
+         percentuale, sotto le ore fatte sul monte ore (23 novembre: "vorrei
+         solo ore fatte/ore totali, e sopra in grande la percentuale").
+         Prima c'erano due conti diversi, in piano sul monte ore in grande e
+         sotto "40,8/100 h · 12 ✓", e con cento ore il 40% e il 40,8
+         sembravano lo stesso numero scritto due volte. Quanto hai messo in
+         piano resta nella parte chiara della barra e nel suggerimento. */
+      '<span class="ph">'+(tgt?Math.round((fh/PERQ)/tgt*100)+"%":(h?hrs(h):"—"))+
+        (tgt?"<u>"+ore(fh)+"/"+tgt+" h</u>"
             :(h?"<u>"+hrs(fh)+" fatte</u>":""))+"</span>"+
       '<span class="pen'+(editId===o.id?" on":"")+'" role="button" title="Modifica nome, CFU, data d\'esame" '+
         'aria-label="Modifica">'+icon("ESE",12)+"</span>";
@@ -7039,11 +7048,11 @@ function cutBlocks(){
 }
 function pasteBlocks(dove){
   if(!state.blockClip||!state.blockClip.length){toast("Niente da incollare");return;}
-  /* la casella toccata, se c'e'; se no quella col fuoco, cioe' dove sei
-     arrivato con le frecce */
-  const att=dove||(document.activeElement&&document.activeElement.closest&&
-            document.activeElement.closest("td.c"));
-  if(att)puntaQui(att);
+  /* Dove: la casella toccata col ⌘, se c'e'. Se no vince il gesto piu'
+     recente fra il puntatore (ti sei solo posizionato sopra una casella) e
+     l'ultima casella scelta (cliccata, o raggiunta con le frecce). */
+  if(dove)puntaQui(dove);
+  else if(sottoMouse&&sottoMouse.t>cursorT&&document.body.contains(sottoMouse.td))puntaQui(sottoMouse.td);
   if(!cursor){toast("Tocca prima una cella dove incollare");return;}
   const base=parse(cursor.date),m=map();
   let messi=0,senzaPosto=0,gia=0;
@@ -7072,7 +7081,8 @@ function pasteBlocks(dove){
      appunti, e tenerlo evidenziato porta a copiarlo un'altra volta senza
      volerlo */
   selRuns={};
-  afterEdit(messi?("Incollat"+(messi===1?"o":"i")+" "+messi+(messi===1?" blocco":" blocchi")+
+  const qui=DSH[(base.getDay()+6)%7]+" "+base.getDate()+", "+slotTime(cursor.slot);
+  afterEdit(messi?("Incollat"+(messi===1?"o":"i")+" "+messi+(messi===1?" blocco":" blocchi")+" · "+qui+
     (senzaPosto?", "+senzaPosto+" senza posto":"")+(gia?", "+gia+" c'era gia'":""))
     :(gia?"C'e' gia', non lo incollo due volte":"Niente posto dove incollare"));
 }
@@ -7193,7 +7203,7 @@ function editNote(dateIso,start,lane){
    finiva li', di fianco all'originale, invece che nella casella scelta. */
 function puntaQui(td){
   if(!td)return;
-  cursor={date:td.dataset.date,slot:+td.dataset.h,lane:0};
+  cursor={date:td.dataset.date,slot:+td.dataset.h,lane:0};cursorT=performance.now();
 }
 function moveFocus(td,k){
   const tr=td.parentElement,tb=tr.parentElement;
@@ -7251,7 +7261,7 @@ function wire(t){
     /* modalità pomodoro: il tocco sceglie il blocco e non modifica nulla */
     if(pomPick){pomFromCell(td.dataset.date,+td.dataset.h,lane);return;}
 
-    cursor={date:td.dataset.date,slot:+td.dataset.h,lane:lane};
+    cursor={date:td.dataset.date,slot:+td.dataset.h,lane:lane};cursorT=performance.now();
     /* Il preventDefault qui sopra impedisce al tocco di spostare il fuoco,
        quindi il fuoco restava sulla casella raggiunta con le frecce mentre il
        cursore andava su quella toccata — e l'incolla, che da' ragione al
@@ -7388,7 +7398,7 @@ function sdEnd(drop){
   placeRun(date,start,{i:id,a:state.act,len:len},lane);
   /* la materia trascinata diventa anche il pennello: il gesto dopo continua da lì */
   state.brush=id;state.erase=false;
-  cursor={date:date,slot:start,lane:lane};
+  cursor={date:date,slot:start,lane:lane};cursorT=performance.now();
   drawDay(date);
   save("Aggiunto "+hrs(len));commit();
   picklist();tools();status();refreshMetrics();materiaScelta();
@@ -7478,6 +7488,28 @@ window.addEventListener("pointermove",e=>{
   mira(document.elementFromPoint(e.clientX,e.clientY),e.clientY,e.clientX);
 });
 window.addEventListener("pointerleave",()=>{mira(null,0);selLbl().classList.remove("on");});
+/* segue la casella sotto il puntatore (vedi sottoMouse). Il dito no: sul
+   telefono non c'e' un puntatore che sta fermo sopra una casella. Il tempo
+   si aggiorna solo quando la casella cambia, cosi' un tremolio del mouse non
+   ruba il posto alla casella raggiunta con le frecce. Anche scorrendo la
+   pagina col trackpad la casella sotto il puntatore cambia senza che il
+   puntatore si muova: per questo si rifa' il conto anche allo scorrimento. */
+let mouseXY=null;
+function guardaSotto(el,y){
+  const td=el?cellaSotto(el,y):null;
+  if(!td){sottoMouse=null;return;}
+  if(sottoMouse&&sottoMouse.td===td)return;
+  sottoMouse={td:td,t:performance.now()};
+}
+window.addEventListener("pointermove",e=>{
+  if(e.pointerType==="touch")return;
+  mouseXY=[e.clientX,e.clientY];
+  guardaSotto(e.target,e.clientY);
+},{passive:true});
+window.addEventListener("scroll",()=>{
+  if(mouseXY)guardaSotto(document.elementFromPoint(mouseXY[0],mouseXY[1]),mouseXY[1]);
+},{passive:true,capture:true});
+document.documentElement.addEventListener("mouseleave",()=>{sottoMouse=null;mouseXY=null;});
 /* la cella della colonna di un giorno che sta all'altezza del puntatore:
    serve alla maniglia, che deve seguire solo la verticale */
 /* La casella sotto il puntatore. Un blocco e' disegnato dentro la sua prima
