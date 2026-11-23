@@ -671,11 +671,17 @@ th.exam u::after{content:" ●";color:var(--warn)}
    niente, e non si capiva se il numero valesse per la riga sopra o per
    quella sotto. Ora ogni riga ha il suo orario, centrato nella mezz'ora a
    cui si riferisce: l'ora intera piu' marcata, la mezza piu' leggera. */
-td.hr{font-family:"DM Mono",monospace;font-size:12.5px;font-weight:500;text-align:right;
-  /* appena sotto il bianco pieno (23 novembre: "appena meno luminosi") */
-  color:color-mix(in srgb,var(--tx) 80%,var(--bg));
-  padding:0 7px 0 0;vertical-align:middle;height:var(--row);line-height:1;border:0;white-space:nowrap}
-td.hr.mezza{font-size:11px;font-weight:400;color:var(--tx2)}
+/* 23 novembre, sera: "vedere i numeri a sinistra mi fa un po' male agli
+   occhi". Una scritta per riga, monospaziata e quasi bianca, faceva un muro
+   di numeri. Ora l'ora intera e' in un carattere morbido e piu' spenta, la
+   mezz'ora scrive solo ":30", piccola e tenue. */
+td.hr{font-family:Inter,system-ui,sans-serif;font-size:12px;font-weight:400;text-align:right;
+  font-variant-numeric:tabular-nums;letter-spacing:.01em;
+  color:color-mix(in srgb,var(--tx) 58%,var(--bg));
+  padding:0 8px 0 0;vertical-align:middle;height:var(--row);line-height:1;border:0;white-space:nowrap}
+td.hr.mezza{font-size:10px;font-weight:400;color:color-mix(in srgb,var(--tx3) 70%,var(--bg))}
+td.hr.mezza .h{display:none}
+td.hr.mezza.qui .h{display:inline}
 /* la mezz'ora sotto il puntatore: il suo orario si accende a sinistra e
    una banda leggera segue la riga fino all'ultimo giorno della settimana */
 td.hr.qui{color:var(--action);font-weight:600}
@@ -822,8 +828,8 @@ html[data-row="micro"] .blk.mini em s.soloico{display:flex}
    e basta, che è il pezzo che sostituisce il motivo */
 html[data-row="micro"] .blk.mini em s.soloico i{display:none}
 html[data-row="micro"] .tick{width:10px;height:10px;top:2px;right:2px}
-html[data-row="micro"] td.hr{font-size:11.5px}
-html[data-row="micro"] td.hr.mezza{font-size:10px}
+html[data-row="micro"] td.hr{font-size:11px}
+html[data-row="micro"] td.hr.mezza{font-size:9.5px}
 html[data-row="tight"] .blk em{padding:2px 6px 0}
 html[data-row="tight"] .blk.mini em{padding:0 18px 0 6px}
 html[data-row="tight"] .blk em b{font-size:11px;padding-right:15px}
@@ -2439,7 +2445,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · r";
+const VERSIONE="23 nov 2026 · s";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -6573,7 +6579,9 @@ function buildPanel(p,m){
     const row=document.createElement("tr");
     /* ogni riga ha il suo orario, al centro della mezz'ora che indica (vedi td.hr) */
     const lb=document.createElement("td");lb.className="hr"+(isHalf(s)?" mezza":"");
-    lb.textContent=slotTime(s);row.appendChild(lb);
+    /* la mezz'ora scrive solo ":30"; l'ora compare quando ci passi sopra */
+    if(isHalf(s))lb.innerHTML='<span class="h">'+slotHour(s)+"</span>:30";else lb.textContent=slotTime(s);
+    lb.title=slotTime(s);row.appendChild(lb);
     for(let d=state.from;d<=state.to;d++){
       const c=document.createElement("td");
       c.tabIndex=0;c.dataset.date=iso(dates[d]);c.dataset.h=s;c.dataset.d=d;
