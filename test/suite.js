@@ -410,6 +410,67 @@
     if(dd(e1[1])-dd(s1[1])!==90*60000)return "durata sbagliata";
     return /DESCRIPTION:.*capitolo 4\\, esercizi\\; tutti/.test(un)?true:"nota non protetta: "+un;});
 
+  /* ---------- calendario nei due sensi (ponte) ---------- */
+  /* un giorno della settimana a schermo che sia almeno domani: dal
+     calendario non si mette niente nel passato */
+  function giornoFuturo(){var dom=iso(addDays(new Date(),1));return G.filter(function(d){return d>=dom;})[0]||null;}
+  t("dal calendario: spostato, tolto e aggiunto entrano nel piano",function(){
+    pulisci();apri();
+    var d=giornoFuturo();if(!d)return true;
+    var id=it[0].id;
+    placeRun(d,18,{i:id,a:"ESE",len:4},0);            /* 9:00-11:00 */
+    placeRun(d,30,{i:id,a:"LET",len:2},0);            /* 15:00-16:00 */
+    var bs=blocchiCalendario(),a=bs.filter(function(x){return x.start===18;})[0],l=bs.filter(function(x){return x.start===30;})[0];
+    var vL=state.calLetti;state.calLetti={};
+    var n=calDalPonte({riporti:[
+      {id:"s1",tipo:"sposta",uid:a.uid,s:calMs(d,20),e:calMs(d,23)},   /* 10:00-11:30 */
+      {id:"v1",tipo:"via",uid:l.uid},
+      {id:"n1",tipo:"nuovo",uid:"ABC",s:calMs(d,36),e:calMs(d,38),t:it[1].name+" · Lettura"}]});
+    var r1=runAt(d,20,0)||runAt(d,20,1),fuori=runAt(d,18,0),r2=runAt(d,30,0),r3=runAt(d,36,0);
+    var letti=state.calLetti;state.calLetti=vL;
+    if(n!==3)return "lette "+n;
+    if(!r1||r1.len!==3||r1.a!=="ESE")return "spostato: "+JSON.stringify(r1);
+    if(fuori&&fuori.start===18)return "il vecchio posto e' rimasto";
+    if(r2)return "il blocco tolto e' ancora li'";
+    if(!r3||r3.i!==it[1].id||r3.a!=="LET"||r3.done)return "aggiunto: "+JSON.stringify(r3);
+    return (letti.s1===true&&letti.v1===true&&letti.n1===true)?true:"letti: "+JSON.stringify(letti);});
+  t("dal calendario non si toccano le ore fatte, il passato, ne' si spunta",function(){
+    pulisci();apri();
+    var d=giornoFuturo();if(!d)return true;
+    var id=it[0].id;
+    placeRun(d,18,{i:id,a:"ESE",len:2},0);
+    var k=ck(d,18),arr=at(k).slice();arr[0]=Object.assign({},arr[0],{done:1});setAt(k,arr);
+    var b=blocchiCalendario()[0];
+    var vL=state.calLetti;state.calLetti={};
+    var ieri=iso(addDays(new Date(),-1));
+    calDalPonte({riporti:[
+      {id:"s",tipo:"sposta",uid:b.uid,s:calMs(d,26),e:calMs(d,28)},
+      {id:"v",tipo:"via",uid:b.uid},
+      {id:"p",tipo:"nuovo",uid:"P",s:calMs(ieri,20),e:calMs(ieri,22),t:it[0].name+" · Lettura"},
+      {id:"x",tipo:"nuovo",uid:"X",s:calMs(d,40),e:calMs(d,42),t:"Dentista"}]});
+    var letti=state.calLetti;state.calLetti=vL;
+    var ancora=runAt(d,18,0),spunte=Object.keys(state.cells).some(function(k2){return at(k2).some(function(v){return v&&v.done&&!(k2===ck(d,18));});});
+    if(!ancora)return "il blocco con le ore fatte e' sparito";
+    if(runAt(d,26,0)||runAt(ieri,20,0)||runAt(d,40,0))return "e' entrato qualcosa che non doveva";
+    if(spunte)return "e' arrivata una spunta";
+    return (letti.s===false&&letti.v===false&&letti.p===false&&letti.x===false)?true:"letti: "+JSON.stringify(letti);});
+  t("calendario.json porta eventi e letti, e una modifica gia' letta non si rifa'",function(){
+    pulisci();apri();
+    var d=giornoFuturo();if(!d)return true;
+    var vL=state.calLetti;state.calLetti={};
+    var rip={riporti:[{id:"n9",tipo:"nuovo",uid:"Q",s:calMs(d,20),e:calMs(d,22),t:it[0].name+" · Lettura"}]};
+    calDalPonte(rip);calDalPonte(rip);
+    var quanti=blocchiCalendario().length,j=JSON.parse(calJson());
+    state.calLetti=vL;
+    if(quanti!==1)return "blocchi: "+quanti+" (la modifica e' stata rifatta?)";
+    return (j.eventi.length===1&&j.letti.n9===true&&j.eventi[0].e-j.eventi[0].s===3600e3)?true:JSON.stringify(j).slice(0,200);});
+  t("riconosce il titolo di un evento scritto a mano",function(){
+    var o=it[0],q1=calRiconosci(o.name+" · Esercizi"),q2=calRiconosci("✓ "+o.name),q3=calRiconosci("Lavoro"),q4=calRiconosci("Cena con Marco");
+    if(!q1||q1.i!==o.id||q1.a!=="ESE")return "materia · attivita': "+JSON.stringify(q1);
+    if(!q2||q2.a!=="RIP")return "solo materia: "+JSON.stringify(q2);
+    if(!q3||q3.a!=="LAV")return "lavoro: "+JSON.stringify(q3);
+    return q4===null?true:"evento qualsiasi riconosciuto: "+JSON.stringify(q4);});
+
   /* 23 novembre: ⌘V va dove sta il puntatore, se ci sei arrivato dopo
      l'ultimo clic; se no nella casella cliccata */
   t("incolla dove sta il puntatore, non nella casella del blocco copiato",function(){

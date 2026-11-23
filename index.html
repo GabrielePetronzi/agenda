@@ -1545,6 +1545,7 @@ html[data-theme="light"]{--g1:#9b9fe0;--g2:#7279db;--g3:#4A54D6;--g4:#3a42a7;--g
           title="Apre Calendario e ti iscrive al piano">Iscriviti in Calendario</a>
         <button id="syCalCopia" class="tool" title="Copia l'indirizzo del calendario">Copia il link</button>
       </div>
+      <p id="syPonte" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin:10px 0 0;line-height:1.5"></p>
     </div>
     <div class="mfoot" style="flex-wrap:wrap">
       <button id="syConnect">Collega</button>
@@ -2283,7 +2284,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · d";
+const VERSIONE="23 nov 2026 · e";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2349,7 +2350,10 @@ function panelDates(p){
    Se uno dei due manca, l'altro basta. Alla riapertura vince il più recente.
    ============================================================ */
 const DURABLE=["v","theme","piano","year","ctx","from","to","custom","cells","colors","anchor","clip","exams","over","collapsed","dayClip","semOpen","blockClip","span","dayStart",
-  "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite","slot","tempo","pomStopTs"];
+  "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite","slot","tempo","pomStopTs",
+  /* le modifiche arrivate dal calendario gia' lette (vedi calDalPonte):
+     viaggiano col piano, cosi' l'altro dispositivo non le rifa' */
+  "calLetti"];
 const LSKEY="piano-6272-local";
 /* Le copie di sicurezza. Una ogni volta che il piano cambia davvero, al
    massimo una ogni dieci minuti, le ultime otto. Servono al caso in cui
@@ -2668,6 +2672,12 @@ async function ghPull(loud){
         if(loud)toast("Già aggiornato");
       }
     }
+    /* quello che il ponte ha visto cambiare nel calendario */
+    const pf=g.files&&g.files[PONTE_FILE];
+    if(pf){
+      const testo=pf.truncated?await (await fetch(pf.raw_url)).text():pf.content;
+      try{calDalPonte(JSON.parse(testo));}catch(e){}
+    }
     gh.lastPull=Date.now();gh.err="";
   }catch(e){gh.err=e.message||"errore";if(loud)toast("Sync: "+gh.err);}
   gh.busy=false;updateSync();
@@ -2697,9 +2707,11 @@ async function ghPush(loud,force){
        gist, e il file .ics di un semestre non e' piccolo */
     const ics=calIcs();
     if(ics!==gh.icsInviato)files[CAL_FILE]={content:ics};
+    const cj=calJson();
+    if(cj!==gh.jsonInviato)files[CAL_JSON]={content:cj};
     const g2=await ghApi("/gists/"+gh.gist,{method:"PATCH",body:JSON.stringify({files:files})});
     calProprietario(g2);
-    gh.icsInviato=ics;
+    gh.icsInviato=ics;gh.jsonInviato=cj;
     ghKnown(sv.ts);
     gh.err="";if(loud)toast("Sincronizzato");
   }catch(e){gh.err=e.message||"errore";if(loud)toast("Sync: "+gh.err);}
@@ -2767,9 +2779,9 @@ function blocchiCalendario(){
       const chiudi=()=>{if(cur)out.push(cur);cur=null;};
       for(let s=0;s<24*PERQ;s++){
         const v=(G.sl[s]||[])[L];
-        if(cur&&stesso(cur.v,v)){cur.len++;if(vero(v))cur.fatte++;continue;}
+        if(cur&&stesso(cur.v,v)){cur.len++;if(vero(v))cur.fatte++;if(v.done)cur.spunte++;continue;}
         chiudi();
-        if(v&&m[v.i])cur={v:v,dt:G.dt,pre:G.pre,lane:L,start:s,len:1,fatte:vero(v)?1:0};
+        if(v&&m[v.i])cur={v:v,dt:G.dt,pre:G.pre,lane:L,start:s,len:1,fatte:vero(v)?1:0,spunte:v.done?1:0};
       }
       chiudi();
     }
@@ -2785,15 +2797,17 @@ function blocchiCalendario(){
     const pulito=x=>String(x).replace(/[^A-Za-z0-9]/g,"_");
     return {uid:"agenda-"+pulito(r.pre)+r.dt+"-"+r.start+"-"+r.lane+"-"+pulito(r.v.i)+"-"+r.v.a+"@agenda",
       date:r.dt,start:r.start,len:r.len,lane:r.lane,i:r.v.i,a:r.v.a,titolo:tit,
-      nota:r.v.n||"",fatte:r.fatte};
+      nota:r.v.n||"",fatte:r.fatte,spunte:r.spunte,pre:r.pre,mx:r.v.mx};
   });
 }
 /* l'ora di una mezz'ora, in UTC come la vuole il formato: cosi' l'ora
    legale la risolve il browser e non c'e' un fuso da dichiarare */
+function calMs(dt,slot){
+  const d=parse(dt);
+  return new Date(d.getFullYear(),d.getMonth(),d.getDate(),Math.floor(slot/PERQ),(slot%PERQ)*(60/PERQ)).getTime();
+}
 function calOra(dt,slot){
-  const d=parse(dt);d.setHours(0,0,0,0);
-  const t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),Math.floor(slot/PERQ),(slot%PERQ)*(60/PERQ));
-  return t.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
+  return new Date(calMs(dt,slot)).toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
 }
 function calTesto(x){return String(x).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");}
 /* righe al massimo di 75 byte, le successive cominciano con uno spazio */
@@ -2809,12 +2823,15 @@ function calPiega(riga){
   out.push(cur);
   return out.join("\r\n ");
 }
-function calEvento(b,stamp){
+function calDesc(b){
   const desc=[actOf(b.a).n+" · "+hrs(b.len)+(b.fatte?" · "+hrs(b.fatte)+" fatte":"")];
   if(b.nota)desc.push(b.nota);
+  return desc.join("\n");
+}
+function calEvento(b,stamp){
   return ["BEGIN:VEVENT","UID:"+b.uid,"DTSTAMP:"+stamp,
     "DTSTART:"+calOra(b.date,b.start),"DTEND:"+calOra(b.date,b.start+b.len),
-    "SUMMARY:"+calTesto(b.titolo),"DESCRIPTION:"+calTesto(desc.join("\n")),
+    "SUMMARY:"+calTesto(b.titolo),"DESCRIPTION:"+calTesto(calDesc(b)),
     "END:VEVENT"];
 }
 function calIcs(){
@@ -2828,6 +2845,132 @@ function calIcs(){
   righe.push("END:VCALENDAR");
   return righe.map(calPiega).join("\r\n")+"\r\n";
 }
+/* ---------- calendario nei due sensi: il ponte ----------
+   23 novembre: "se cambio dal telefono nel calendario qualcosa della
+   settimana si deve riversare sia sul calendario del Mac che sull'agenda".
+   Il calendario iCloud non si raggiunge da una pagina web, quindi in mezzo
+   c'e' un ponte (ponte/worker.js, un Cloudflare Worker) che ogni pochi
+   minuti confronta il gist col calendario. L'app gli lascia nel gist
+   calendario.json: gli eventi da mostrare e le modifiche gia' lette. Il
+   ponte le lascia ponte.json: quello che hai spostato, tolto o aggiunto dal
+   telefono. Le applica l'app, che sola sa cos'e' un blocco.
+   Dal calendario non passa mai una spunta (regola del 4 novembre): si
+   spostano e si tolgono solo blocchi senza spunte, e quello che arriva e'
+   sempre da fare. E niente nel passato: un blocco messo o spostato dietro
+   all'ora attuale sarebbe saltato, o una lezione che si spunta da sola. */
+const CAL_JSON="calendario.json",PONTE_FILE="ponte.json";
+function calJson(){
+  const ev=blocchiCalendario().map(b=>({uid:b.uid,s:calMs(b.date,b.start),e:calMs(b.date,b.start+b.len),
+    t:b.titolo,d:calDesc(b)}));
+  return JSON.stringify({v:1,dal:iso(addDays(new Date(),-CAL_DA)),eventi:ev,letti:state.calLetti||{}});
+}
+/* da un istante al giorno e alla mezz'ora piu' vicina; null se cade fuori */
+function calSlot(ms){
+  const d=new Date(ms);
+  const sl=d.getHours()*PERQ+Math.round(d.getMinutes()/(60/PERQ));
+  return sl>=24*PERQ?null:{date:iso(d),slot:sl};
+}
+/* fa fn() dentro il piano, anno e periodo del prefisso, con la giornata
+   intera aperta: placeRun scarta le mezz'ore fuori dalla fascia visibile */
+function calNelPrefisso(pre,fn){
+  const p=pre.split(".").filter(Boolean);
+  const dove={piano:p.length===3?p[0]:PIANO_BASE,year:+p[p.length-2],ctx:p[p.length-1]};
+  const f0=dayFrom(),t0=dayTo();
+  setDayRange(0,24);
+  try{return nelPianoDelTimer({dove:dove},fn);}
+  finally{setDayRange(f0,t0);}
+}
+const calNorm=x=>String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+/* "Big data · Esercizi" → materia e attivita'. Senza attivita' vale
+   Ripasso: studio di quella materia, e non si spunta da solo. */
+function calRiconosci(t){
+  const pezzi=String(t||"").replace(/^✓\s*/,"").split(/\s+[·|–—-]\s+/);
+  const nome=calNorm(pezzi[0]),att=calNorm(pezzi[1]||"");
+  if(!nome)return null;
+  const tutti=items();
+  let o=tutti.find(x=>calNorm(x.name)===nome||calNorm(x.short)===nome);
+  if(!o&&nome.length>=3){
+    const c=tutti.filter(x=>calNorm(x.name).indexOf(nome)===0||calNorm(x.short).indexOf(nome)===0);
+    if(c.length===1)o=c[0];
+  }
+  const libera=Object.keys(LIBERE).find(k=>LIBERE[k]===(o&&o.id));
+  if(!o){
+    /* solo un'attivita' di servizio ("Lavoro", "Ripasso") */
+    const a0=ACTS.find(x=>calNorm(x.n)===nome);
+    if(a0&&LIBERE[a0.k])return {i:LIBERE[a0.k],a:a0.k};
+    return null;
+  }
+  if(libera)return {i:o.id,a:libera};
+  const a=att?ACTS.find(x=>calNorm(x.n)===att||calNorm(ATTCORTA[x.k]||"").replace(/\.$/,"")===att.replace(/\.$/,"")||calNorm(x.k)===att):null;
+  if(att&&!a)return null;
+  return {i:o.id,a:a?a.k:"RIP"};
+}
+/* una modifica del ponte; true se e' entrata nel piano */
+function calApplica(r,blocchi){
+  const ora=Date.now();
+  const b=r.uid?blocchi.find(x=>x.uid===r.uid):null;
+  if(r.tipo==="via"){
+    if(!b||b.spunte)return false;
+    calNelPrefisso(b.pre,()=>clearRun(b.date,b.start,b.len,b.lane));
+    return true;
+  }
+  if(!(r.e>r.s)||r.e<=ora)return false;
+  const dove=calSlot(r.s);if(!dove)return false;
+  const len=Math.max(1,Math.min(24*PERQ-dove.slot,Math.round((r.e-r.s)/(60000*60/PERQ))));
+  if(r.tipo==="sposta"){
+    if(!b||b.spunte)return false;
+    if(b.date===dove.date&&b.start===dove.slot&&b.len===len)return true;
+    return calNelPrefisso(b.pre,()=>{
+      clearRun(b.date,b.start,b.len,b.lane);
+      const L=corsiaPerArrivo(dove.date,dove.slot,len,null);
+      const r2={i:b.i,a:b.a,n:b.nota||undefined,mx:b.mx,len:len};
+      if(L<0){placeRun(b.date,b.start,Object.assign({},r2,{len:b.len}),b.lane);return false;}
+      placeRun(dove.date,dove.slot,r2,L);
+      return true;
+    });
+  }
+  if(r.tipo==="nuovo"){
+    const q=calRiconosci(r.t);if(!q)return false;
+    return calNelPrefisso(PRE(),()=>{
+      const L=corsiaPerArrivo(dove.date,dove.slot,len,null);
+      if(L<0)return false;
+      placeRun(dove.date,dove.slot,{i:q.i,a:q.a,len:len},L);
+      return true;
+    });
+  }
+  return false;
+}
+function calDalPonte(p){
+  if(!p)return 0;
+  gh.ponte=p.giro||null;
+  const rip=Array.isArray(p.riporti)?p.riporti:[];
+  state.calLetti=state.calLetti||{};
+  const nuovi=rip.filter(r=>r&&r.id&&!(r.id in state.calLetti));
+  /* i letti che il ponte ha gia' tolto non servono piu' */
+  const vivi=new Set(rip.map(r=>r&&r.id));
+  Object.keys(state.calLetti).forEach(id=>{if(!vivi.has(id))delete state.calLetti[id];});
+  if(!nuovi.length){save(null,true);calUI();return 0;}
+  const blocchi=blocchiCalendario(),conta={sposta:0,via:0,nuovo:0},no=[];
+  nuovi.forEach(r=>{
+    let ok=false;
+    try{ok=!!calApplica(r,blocchi);}catch(e){ok=false;}
+    state.calLetti[r.id]=ok;
+    if(ok)conta[r.tipo]=(conta[r.tipo]||0)+1;else no.push(r);
+  });
+  const det=[];
+  if(conta.sposta)det.push(conta.sposta+(conta.sposta===1?" spostato":" spostati"));
+  if(conta.via)det.push(conta.via+(conta.via===1?" tolto":" tolti"));
+  if(conta.nuovo)det.push(conta.nuovo+(conta.nuovo===1?" aggiunto":" aggiunti"));
+  if(no.length)det.push(no.length+" non applicat"+(no.length===1?"o":"i")+
+    " (ore gia' fatte, nel passato, senza posto o titolo non riconosciuto)");
+  save("Dal calendario: "+det.join(", "));commit();render();refreshMetrics();calUI();
+  return nuovi.length;
+}
+setInterval(()=>{
+  /* il piano cambiato sull'altro dispositivo, e il ponte, arrivano anche
+     con l'app aperta: prima solo aprendola o tornandoci sopra */
+  if(gh.on&&!document.hidden&&Date.now()-gh.lastPull>55000)ghPull();
+},60000);
 function calUI(){
   const box=document.getElementById("syCal");if(!box)return;
   const l=calLink();
@@ -2835,6 +2978,11 @@ function calUI(){
   box.hidden=false;
   document.getElementById("syCalLink").value=l;
   document.getElementById("syCalApri").href=l.replace(/^https:/,"webcal:");
+  const pt=document.getElementById("syPonte"),g=gh.ponte;
+  if(pt)pt.textContent=g&&g.ts
+    ?"Nei due sensi: ponte attivo · ultimo giro "+new Date(g.ts).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+
+      (g.errore?" · errore: "+g.errore:"")
+    :"Nei due sensi: serve il ponte col calendario iCloud (istruzioni in ponte/LEGGIMI.md).";
 }
 /* tornando sulla pagina controlla se l'altro dispositivo ha modificato */
 document.addEventListener("visibilitychange",()=>{
