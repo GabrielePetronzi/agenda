@@ -478,6 +478,8 @@ html[data-row="micro"] .blk.tardi .tick::after{font-size:9px}
    fila sopra la griglia: compariva al primo clic e spingeva giu' tutto di
    sessantaquattro pixel, e il blocco appena toccato scappava da sotto il
    mouse — il clic dopo prendeva la mezz'ora sbagliata (27 settembre). */
+@keyframes selbarin{from{opacity:0;translate:0 10px}to{opacity:1;translate:0 0}}
+.selbar.on{animation:selbarin .14s ease-out}
 .selbar.on{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
   width:max-content;max-width:calc(100vw - 32px);
@@ -778,10 +780,21 @@ html[data-theme="light"] .blk:hover{filter:brightness(.96)}
   text-decoration-color:#14161B}
 .blk.done::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
   background:repeating-linear-gradient(45deg,rgba(20,22,27,.26) 0 3px,transparent 3px 8px)}
-.blk.selblk{box-shadow:0 0 0 2px var(--action),0 0 0 3px rgba(0,0,0,.3)}
+.blk.selblk{box-shadow:0 0 0 2px var(--action),0 0 0 3px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.35);
+  animation:selpop .14s cubic-bezier(.2,.9,.3,1.2)}
 td.c .selmezz{position:absolute;z-index:3;pointer-events:none;border-radius:5px;
-  box-shadow:0 0 0 2px var(--action),0 0 0 3px rgba(0,0,0,.3),inset 0 0 0 1px rgba(0,0,0,.25);
-  background:color-mix(in srgb,var(--action) 30%,transparent)}
+  box-shadow:0 0 0 2px var(--action),0 0 0 3px rgba(0,0,0,.3),inset 0 0 0 1px rgba(0,0,0,.25),0 4px 14px rgba(0,0,0,.35);
+  background:color-mix(in srgb,var(--action) 34%,transparent);
+  animation:selpop .14s cubic-bezier(.2,.9,.3,1.2);transform-origin:50% 50%}
+/* 23 novembre: "rendi piu' scattante e figa l'anteprima quando seleziono
+   uno slot occupato". Il riquadro compare gia' alla pressione (anteprima,
+   piu' tenue), con uno scatto breve, e dice dentro di se' che ore prende. */
+td.c .selmezz.anteprima{background:color-mix(in srgb,var(--action) 22%,transparent);animation-duration:.09s}
+td.c .selmezz[data-t]::after{content:attr(data-t);position:absolute;right:3px;top:50%;transform:translateY(-50%);
+  font-family:"DM Mono",monospace;font-size:9.5px;line-height:1;font-weight:500;letter-spacing:.02em;
+  padding:2px 4px;border-radius:3px;background:var(--action);color:#fff;white-space:nowrap;
+  max-width:calc(100% - 6px);overflow:hidden;text-overflow:clip}
+@keyframes selpop{from{transform:scale(.92);opacity:.35}to{transform:none;opacity:1}}
 .blk.running{box-shadow:0 0 0 2px var(--action),0 0 0 4px rgba(139,147,255,.24)}
 /* il blocco che Avvia prenderebbe: tratteggiato, perche' non e' ancora
    partito niente — quando parte diventa il contorno pieno qui sopra */
@@ -2290,7 +2303,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · f";
+const VERSIONE="23 nov 2026 · g";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -7027,11 +7040,7 @@ function drawDay(dateIso,scope){
       Object.keys(selRuns).map(k=>selRuns[k]).filter(x=>x.date===dateIso&&x.lane===r.lane&&
         x.start>=r.start&&x.start<r.start+r.len&&!(x.start===r.start&&x.len===r.len))
         .forEach(x=>{
-          const q=document.createElement("i");q.className="selmezz";
-          q.style.top=((x.start-r.start)*ROW)+"px";
-          q.style.height=(Math.min(x.len,r.start+r.len-x.start)*ROW-2)+"px";
-          q.style.left=bl.style.left;q.style.width=bl.style.width;
-          td.appendChild(q);
+          td.appendChild(riquadroSel(bl,r.start,{start:x.start,len:Math.min(x.len,r.start+r.len-x.start)}));
         });
     });
   });
@@ -7124,6 +7133,43 @@ function refreshMetrics(){
 
 /* ---------- selezione multipla ---------- */
 function selKey(d,st,lane){return d+"."+st+"."+lane;}
+/* il riquadro di una mezz'ora scelta dentro un blocco, con l'orario dentro */
+function riquadroSel(bl,inizio,x){
+  const q=document.createElement("i");q.className="selmezz";
+  q.style.top=((x.start-inizio)*ROW)+"px";
+  q.style.height=(x.len*ROW-2)+"px";
+  q.style.left=bl.style.left;q.style.width=bl.style.width;
+  if(ROW>=13)q.dataset.t=slotTime(x.start)+"–"+slotTime(x.start+x.len);
+  return q;
+}
+/* Rifà solo i segni della selezione nei giorni dati: riquadri e contorni.
+   Prima ogni clic ridisegnava il giorno intero, blocchi e misure comprese,
+   e il riquadro arrivava in ritardo. */
+function segnaSelezione(giorni){
+  const sel=Object.keys(selRuns).map(k=>selRuns[k]);
+  giorni.forEach(d=>{
+    document.querySelectorAll('td.c[data-date="'+d+'"] .selmezz').forEach(e=>e.remove());
+    document.querySelectorAll('.blk[data-date="'+d+'"]').forEach(bl=>{
+      const st=+bl.dataset.start,L=+bl.dataset.lane,r=runAt(d,st,L);
+      if(!r)return;
+      bl.classList.toggle("selblk",(selRuns[selKey(d,st,L)]||{}).len===r.len);
+      const td=bl.parentElement;
+      sel.filter(x=>x.date===d&&x.lane===L&&x.start>=st&&x.start<st+r.len&&!(x.start===st&&x.len===r.len))
+        .forEach(x=>td.appendChild(riquadroSel(bl,st,
+          {start:x.start,len:Math.min(x.len,st+r.len-x.start)})));
+    });
+  });
+}
+/* alla pressione su un blocco: il riquadro della mezz'ora c'e' gia', prima
+   ancora di sapere se diventera' un clic o uno spostamento */
+function anteprimaSel(td,r,off){
+  document.querySelectorAll(".selmezz.anteprima").forEach(e=>e.remove());
+  const bl=document.querySelector('.blk[data-date="'+r.date+'"][data-start="'+r.start+'"][data-lane="'+r.lane+'"]');
+  if(!bl||r.len===1)return;
+  const q=riquadroSel(bl,r.start,{start:r.start+off,len:1});
+  q.classList.add("anteprima");
+  bl.parentElement.appendChild(q);
+}
 function toggleSel(dateIso,slot,lane){
   const r=runAt(dateIso,slot,lane);
   if(!r)return false;
@@ -7135,12 +7181,12 @@ function toggleSel(dateIso,slot,lane){
   Object.keys(selRuns).forEach(x=>{const q=selRuns[x];
     if(q.date===dateIso&&q.lane===r.lane&&q.start>=r.start&&q.start<r.start+r.len)delete selRuns[x];});
   if(!intero)selRuns[k]=r;
-  drawDay(dateIso);selInfo();
+  segnaSelezione([dateIso]);selInfo();
   return true;
 }
 function clearSel(){
   const days=new Set(Object.keys(selRuns).map(k=>selRuns[k].date));
-  selRuns={};days.forEach(d=>drawDay(d));selInfo();
+  selRuns={};segnaSelezione([...days]);selInfo();
 }
 function selInfo(){
   const n=Object.keys(selRuns).length;
@@ -7614,7 +7660,9 @@ function wire(t){
     if(!state.erase&&!e.altKey&&e.target.closest(".blk")){
       const r=runAt(td.dataset.date,+td.dataset.h,lane)||anyRunAt(td.dataset.date,+td.dataset.h);
       if(r){armMove={run:r,off:(+td.dataset.h)-r.start,x:e.clientX,y:e.clientY,
-        mm:!!(e.target.closest&&e.target.closest(".mmlink"))};return;}
+        mm:!!(e.target.closest&&e.target.closest(".mmlink"))};
+        if(!armMove.mm&&!(e.ctrlKey||e.metaKey))anteprimaSel(td,Object.assign({date:td.dataset.date},r),armMove.off);
+        return;}
     }
 
     const brush=brushNow();
@@ -7937,9 +7985,10 @@ function selezionaSolo(r){
   const giorni=new Set(prima.map(x=>selRuns[x].date));giorni.add(r.date);
   selRuns={};
   if(!eraSolo)selRuns[k]=r;
-  giorni.forEach(d=>drawDay(d));selInfo();
+  segnaSelezione([...giorni]);selInfo();
 }
 ["pointerup","pointercancel"].forEach(ev=>window.addEventListener(ev,e=>{
+  document.querySelectorAll(".selmezz.anteprima").forEach(x=>x.remove());
   if(armMove&&!drag&&ev==="pointerup"){
     const r=armMove.run,off=armMove.off,suMm=armMove.mm;armMove=null;
     /* un clic secco sulla scritta di un ripasso libero apre la scelta delle
