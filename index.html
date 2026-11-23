@@ -581,7 +581,7 @@ table{border-collapse:collapse;table-layout:fixed;width:100%;min-width:440px;
    costano ventotto, e si leggono uguale: quattordici pixel sono mezz'ora di
    giornata in piu' a schermo. */
 th{padding:0 0 4px;text-align:center;font-weight:500;border:0;vertical-align:bottom}
-th.hc{width:34px;border:0}
+th.hc{width:40px;border:0}
 th u{display:inline;text-decoration:none;font-family:"DM Mono",monospace;font-size:9px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);line-height:1.2}
 th s{display:inline;text-decoration:none;font-family:"Familjen Grotesk",sans-serif;
@@ -593,11 +593,19 @@ th[data-date]{cursor:pointer;border-radius:6px}
 th[data-date]:hover s{color:var(--tx)}
 th.exam u::after{content:" ●";color:var(--warn)}
 
-td.hr{font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);text-align:right;
-  padding:0 8px 0 0;vertical-align:top;height:var(--row);line-height:1;border:0;white-space:nowrap;
-  transform:translateY(-5px)}
-/* la prima etichetta non si alza, se no finisce sotto le testate dei giorni */
-tbody tr:first-child td.hr{transform:none;padding-top:1px}
+/* 23 novembre: "non riesco a colpo d'occhio a capire lo slot in quale
+   fascia oraria sta". Prima c'era solo l'ora intera ("9"), piccola e
+   grigia, alzata sulla riga: la mezz'ora delle 9:30 non aveva scritto
+   niente, e non si capiva se il numero valesse per la riga sopra o per
+   quella sotto. Ora ogni riga ha il suo orario, centrato nella mezz'ora a
+   cui si riferisce: l'ora intera piu' marcata, la mezza piu' leggera. */
+td.hr{font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx2);text-align:right;
+  padding:0 7px 0 0;vertical-align:middle;height:var(--row);line-height:1;border:0;white-space:nowrap}
+td.hr.mezza{font-size:9px;color:var(--tx3)}
+/* la mezz'ora sotto il puntatore: il suo orario si accende a sinistra e
+   una banda leggera segue la riga fino all'ultimo giorno della settimana */
+td.hr.qui{color:var(--action);font-weight:600}
+tr.qui td.c{background-image:linear-gradient(var(--tint-hover),var(--tint-hover))}
 td.c{background:var(--surface);height:var(--row);padding:0;vertical-align:top;cursor:pointer;
   overflow:visible;position:relative;
   border-left:1px solid var(--line-soft);border-right:1px solid var(--line-soft);
@@ -741,6 +749,7 @@ html[data-row="micro"] .blk.mini em s.soloico{display:flex}
 html[data-row="micro"] .blk.mini em s.soloico i{display:none}
 html[data-row="micro"] .tick{width:10px;height:10px;top:2px;right:2px}
 html[data-row="micro"] td.hr{font-size:9px}
+html[data-row="micro"] td.hr.mezza{font-size:8px}
 html[data-row="tight"] .blk em{padding:2px 6px 0}
 html[data-row="tight"] .blk.mini em{padding:0 18px 0 6px}
 html[data-row="tight"] .blk em b{font-size:11px;padding-right:15px}
@@ -1625,7 +1634,6 @@ const MINI2=27;                  /* da qui in su in mezz'ora ci stanno due righe
 const slotHour=s=>Math.floor(s/PERQ);
 const slotQ=s=>s%PERQ;
 const isHalf=s=>slotQ(s)===1;
-const slotLabel=s=>slotQ(s)===0?String(slotHour(s)):"";
 const slotTime=s=>slotHour(s)+":"+(isHalf(s)?"30":"00");
 /* conversione slot → ore, con la virgola solo quando serve */
 const hrs=n=>{const v=n/PERQ;return (v%1?v.toFixed(1).replace(".",","):String(v))+" h";};
@@ -2275,7 +2283,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · b";
+const VERSIONE="23 nov 2026 · c";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -6217,7 +6225,9 @@ function buildPanel(p,m){
 
   HOURS.forEach(s=>{
     const row=document.createElement("tr");
-    const lb=document.createElement("td");lb.className="hr";lb.textContent=slotLabel(s);row.appendChild(lb);
+    /* ogni riga ha il suo orario, al centro della mezz'ora che indica (vedi td.hr) */
+    const lb=document.createElement("td");lb.className="hr"+(isHalf(s)?" mezza":"");
+    lb.textContent=slotTime(s);row.appendChild(lb);
     for(let d=state.from;d<=state.to;d++){
       const c=document.createElement("td");
       c.tabIndex=0;c.dataset.date=iso(dates[d]);c.dataset.h=s;c.dataset.d=d;
@@ -7627,9 +7637,19 @@ window.addEventListener("pointerleave",()=>{mira(null,0);selLbl().classList.remo
 let mouseXY=null;
 function guardaSotto(el,y){
   const td=el?cellaSotto(el,y):null;
+  if(sottoMouse&&sottoMouse.td===td&&td&&td.isConnected)return;
+  rigaAccesa(td);
   if(!td){sottoMouse=null;return;}
-  if(sottoMouse&&sottoMouse.td===td)return;
   sottoMouse={td:td,t:performance.now()};
+}
+/* accende la riga della mezz'ora sotto il puntatore (td.hr.qui, tr.qui) */
+let rigaQui=null;
+function rigaAccesa(td){
+  const tr=td?td.parentElement:null;
+  if(tr===rigaQui)return;
+  if(rigaQui){rigaQui.classList.remove("qui");const h=rigaQui.querySelector("td.hr");if(h)h.classList.remove("qui");}
+  rigaQui=tr;
+  if(tr){tr.classList.add("qui");const h=tr.querySelector("td.hr");if(h)h.classList.add("qui");}
 }
 window.addEventListener("pointermove",e=>{
   if(e.pointerType==="touch")return;
@@ -7639,7 +7659,7 @@ window.addEventListener("pointermove",e=>{
 window.addEventListener("scroll",()=>{
   if(mouseXY)guardaSotto(document.elementFromPoint(mouseXY[0],mouseXY[1]),mouseXY[1]);
 },{passive:true,capture:true});
-document.documentElement.addEventListener("mouseleave",()=>{sottoMouse=null;mouseXY=null;});
+document.documentElement.addEventListener("mouseleave",()=>{sottoMouse=null;mouseXY=null;rigaAccesa(null);});
 /* la cella della colonna di un giorno che sta all'altezza del puntatore:
    serve alla maniglia, che deve seguire solo la verticale */
 /* La casella sotto il puntatore. Un blocco e' disegnato dentro la sua prima
