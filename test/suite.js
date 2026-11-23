@@ -410,6 +410,17 @@
     if(dd(e1[1])-dd(s1[1])!==90*60000)return "durata sbagliata";
     return /DESCRIPTION:.*capitolo 4\\, esercizi\\; tutti/.test(un)?true:"nota non protetta: "+un;});
 
+  /* 23 novembre: le materie si riordinano trascinandole nell'elenco */
+  t("una materia trascinata in cima all'elenco ci resta",function(){
+    var v0=state.ordine,q0=state.q;state.ordine=null;state.q="";picklist();
+    var ids=function(){return [].map.call(document.querySelectorAll("#picklist .prow[data-id]"),function(b){return b.dataset.id;});};
+    var prima=ids();if(prima.length<3){state.ordine=v0;return true;}
+    var ok=riordina(prima[2],{id:prima[0],sopra:true}),dopo=ids();
+    var giu=riordina(prima[2],{id:prima[1],sopra:false}),dopo2=ids();
+    state.ordine=v0;state.q=q0;picklist();
+    if(!ok||dopo[0]!==prima[2]||dopo[1]!==prima[0])return "in cima: "+dopo.slice(0,3).join(",");
+    return (giu&&dopo2[0]===prima[0]&&dopo2[1]===prima[1]&&dopo2[2]===prima[2])?true:"rimesso al suo posto: "+dopo2.slice(0,3).join(",");});
+
   /* ---------- calendario nei due sensi (ponte) ---------- */
   /* un giorno della settimana a schermo che sia almeno domani: dal
      calendario non si mette niente nel passato */

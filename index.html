@@ -348,6 +348,10 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
 /* trascinamento di una materia dall'elenco fin dentro la griglia:
    l'etichetta segue il dito, la casella sotto si illumina */
 .prow{touch-action:pan-y;-webkit-touch-callout:none}
+/* dove finisce la materia trascinata dentro l'elenco */
+#picklist .prow.insu{box-shadow:inset 0 3px 0 var(--action)}
+#picklist .prow.ingiu{box-shadow:inset 0 -3px 0 var(--action)}
+.dragghost.riordina b{display:none}
 .dragghost{position:fixed;z-index:90;pointer-events:none;display:flex;align-items:center;
   gap:8px;max-width:220px;padding:6px 10px;border-radius:var(--r-sm);
   background:var(--raised);border:1px solid var(--line);box-shadow:var(--shadow);
@@ -2303,7 +2307,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · g";
+const VERSIONE="23 nov 2026 · h";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -2372,7 +2376,9 @@ const DURABLE=["v","theme","piano","year","ctx","from","to","custom","cells","co
   "pomConf","pomRun","pomLog","log","dayFrom","dayTo","pass","seguite","slot","tempo","pomStopTs",
   /* le modifiche arrivate dal calendario gia' lette (vedi calDalPonte):
      viaggiano col piano, cosi' l'altro dispositivo non le rifa' */
-  "calLetti"];
+  "calLetti",
+  /* l'ordine delle materie nell'elenco, scelto trascinandole */
+  "ordine"];
 const LSKEY="piano-6272-local";
 /* Le copie di sicurezza. Una ogni volta che il piano cambia davvero, al
    massimo una ogni dieci minuti, le ultime otto. Servono al caso in cui
@@ -3822,7 +3828,7 @@ function picklist(){
   const note=q?noteHits(q):{};
   const list=q
     ? items().filter(o=>o.name.toLowerCase().indexOf(q)>=0||note[o.id])
-    : inCtx;
+    : inOrdine(inCtx);
   const scad=q?(state.exams||[]).filter(x=>x.t.toLowerCase().indexOf(q)>=0):[];
   box.classList.toggle("grow",!!q);
 
@@ -3842,6 +3848,7 @@ function picklist(){
 
     const b=document.createElement("button");
     b.className="prow"+(state.brush===o.id?" sel":"")+(fatta?" fatta":"")+propStato(o);
+    b.dataset.id=o.id;
     b.setAttribute("aria-pressed",state.brush===o.id);
     const tag=((q&&o.kind==="c")?'<em>'+(ANNI_ROMANI[o.year-1]||o.year)+" · sem "+o.sem+"</em>":"")+
       /* dal manifesto: quelle senza ob sono a scelta, e vale la pena saperlo
@@ -7722,10 +7729,40 @@ function sdStart(o,x,y){
   sdAte=true;
   sdMove(x,y);
 }
+/* 23 novembre: "devo poter trascinare nel menu' a sinistra gli esami, per
+   avere in cima quelli che sto facendo". Il trascinamento della riga c'era
+   gia', verso la griglia; lasciata dentro l'elenco ora cambia posto. Una
+   linea dice dove va. Con la ricerca accesa no: l'elenco e' un'altra cosa. */
+function inOrdine(arr){
+  const o=state.ordine||[];
+  const pos=id=>{const i=o.indexOf(id);return i<0?1e6:i;};
+  return arr.map((x,k)=>({x:x,k:k})).sort((a,b)=>pos(a.x.id)-pos(b.x.id)||a.k-b.k).map(z=>z.x);
+}
+function segnaInserto(el,y){
+  document.querySelectorAll("#picklist .prow.insu,#picklist .prow.ingiu").forEach(r=>r.classList.remove("insu","ingiu"));
+  const riga=el&&el.closest&&el.closest("#picklist .prow[data-id]");
+  if(!riga||(state.q||"").trim()){sd.ins=null;sd.ghost.classList.remove("riordina");return;}
+  const r=riga.getBoundingClientRect(),sopra=y<r.top+r.height/2;
+  riga.classList.add(sopra?"insu":"ingiu");
+  sd.ins={id:riga.dataset.id,sopra:sopra};
+  sd.ghost.classList.add("riordina");
+}
+function riordina(id,ins){
+  const vis=[...document.querySelectorAll("#picklist .prow[data-id]")].map(b=>b.dataset.id);
+  if(ins.id===id||vis.indexOf(id)<0)return false;
+  const senza=vis.filter(x=>x!==id),i=senza.indexOf(ins.id);
+  if(i<0)return false;
+  senza.splice(ins.sopra?i:i+1,0,id);
+  if(senza.join()===vis.join())return false;
+  state.ordine=senza.concat((state.ordine||[]).filter(x=>senza.indexOf(x)<0));
+  save("Ordine delle materie cambiato");picklist();
+  return true;
+}
 function sdMove(x,y){
   if(!sd)return;
   sd.ghost.style.left=x+"px";sd.ghost.style.top=y+"px";
   const el=document.elementFromPoint(x,y);
+  segnaInserto(el,y);
   const td=el&&el.closest&&el.closest("td.c");
   if(sd.td===td)return;
   if(sd.td)sd.td.classList.remove("dropok");
@@ -7734,6 +7771,12 @@ function sdMove(x,y){
 }
 function sdEnd(drop){
   if(!sd)return;
+  document.querySelectorAll("#picklist .prow.insu,#picklist .prow.ingiu").forEach(r=>r.classList.remove("insu","ingiu"));
+  if(drop&&sd.ins){
+    const id0=sd.id,ins=sd.ins;
+    sd.ghost.remove();document.body.classList.remove("dropping");sd=null;
+    riordina(id0,ins);return;
+  }
   const td=drop?sd.td:null,id=sd.id;
   if(sd.td)sd.td.classList.remove("dropok");
   sd.ghost.remove();
