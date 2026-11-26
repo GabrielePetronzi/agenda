@@ -454,6 +454,59 @@
     if(!c||c.n!==0||/BEGIN:VEVENT/.test(c.ics))return "la materia svuotata non viene svuotata anche nel gist";
     return /^cal-[A-Za-z0-9_]+\.ics$/.test(a.file)?true:"nome del file: "+a.file;});
 
+  /* 26 novembre: "aumenta i controlli quando ti chiedo di segnare come
+     fatti dei blocchi di studio". Il codice non deve avere scorciatoie che
+     spuntano: niente link ?fatto=, niente spunte una tantum all'apertura.
+     Questa prova legge il codice dell'app e fallisce se ne ricompare una.
+     Le uniche strade per segnare fatto restano il timer e la spunta a mano. */
+  t("nessuna scorciatoia per le spunte",function(){
+    /* solo il codice dell'app: questo banco e' iniettato come script anch'esso */
+    var src=[].filter.call(document.scripts,function(x){return x.textContent.indexOf("nessuna scorciatoia per le spunte")<0;})
+      .map(function(x){return x.textContent;}).join("\n");
+    var vietati=[
+      [/URLSearchParams[^;]*\)[\s\S]{0,200}get\(["'](fatto|done|spunta|segna)/,"un parametro dell'indirizzo che spunta"],
+      [/segnaGiornoFatto|segnaFinoASettimana|fattoDaLink|spuntaTutto|segnaTutto/,"una funzione che spunta in blocco"],
+      [/localStorage\.getItem\(["']piano-6272-(fatto|sabato|tutto-fatto)/,"una spunta una tantum all'apertura"]];
+    for(var i=0;i<vietati.length;i++)if(vietati[i][0].test(src))return "c'e' "+vietati[i][1];
+    return true;});
+  /* 26 novembre: allungare con la maniglia un blocco fatto non deve far
+     nascere mezz'ore gia' spuntate ("sto barando cosi'") */
+  t("allungando un blocco fatto le mezz'ore nuove sono da fare",function(){
+    pulisci();apri();
+    var d=G[1];
+    placeRun(d,H0,{i:it[0].id,a:"ESE",len:4,done:1},0);       /* due ore fatte col timer */
+    var r=runAt(d,H0,0);
+    rz=r;rz.su=false;rz.fine=r.start+r.len-1;
+    rz.prima={};for(var k=0;k<r.len;k++)rz.prima[H0+k]=1;
+    clearRun(d,rz.start,rz.len,0);rz.len=8;rzMetti();         /* tirato giu' di due ore */
+    var su=runAt(d,H0,0);
+    rz=runAt(d,H0,0);rz.su=true;rz.fine=H0+7;rz.prima={};
+    for(var k2=0;k2<8;k2++){var v=at(ck(d,H0+k2))[0];if(v&&v.done)rz.prima[H0+k2]=v.m?2:1;}
+    clearRun(d,H0,8,0);rz.start=H0-2;rz.len=10;rzMetti();      /* e in su di un'ora */
+    rz=null;
+    var q=[];for(var s2=H0-2;s2<H0+8;s2++){var w=at(ck(d,s2))[0];q.push(w&&w.done?"■":"□");}
+    var fatte=0;Object.keys(state.cells).forEach(function(kk){at(kk).forEach(function(x){if(x&&vero(x))fatte++;});});
+    if(!su||su.len!==4)return "dopo l'allungamento il pezzo fatto e' lungo "+(su?su.len:0);
+    if(fatte!==4)return "contano come fatte "+fatte+" mezz'ore invece di 4";
+    return q.join("")==="□□■■■■□□□□"?true:"il blocco e' "+q.join("");});
+  /* il blocco trascinato non cambia forma: prima corsia libera, largo tutto */
+  t("trascinando un blocco non si stringe a meta'",function(){
+    pulisci();apri();
+    placeRun(G[1],H0,{i:it[0].id,a:"ESE",len:2},0);
+    placeRun(G[1],H0+1,{i:it[1].id,a:"LET",len:2},1);          /* questo sta in seconda corsia */
+    render();
+    var r=runAt(G[1],H0+1,1);
+    clearRun(G[1],r.start,r.len,1);
+    var L=corsiaPerArrivo(G[3],H0+6,r.len,null);
+    drag={run:r,off:0,date:G[3],start:H0+6,lane:L};
+    placeRun(G[3],H0+6,r,L);drawDay(G[1]);drawDay(G[3]);
+    var bl=document.querySelector('.blk[data-date="'+G[3]+'"]');
+    var largo=bl&&bl.style.width,cl=bl&&bl.classList.contains("volo");
+    drag=null;pulisci();apri();
+    if(L!==0)return "in un giorno vuoto prende la corsia "+L;
+    if(largo!=="100%")return "durante il trascinamento e' largo "+largo;
+    return cl?true:"il blocco in volo non si distingue";});
+
   /* ---------- calendario nei due sensi (ponte) ---------- */
   /* un giorno della settimana a schermo che sia almeno domani: dal
      calendario non si mette niente nel passato */
@@ -855,13 +908,33 @@
   /* Senza aggancio il timer si cerca da solo un blocco di oggi di quella
      attivita' — e se in giornata non ce n'e' nessuno non spunta niente e non
      si rompe, che era il senso di questo controllo. */
-  t("una sessione senza aggancio non spunta niente se di quell'attivita' oggi non c'e' nulla",function(){
+  /* 26 novembre: "non posso avviare il timer se non ci sono blocchi da
+     fare: devo prima metterli, e poi avviare il timer" */
+  t("senza un blocco da fare di quell'attivita' il timer non parte",function(){
     pulisci();apri();
     placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2},0);
-    pomStart("LAB",[]);                    /* di laboratorio oggi non c'e' niente */
-    pomAdvance(true);
-    var q=runAt(oggi,ORA,0);state.pomRun=null;
+    var esito=pomStart("LAB",[]);          /* di laboratorio oggi non c'e' niente */
+    var partito=!!state.pomRun;state.pomRun=null;
+    var q=runAt(oggi,ORA,0);
+    if(esito!==false||partito)return "il timer e' partito senza un blocco di laboratorio";
     return eq(!!(q&&q.done),false,"spuntato: ");});
+  t("un blocco gia' tutto fatto non basta per avviare il timer",function(){
+    pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2,done:1},0);
+    var esito=pomStart("ESE",[{date:oggi,start:ORA,lane:0}]);
+    var partito=!!state.pomRun;state.pomRun=null;
+    return (esito===false&&!partito)?true:"e' partito su un blocco gia' fatto";});
+  t("senza blocco da fare Avvia e' spento, col blocco si accende",function(){
+    return alleSette(function(){
+    pulisci();apri();
+    var att=state.act,pen=state.brush;
+    state.act="ESE";state.brush=null;pomPanel();
+    var go=document.querySelector("#pomtools .pomgo"),spento=!!(go&&go.disabled);
+    placeRun(oggi,MATT,{i:it[0].id,a:"ESE",len:2},0);pomPanel();
+    go=document.querySelector("#pomtools .pomgo");var acceso=!!(go&&!go.disabled);
+    state.act=att;state.brush=pen;pomPanel();
+    if(!spento)return "senza blocchi Avvia si puo' premere";
+    return acceso?true:"col blocco messo Avvia resta spento";});});
   t("ma se un blocco di quell'attivita' c'e', lo trova senza che tu lo agganci",function(){
     pulisci();apri();
     placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2},0);
@@ -972,6 +1045,7 @@
     return barra.indexOf(nome)>=0?true:"la barra non dice la materia: "+barra;});});
   t("riavvia riporta la fase all'inizio",function(){
     pulisci();apri();
+    placeRun(oggi,ORA,{i:it[0].id,a:"ESE",len:2},0);
     pomStart("ESE",[]);
     state.pomRun.ends=Date.now()+60000;     /* un minuto alla fine */
     pomRestart();
@@ -1860,26 +1934,6 @@
       }catch(e){fine("eccezione: "+e.message);}
     },0);
     return {poi:function(){return esito===null?"il giro col file non ha finito in tempo":esito;}};});
-  t("il giorno segnato fatto una volta: tutto conta, anche le spunte a mano, e non si ripete",function(){
-    pulisci();apri();
-    var d=iso(new Date()),K="piano-6272-fatto-"+d,prima=null;
-    try{prima=localStorage.getItem(K);localStorage.removeItem(K);}catch(e){}
-    placeRun(d,HOURS[2],{i:it[0].id,a:"SCH",len:4},0);               /* da fare */
-    placeRun(d,HOURS[8],{i:it[1].id,a:"LET",len:2,done:1,m:1},0);    /* spuntata a mano */
-    placeRun(d,HOURS[12],{i:it[2].id,a:"ESE",len:2,done:1},0);       /* gia' fatta */
-    var ieri=iso(addDays(new Date(),-1));
-    placeRun(ieri,HOURS[2],{i:it[0].id,a:"SCH",len:2},0);           /* un altro giorno: non si tocca */
-    var domani=segnaGiornoFatto(iso(addDays(new Date(),1)),function(){return true;});
-    var n=segnaGiornoFatto(d,function(){return true;});
-    var tutte=Object.keys(state.cells).filter(function(k){return k.indexOf(d)>=0;}).every(function(k){return at(k).every(function(v){return !v||vero(v);});});
-    var ieriOk=!vero(at(ck(ieri,HOURS[2]))[0]);
-    var di_nuovo=segnaGiornoFatto(d,function(){return true;});
-    try{if(prima!=null)localStorage.setItem(K,prima);else localStorage.removeItem(K);}catch(e){}
-    if(domani)return "ha segnato un giorno che deve ancora venire";
-    if(n!==6)return "segnate "+n+" mezz'ore (attese 6: quattro da fare e due spuntate a mano)";
-    if(!tutte)return "qualcosa di oggi non conta come fatto";
-    if(!ieriOk)return "ha toccato anche ieri";
-    return di_nuovo?"si ripete":true;});
   /* 2 ottobre: "il lavoro non si spunta piu' in automatico". Il segno
      "l'hai tolta apposta" viaggiava con le settimane incollate. */
   t("incollare una settimana fa blocchi nuovi: niente spunte e niente segni",function(){
@@ -1910,23 +1964,6 @@
     if(!lav||!lav.done)return "il lavoro di ieri non si e' spuntato";
     if(lez.done)return "la lezione tolta apposta si e' rispuntata";
     return fut.nd?"la lezione futura ha ancora il segno":true;});
-  t("il link segna fatta una materia sola in un intervallo di giorni",function(){
-    pulisci();apri();
-    var lun=monday(new Date()),d0=iso(addDays(lun,-7)),d4=iso(addDays(lun,-3));
-    var o=it[2],K="piano-6272-fatto-"+d0+".."+d4+"-"+o.id;
-    try{localStorage.removeItem(K);}catch(e){}
-    for(var g=0;g<5;g++){var d=iso(addDays(lun,-7+g));
-      placeRun(d,HOURS[2],{i:o.id,a:"SCH",len:2},0);placeRun(d,HOURS[6],{i:it[0].id,a:"LET",len:2},0);}
-    placeRun(iso(addDays(lun,-2)),HOURS[2],{i:o.id,a:"SCH",len:2},0);    /* sabato: fuori */
-    var n=segnaGiornoFatto(d0,function(){return true;},d4,o.id);
-    var altre=0,sab=vero(at(ck(iso(addDays(lun,-2)),HOURS[2]))[0]);
-    for(var g2=0;g2<5;g2++)if(vero(at(ck(iso(addDays(lun,-7+g2)),HOURS[6]))[0]))altre++;
-    var due=segnaGiornoFatto(d0,function(){return true;},d4,o.id);
-    try{localStorage.removeItem(K);}catch(e){}
-    if(n!==10)return "segnate "+n+" mezz'ore (attese 10)";
-    if(altre)return "ha segnato anche un'altra materia";
-    if(sab)return "ha segnato un giorno fuori dall'intervallo";
-    return due?"si ripete":true;});
   /* 3 ottobre: "tutti i motivi devono avere la stessa dimensione e numero,
      in base al numero di slot". */
   t("i motivi hanno tutti la stessa misura, e una fila per ogni mezz'ora",function(){
@@ -2097,22 +2134,6 @@
       if(mat!==it[0].id)return "la sessione non sa di che materia e'";
       return dich?"finito Big Data il timer ha spuntato dichiarativa":true;
     });});
-  t("il giorno segnato fatto con &ore: solo le prime ore, in ordine",function(){
-    pulisci();apri();
-    var d=iso(addDays(new Date(),-1)),K="piano-6272-fatto-"+d+"-"+it[0].id+"-2",prima=null;
-    try{prima=localStorage.getItem(K);localStorage.removeItem(K);}catch(e){}
-    placeRun(d,HOURS[10],{i:it[0].id,a:"SCH",len:4},0);
-    placeRun(d,HOURS[2],{i:it[0].id,a:"SCH",len:4},0);
-    placeRun(d,HOURS[2],{i:it[1].id,a:"SCH",len:4},1);
-    var n=segnaGiornoFatto(d,null,null,it[0].id,1);
-    var q=function(sl,l){return vero(at(ck(d,sl))[l||0])?"■":"□";};
-    var mat=[0,1,2,3].map(function(j){return q(HOURS[2]+j);}).join("")+"|"+
-            [0,1,2,3].map(function(j){return q(HOURS[10]+j);}).join("");
-    var altra=[0,1,2,3].some(function(j){return q(HOURS[2]+j,1)==="■";});
-    try{if(prima!=null)localStorage.setItem(K,prima);else localStorage.removeItem(K);}catch(e){}
-    if(n!==2)return "segnate "+n+" mezz'ore (attese 2)";
-    if(altra)return "ha toccato un'altra materia";
-    return mat==="■■□□|□□□□"?true:"segnate nel posto sbagliato: "+mat;});
   /* 4 ottobre: "NOME IN GRASSETTO + motivo (l'icona) + nome attivita'", in
      ogni blocco, anche da una mezz'ora */
   t("ogni titolo ha nome, icona e attivita'",function(){
@@ -3341,13 +3362,11 @@
        di oggi c'e', adesso il timer se lo prende da solo — ed e' quello che
        deve fare. */
     pulisci();apri();
-    pomStart("LET",null);pomRender();
-    var senza=document.getElementById("pombar").textContent;
-    var bottone=!!document.querySelector('#pombar [data-p="attacca"]');
+    pomStart("LET",null);pomRender();        /* griglia vuota: non parte */
+    var senza=!!state.pomRun;
     pomStop(true);
     if(con.indexOf(slotTime(MATT))<0)return "agganciato, la barra non dice a cosa: "+con;
-    if(senza.indexOf("nessun blocco")<0)return "senza blocco la barra non lo dice: "+senza;
-    return bottone?true:"manca il pulsante per agganciare";});
+    return senza?"a griglia vuota il timer e' partito":true;});
   t("toccando un blocco, il timer che gira gli si aggancia senza perdere i minuti",function(){
     pulisci();apri();
     placeRun(oggi,MATT,{i:it[0].id,a:"LET",len:2},0);render();
@@ -3403,14 +3422,12 @@
     var q=[0,1,2,3].map(function(i2){var v=at(ck(oggi,MATT+i2))[0];return v&&v.done?"■":"□";}).join("");
     pomStop(true);state.pomConf={};
     return q==="■□□□"?true:"dopo una sessione il blocco e' "+q+" (attesa una mezz'ora sola)";});});
-  t("senza blocco agganciato lo dice invece di spuntare a caso",function(){
+  t("senza blocco da fare lo dice invece di partire",function(){
     pulisci();apri();
     var detti=[],vt=toast;toast=function(m){detti.push(m);};
-    try{
-      state.pomConf={LET:{s:27,b:8,l:20,n:3}};
-      pomStart("LET",null);fine();
-      pomStop(true);state.pomConf={};
-    }finally{toast=vt;}
+    try{pomStart("LET",null);}finally{toast=vt;}
+    var partito=!!state.pomRun;pomStop(true);
+    if(partito)return "e' partito lo stesso";
     return detti.some(function(m){return /nessun blocco/.test(m);})?true:
       "non lo dice: "+detti.join(" | ");});
   t("il blocco su cui gira il timer non e' segnato in ritardo",function(){
@@ -3527,8 +3544,8 @@
       window.Date=F;
       pulisci();apri();
       var d=iso(new Date());
-      pomStart("VID",null);                    /* niente agganciato: in griglia non c'era nulla */
-      placeRun(d,41,{i:it[0].id,a:"VID",len:2},0);   /* il blocco lo metto adesso */
+      placeRun(d,41,{i:it[0].id,a:"VID",len:2},0);   /* prima il blocco, poi il timer */
+      pomStart("VID",null);
       fine();
       var q=[0,1].map(function(i2){var v=at(ck(d,41+i2))[0];return v&&v.done?"■":"□";}).join("");
       pomStop(true);
@@ -3579,20 +3596,20 @@
      non c'era ancora niente, blocco messo dopo. La barra diceva "nessun blocco
      agganciato" per tutta la sessione — il gancio si provava solo a fine
      sessione — e lui non poteva sapere se qualcosa sarebbe stato spuntato. */
-  t("metti il blocco a timer avviato: se lo prende subito, non a fine sessione",function(){
+  t("prima il blocco, poi il timer: a griglia vuota non parte, messo il blocco lo prende",function(){
     return alleSette(function(){
       pulisci();apri();
       var d=iso(new Date());
-      pomStart("VID",null);                     /* griglia vuota: niente da agganciare */
-      var prima=document.getElementById("pombar").textContent;
-      placeRun(d,20,{i:it[0].id,a:"VID",len:2},0);
-      render();                                 /* il blocco compare adesso */
-      var dopo=document.getElementById("pombar").textContent;
+      pomStart("VID",null);                     /* griglia vuota: non parte */
+      var vuoto=!state.pomRun;
+      placeRun(d,20,{i:it[0].id,a:"VID",len:2},0);render();
+      pomStart("VID",null);
       var ag=(state.pomRun&&state.pomRun.linked||[])[0];
+      var barra=document.getElementById("pombar").textContent;
       pomStop(true);
-      if(prima.indexOf("nessun blocco")<0)return "a griglia vuota la barra non lo diceva: "+prima;
-      if(!ag||ag.start!==20)return "il timer non si e' preso il blocco nuovo";
-      return /spunta .*10:00 di oggi/.test(dopo)?true:"la barra non dice il blocco nuovo: "+dopo;
+      if(!vuoto)return "a griglia vuota il timer e' partito";
+      if(!ag||ag.start!==20)return "il timer non ha preso il blocco messo";
+      return /spunta .*10:00 di oggi/.test(barra)?true:"la barra non dice il blocco: "+barra;
     });});
 
   /* ---- 26 settembre: le spunte oneste e Avvia che sceglie da solo ---- */
@@ -3656,18 +3673,18 @@
       return schema?"un pomodoro di lettura ha spuntato lo schema":true;
     });});
 
-  t("Avvia con un'attivita' che oggi non ha blocchi: niente aggancio, niente spunte",function(){
+  /* dal 26 novembre senza un blocco da fare il timer non parte proprio */
+  t("Avvia con un'attivita' che oggi non ha blocchi: non parte, niente spunte",function(){
     return alle(15,function(){
       pulisci();apri();
       var d=iso(new Date());
       placeRun(d,18,{i:it[0].id,a:"SCH",len:4},0);
       state.act="VID";avvia();
-      var r=state.pomRun,act=r&&r.act,n=(r&&r.linked||[]).length;
+      var partito=!!state.pomRun;
       fine();
       var schema=[0,1,2,3].some(function(k){var v=at(ck(d,18+k))[0];return v&&v.done;});
       pomStop(true);pomAskBlock(false);
-      if(act!=="VID")return "e' partito con "+act;
-      if(n)return "si e' agganciato a un blocco di un'altra attivita'";
+      if(partito)return "e' partito senza un blocco di videolezione";
       return schema?"una videolezione ha spuntato lo schema":true;
     });});
 

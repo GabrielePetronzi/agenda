@@ -87,6 +87,24 @@ body.amouse td.c:focus-visible{outline:none}
   font-size:11.5px;font-weight:500;line-height:1.3;padding:5px 9px;border-radius:7px;max-width:260px;
   box-shadow:0 6px 18px rgba(0,0,0,.28);opacity:0;translate:0 -3px;transition:opacity .1s,translate .1s}
 .qtip.on{opacity:1;translate:0 0}
+/* la scheda di un blocco al passaggio del mouse */
+.blkcard{position:fixed;z-index:300;pointer-events:none;display:flex;gap:10px;min-width:200px;max-width:280px;
+  padding:10px 12px 10px 10px;border-radius:11px;border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 12px 30px rgba(0,0,0,.35);opacity:0;scale:.97;transition:opacity .08s,scale .08s}
+.blkcard.on{opacity:1;scale:1}
+.blkcard i{width:4px;border-radius:2px;flex:0 0 auto}
+.blkcard div{min-width:0;display:flex;flex-direction:column;gap:3px}
+.blkcard b{font-size:13px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blkcard u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
+.blkcard p{margin:4px 0 0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.blkcard strong{font-family:"DM Mono",monospace;font-size:14px;font-weight:500;color:var(--tx)}
+.blkcard span{font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx3)}
+.blkcard em{font-style:normal;font-family:"DM Mono",monospace;font-size:9.5px;padding:2px 6px;border-radius:999px;
+  background:var(--raised);color:var(--tx2);border:1px solid var(--line)}
+.blkcard em.ok{color:var(--done);border-color:color-mix(in srgb,var(--done) 45%,var(--line))}
+.blkcard em.no{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.blkcard q{font-size:11.5px;color:var(--tx2);quotes:none;margin-top:2px;line-height:1.35}
 .tacts{display:flex;gap:8px;flex:0 0 auto;margin-left:auto}
 .seg{display:flex;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r-sm);padding:2px;flex:0 0 auto}
@@ -864,6 +882,9 @@ html[data-theme="light"] .blk.done::after{background:repeating-linear-gradient(4
   text-decoration-color:#14161B}
 .blk.done::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
   background:repeating-linear-gradient(45deg,rgba(20,22,27,.26) 0 3px,transparent 3px 8px)}
+.blk.volo{z-index:8;cursor:grabbing;box-shadow:0 0 0 2px var(--action),0 12px 28px rgba(0,0,0,.45)!important;
+  transition:none}
+.tool.pomgo:disabled{opacity:.45;cursor:not-allowed;border-color:var(--line);color:var(--tx3)}
 .blk.selblk{box-shadow:0 0 0 2px var(--action),0 0 0 3px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.35);
   animation:selpop .14s cubic-bezier(.2,.9,.3,1.2)}
 td.c .selmezz{position:absolute;z-index:3;pointer-events:none;border-radius:5px;
@@ -1566,7 +1587,6 @@ html[data-theme="light"] .pombar .pbtn button.pgo{color:#fff}
     <div class="selbar" id="selbar"></div>
     <div class="latebar ripbar" id="filebar"></div>
     <div class="latebar ripbar" id="ripbar"></div>
-    <div class="latebar ripbar" id="contobar"></div>
     <div class="latebar" id="latebar"></div>
     <div id="panels"></div>
 
@@ -2445,7 +2465,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="23 nov 2026 · s";
+const VERSIONE="26 nov 2026 · a";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5022,9 +5042,21 @@ function agganciaDaSolo(r){
    finito Big Data non passa a spuntare un'altra materia solo perche' ha la
    stessa attivita'. */
 function pomStart(act,linked){
+  const b0=linked&&linked.length?at(ck(linked[0].date,linked[0].start))[linked[0].lane]:null;
+  /* 26 novembre: "non posso avviare il timer se non ci sono blocchi da
+     fare: devo prima metterli, e poi avviare il timer". Prima partiva lo
+     stesso e si cercava il blocco strada facendo. Ora serve un blocco con
+     ancora qualcosa da fare: quello dato, o quello che si trova oggi per
+     quest'attivita' (e materia). Se non c'e', il timer non parte e quello
+     che gira, se gira, resta com'e'. */
+  const prova={act:act,linked:linked&&linked.length?linked.slice():null,mat:(b0&&b0.i)||null};
+  if(!(prova.linked||[]).some(b=>restaDelBlocco(b)))agganciaDaSolo(prova);
+  if(!(prova.linked||[]).some(b=>restaDelBlocco(b))){
+    toast("Prima metti un blocco di "+actOf(act).n.toLowerCase()+" da fare: nessun blocco disponibile");
+    return false;
+  }
   logPartial(state.pomRun);
   const c=pomConf(act);
-  const b0=linked&&linked.length?at(ck(linked[0].date,linked[0].start))[linked[0].lane]:null;
   state.pomRun={act:act,phase:"work",cycle:1,base:0,
     ends:Date.now()+c.s*60000,paused:null,linked:linked||null,
     autoAg:(linked&&linked.length)?0:1,mat:(b0&&b0.i)||null,
@@ -5580,12 +5612,15 @@ function pomPanel(){
   const mb=!dopo&&!sel.length&&state.brush?map()[state.brush]:null;
   go.innerHTML=icon(act,15)+"Avvia "+c.s+" min"+
     (dopo?" · "+(mo?esc(mo.short||mo.name)+" ":"")+actOf(act).n.toLowerCase()+" "+slotTime(dopo.start)
-     :mb?" · "+esc(mb.short||mb.name)+": niente "+actOf(act).n.toLowerCase()+" oggi":"");
+     :mb?" · "+esc(mb.short||mb.name)+": niente "+actOf(act).n.toLowerCase()+" oggi"
+     :sel.length?"":" · niente "+actOf(act).n.toLowerCase()+" oggi");
+  /* senza un blocco da fare non si avvia: prima lo metti in griglia */
+  go.disabled=!sel.length&&!dopo;
   go.title=sel.length
     ? "Al termine segna come fatti i "+sel.length+" blocchi selezionati"
     : (dopo?"Prende da solo il blocco di "+actOf(act).n.toLowerCase()+(mo?" di "+mo.name:"")+" delle "+
         slotTime(dopo.start)+" e a fine sessione lo spunta"
-      :"Oggi non c'e' un blocco di "+actOf(act).n.toLowerCase()+" da fare: parte senza aggancio");
+      :"Oggi non c'e' un blocco di "+actOf(act).n.toLowerCase()+" da fare: mettilo in griglia, poi avvia");
   go.onclick=()=>{
     if(typeof Notification!=="undefined"&&Notification.permission==="default")
       Notification.requestPermission().catch(()=>{});
@@ -5598,17 +5633,12 @@ function pomPanel(){
       preso=bloccoDaAvviare();
       if(preso){ag=[{date:preso.date,start:preso.start,lane:preso.lane}];aGo=preso.a;}
     }
-    pomStart(aGo,ag);
+    if(pomStart(aGo,ag)===false)return;      /* niente da fare: non parte */
     /* preso dal timer, non scelto da te: se poi tocchi un altro blocco di
        questa attivita' il timer ci si sposta senza ricominciare il conto */
     if(preso&&state.pomRun)state.pomRun.autoAg=1;
     if(preso)toast("Agganciato a "+slotTime(preso.start)+"–"+
       slotTime(preso.start+preso.len)+" di oggi");
-    else if(!ag.length){
-      toast("Nessun blocco di "+actOf(aGo).n.toLowerCase()+
-        " da fare oggi: tocca un blocco per agganciarlo");
-      pomAskBlock(true);       /* resta armato: il prossimo tocco lo aggancia */
-    }
   };
   box.appendChild(go);
   /* ...e se oggi quella materia ha un blocco di un'altra attivita', basta un
@@ -7164,8 +7194,12 @@ function drawDay(dateIso,scope){
       bl.style.height=alt+"px";
       bl.style.setProperty("--rz",Math.max(3,Math.min(9,Math.round(alt*.2)))+"px");
       const nl=cw[ri]||1;
-      bl.style.left=(r.lane*100/nl)+"%";
-      bl.style.width=(100/nl)+"%";
+      /* il blocco che stai trascinando non cambia forma: a tutta larghezza,
+         sollevato sugli altri; si affianca solo quando lo lasci */
+      const volo=drag&&drag.date===dateIso&&drag.start===r.start&&drag.lane===r.lane;
+      if(volo)bl.classList.add("volo");
+      bl.style.left=volo?"0%":(r.lane*100/nl)+"%";
+      bl.style.width=volo?"100%":(100/nl)+"%";
       /* La nota è la cosa più utile scritta dentro il blocco, quindi:
          su mezz'ora prende il posto dell'attività (che motivo e icona dicono già),
          più in alto va a capo su una riga sua, con quante righe ci stanno. */
@@ -7748,6 +7782,19 @@ function editNote(dateIso,start,lane){
   inp.addEventListener("blur",()=>done(true));
 }
 
+/* 26 novembre: "ho fatto un blocco di 2 ore, poi trascino per altri blocchi
+   e questi mi vengono contati come fatti: sto barando cosi'". Allungare con
+   la maniglia riscriveva tutto il blocco con lo stato del primo pezzo, e
+   le mezz'ore nuove nascevano spuntate. Ora il blocco si riscrive senza
+   spunte e le spunte tornano solo sulle mezz'ore che le avevano gia'. */
+function rzMetti(){
+  placeRun(rz.date,rz.start,Object.assign({},rz,{done:0,m:0}),rz.lane);
+  for(let sl=rz.start;sl<rz.start+rz.len;sl++){
+    const p=(rz.prima||{})[sl];if(!p)continue;
+    const k=ck(rz.date,sl),arr=at(k).slice(),v=arr[rz.lane];if(!v)continue;
+    arr[rz.lane]=Object.assign({},v,{done:1},p===2?{m:1}:{});setAt(k,arr);
+  }
+}
 /* sposta il fuoco di una casella nella direzione della freccia */
 /* Il punto in cui si incolla segue la casella che ha il fuoco. Prima lo
    spostava solo un tocco del mouse: con le frecce il fuoco andava avanti e il
@@ -7795,6 +7842,11 @@ function wire(t){
         e.preventDefault();e.stopPropagation();rz=r;
         /* quella di sopra tiene ferma la fine e sposta l'inizio */
         rz.su=e.target.classList.contains("su");rz.fine=r.start+r.len-1;
+        /* le spunte che il blocco ha adesso, mezz'ora per mezz'ora: allungando
+           restano solo li', le mezz'ore nuove nascono da fare */
+        rz.prima={};
+        for(let k=0;k<r.len;k++){const v=at(ck(r.date,r.start+k))[r.lane];
+          if(v&&v.done)rz.prima[r.start+k]=v.m?2:1;}
       }
       return;
     }
@@ -8164,7 +8216,7 @@ window.addEventListener("pointermove",e=>{
       if(ns===rz.start)return;
       clearRun(rz.date,rz.start,rz.len,rz.lane);
       rz.start=ns;rz.len=rz.fine-ns+1;
-      placeRun(rz.date,rz.start,rz,rz.lane);
+      rzMetti();
       drawDay(rz.date);
       return;
     }
@@ -8173,7 +8225,7 @@ window.addEventListener("pointermove",e=>{
     if(nl===rz.len)return;
     clearRun(rz.date,rz.start,rz.len,rz.lane);
     rz.len=nl;
-    placeRun(rz.date,rz.start,rz,rz.lane);
+    rzMetti();
     drawDay(rz.date);
     return;
   }
@@ -8208,7 +8260,10 @@ window.addEventListener("pointermove",e=>{
        altro se lo mangiava in silenzio, senza nemmeno l'avviso che il
        pennello da' quando sostituisce. Due ore di lavoro sparite per un
        millimetro di troppo col dito. */
-    const L=corsiaPerArrivo(td.dataset.date,ns,drag.run.len,drag.lane);
+    /* la prima corsia libera, non quella da cui veniva: una corsia seconda
+       portata in un giorno vuoto disegnava il blocco largo meta' finche' non
+       lo lasciavi (26 novembre: "sembra un errore") */
+    const L=corsiaPerArrivo(td.dataset.date,ns,drag.run.len,null);
     if(L<0){
       /* niente posto: il blocco resta dov'era */
       placeRun(vecchiaD,vecchiaS,drag.run,vecchiaL);
@@ -8374,7 +8429,7 @@ function ripristina(testo,da){
   document.getElementById("bkModal").classList.remove("open");
   sessioneNeiSemestri();
   save("Rimesse "+hrs(n)+(da?" da "+da:""));histInit();render();
-  if(!prima){segnaFinoASettimana(true);settimanaUno19Ottobre(true);}   /* il piano torna in un browser vuoto */
+  if(!prima)settimanaUno19Ottobre(true);   /* il piano torna in un browser vuoto */
   return true;
 }
 /* Recupero da un gist, con il solo link: un gist segreto si legge senza token
@@ -8449,7 +8504,7 @@ async function ripescaDalGist(){
     state.pass=state.pass||{};state.seguite=state.seguite||{};
     sessioneNeiSemestri();
     save("Ripreso dal gist: "+hrs(la));histInit();render();
-    if(!qua){segnaFinoASettimana(true);settimanaUno19Ottobre(true);}
+    if(!qua)settimanaUno19Ottobre(true);
     return true;
   }catch(e){return false;}
 }
@@ -8530,82 +8585,16 @@ function ripBar(ricalcola){
     ripBar(true);};
 }
 
-/* ---------- un giorno segnato fatto, una volta sola ----------
-   Il 29 settembre, dopo la serata passata a recuperare il piano: "spuntami
-   solo per questa volta tutto quello di oggi come fatto". Il link
-   ?fatto=AAAA-MM-GG, dopo averlo chiesto, segna come fatte davvero tutte le
-   mezz'ore di quel giorno nel piano aperto — anche quelle spuntate a mano,
-   che di solito non contano. Una volta per giorno, mai per un giorno che
-   deve ancora venire. Non cambia la regola: la spunta a mano continua a non
-   contare. */
-/* &ore=N (24 ottobre: "spuntami la prima ora di Big Data"): solo le prime N
-   ore ancora da fare, in ordine di orario, invece di tutta la giornata. */
-function segnaGiornoFatto(d,chiedi,a,materia,ore){
-  a=a||d;
-  const ok=x=>/^\d{4}-\d{2}-\d{2}$/.test(x);
-  if(!ok(d)||!ok(a)||a<d||d>iso(new Date()))return 0;
-  if(a>iso(new Date()))a=iso(new Date());
-  const m=map();
-  let ids=null,nome="";
-  if(materia){
-    const q=String(materia).toLowerCase();
-    const o=items().filter(x=>x.kind==="c"&&(x.id===materia||x.name.toLowerCase().indexOf(q)>=0));
-    if(!o.length){toast("Nessuna materia che si chiami “"+materia+"”");return 0;}
-    ids=new Set(o.map(x=>x.id));nome=o.map(x=>x.name).join(", ");
-  }
-  const quante=ore>0?Math.round(ore*PERQ):0;
-  const K="piano-6272-fatto-"+d+(a!==d?".."+a:"")+(materia?"-"+materia:"")+(quante?"-"+quante:"");
-  try{if(localStorage.getItem(K))return 0;}catch(e){}
-  const pre=PRE();
-  const pos=k=>{const x=k.slice(pre.length).split(".");return [x[0],+x[1]];};
-  const chiavi=Object.keys(state.cells).filter(k=>{
-    if(k.indexOf(pre)!==0)return false;
-    const dt=pos(k)[0];return dt>=d&&dt<=a;})
-    .sort((x,y)=>{const p=pos(x),q=pos(y);return p[0]<q[0]?-1:p[0]>q[0]?1:p[1]-q[1];});
-  let resta=quante||Infinity;
-  const conta0=v=>v&&!vero(v)&&(!ids||ids.has(v.i));
-  const conta=v=>{if(!conta0(v)||resta<=0)return false;resta--;return true;};
-  let n=0;chiavi.forEach(k=>at(k).forEach(v=>{if(conta(v))n++;}));
-  resta=quante||Infinity;
-  const quando=a===d?"del "+fmt(parse(d)):"dal "+fmt(parse(d))+" al "+fmt(parse(a));
-  if(!n){toast((nome?nome+": ":"")+"è già tutto fatto "+quando);return 0;}
-  if(chiedi&&!chiedi("Segno come fatte "+(quante?"le prime ":"le ")+hrs(n)+" ancora da fare "+(nome?"di "+nome+" ":"")+quando+
-      "? Contano come fatte davvero, solo per questa volta."))return 0;
-  chiavi.forEach(k=>{const arr=at(k).slice();
-    arr.forEach(v=>{if(conta(v)){v.done=1;delete v.m;delete v.nd;}});setAt(k,arr);});
-  try{localStorage.setItem(K,"1");}catch(e){}
-  afterEdit(hrs(n)+(nome?" di "+nome:"")+" "+quando+" segnate come fatte");lateBar();
-  return n;
-}
-/* ?fatto=AAAA-MM-GG oppure ?fatto=AAAA-MM-GG..AAAA-MM-GG, e &materia=nome
-   (basta un pezzo del nome) per una materia sola, &ore=N per le prime N ore */
-function fattoDaLink(){
-  const q=new URLSearchParams(location.search||"");
-  const f=q.get("fatto");if(!f)return;
-  try{history.replaceState(null,"",location.pathname+location.hash);}catch(e){}
-  const [d,a]=f.split("..");
-  /* La domanda sta in una barra in cima, non in una finestrella del browser:
-     quella si chiudeva con un tocco qualunque, o non compariva, e il giorno
-     restava com'era (4 ottobre: "non mi ha spuntato gli slot di sabato"). */
-  segnaGiornoFatto(d,t=>{
-    const box=document.getElementById("ripbar");if(!box){return confirm(t);}
-    box.className="latebar ripbar on";
-    box.innerHTML='<b>'+esc(t)+'</b><button data-r="si" class="rip-si">Sì, segnale fatte</button><button data-r="no">No</button>';
-    box.querySelector('[data-r="si"]').onclick=()=>{box.className="latebar ripbar";box.innerHTML="";
-      segnaGiornoFatto(d,null,a||d,q.get("materia"),+q.get("ore")||0);ripBar(true);};
-    box.querySelector('[data-r="no"]').onclick=()=>{box.className="latebar ripbar";box.innerHTML="";ripBar(true);};
-    return false;
-  },a||d,q.get("materia"),+q.get("ore")||0);
-}
-
-/* 4 novembre: cambiato computer, persi i dati. "Spuntami e segnami tutti i
-   blocchi che ho fatto per ora come fatti e contarmeli." La prima spunta
-   prendeva tutto fino a adesso; e' stata sostituita da segnaFinoASettimana,
-   qui sotto. La sua chiave (TUTTOKEY) resta per sapere se aveva gia' girato
-   in questo browser. Se il piano torna in un browser vuoto, dal file o dal
-   gist, il giro si rifa' su quello che e' tornato, ma solo fino a meta'
-   novembre (TUTTOFINO): dopo, un backup rimesso non va spuntato tutto a
-   occhi chiusi. */
+/* ---------- niente scorciatoie per le spunte ----------
+   26 novembre: "aumenta i controlli quando ti chiedo di segnare come fatti
+   dei blocchi di studio". Qui c'erano il link ?fatto= (un giorno, una
+   materia, le prime N ore), tre spunte una tantum all'apertura (3, 20 e
+   24 ottobre) e la spunta del 4 novembre che ripartiva in ogni browser
+   vuoto. Erano di prima della regola del 4 novembre, e ognuna ripartiva
+   aprendo l'app in un browser nuovo. Tolte tutte: le spunte vivono nel
+   piano e viaggiano nel gist e nei backup, quindi non servono nemmeno per
+   i dati persi. Un blocco si segna fatto solo dall'app, col timer o a mano.
+   La prova "nessuna scorciatoia per le spunte" fallisce se ne torna una. */
 /* "dopo il 18 ottobre voglio la prossima settimana 1": il primo semestre di
    informatica riparte dal 19 ottobre, una volta, anche sopra una settimana
    vecchia tornata con un backup. Poi decidi tu, dall'orologio. */
@@ -8616,79 +8605,6 @@ function settimanaUno19Ottobre(forza){
   const a=state.anchor["1"];
   if(!a||a<"2026-10-19"){state.anchor["1"]="2026-10-19";save();if(state.ctx==="1")render();}
   try{localStorage.setItem(UNOKEY,"1");}catch(e){}
-}
-const TUTTOKEY="piano-6272-tutto-fatto-4-novembre";
-const TUTTOFINO="2026-11-15";
-/* Sempre il 4 novembre, poco dopo: "spunta ogni slot e segnali come fatti
-   tranne quelli di questa settimana". Fatto tutto quello che sta prima di
-   lunedi' 2 novembre; la settimana dal 2 all'8 resta da fare. Se la spunta
-   di prima ha gia' girato qui, aveva spuntato anche
-   lunedi', martedi' e stamattina: quelle spunte si tolgono, ma non quelle
-   che il timer ha registrato (minuti nel registro per quel giorno e quella
-   materia) ne' le lezioni e il lavoro, che si spuntano da soli. */
-const SETTKEY="piano-6272-fatto-fino-al-1-novembre";
-const SETT_DA="2026-11-02",SETT_A="2026-11-08";
-function segnaFinoASettimana(forza){
-  if(forza&&iso(new Date())>TUTTOFINO)return 0;
-  try{if(!forza&&localStorage.getItem(SETTKEY))return 0;}catch(e){}
-  if(!Object.keys(state.cells||{}).length)return 0;
-  let primaGiro=false;try{primaGiro=!!localStorage.getItem(TUTTOKEY);}catch(e){}
-  const minuti=(d,v)=>Object.keys(state.log||{}).some(k=>k.slice(-11)==="."+d&&
-    (state.log[k][v.i+"|"+v.a]||0)>0);
-  let segnate=0,tolte=0;
-  Object.keys(state.cells).forEach(k=>{
-    if(!daPianoAttivo(k))return;
-    const p=k.split("."),d=p[p.length-2];
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return;
-    const arr=at(k).slice();let cambia=0;
-    if(d<SETT_DA){
-      arr.forEach(v=>{if(v&&!vero(v)){v.done=1;delete v.m;delete v.nd;segnate++;cambia=1;}});
-    }else if(d<=SETT_A&&primaGiro&&!forza){
-      arr.forEach(v=>{if(v&&v.done&&!daSola(v.a)&&!minuti(d,v)){delete v.done;delete v.m;tolte++;cambia=1;}});
-    }
-    if(cambia)setAt(k,arr);
-  });
-  try{localStorage.setItem(SETTKEY,"1");localStorage.setItem(TUTTOKEY,"1");}catch(e){}
-  if(segnate||tolte){save("Fatto tutto fino al 1 novembre");render();}
-  const c=contaFatti(SETT_DA);
-  const box=document.getElementById("contobar");
-  if(box){
-    const bl=n=>n+(n===1?" blocco":" blocchi");
-    const t=(segnate?"Segnate come fatte "+hrs(segnate)+" fino a domenica 1 novembre. ":"Fino a domenica 1 novembre era già tutto fatto. ")+
-      "In tutto, fino al 1 novembre, hai fatto "+bl(c.blocchi)+", "+hrs(c.ore)+"."+
-      (tolte?" Questa settimana resta da fare ("+hrs(tolte)+" tolte dalla spunta di prima).":" Questa settimana non l'ho toccata.");
-    box.className="latebar ripbar on";
-    box.innerHTML='<b>'+esc(t)+'</b><button data-r="ok">Ok</button>';
-    box.querySelector('[data-r="ok"]').onclick=()=>{box.className="latebar ripbar";box.innerHTML="";};
-  }
-  return segnate;
-}
-/* i blocchi fatti prima di "fino": mezz'ore di fila, nella stessa corsia,
-   della stessa voce, tutte fatte davvero */
-function contaFatti(fino){
-  const giorni={};
-  Object.keys(state.cells).forEach(k=>{
-    if(!daPianoAttivo(k))return;
-    const p=k.split("."),d=p[p.length-2],sl=+p[p.length-1];
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d>=fino||isNaN(sl))return;
-    const g=p.slice(0,-1).join(".");(giorni[g]=giorni[g]||[]).push(sl);
-  });
-  let blocchi=0,ore=0;
-  Object.keys(giorni).forEach(g=>{
-    const sl=giorni[g].sort((a,b)=>a-b);
-    const corsie=Math.max(...sl.map(x=>at(g+"."+x).length));
-    for(let L=0;L<corsie;L++){
-      let prec=null,ps=-9;
-      sl.forEach(x=>{
-        const v=at(g+"."+x)[L];
-        if(!v||!vero(v)){prec=null;return;}
-        ore++;
-        if(!(prec&&sameBlock(prec,v)&&ps===x-1))blocchi++;
-        prec=v;ps=x;
-      });
-    }
-  });
-  return {blocchi:blocchi,ore:ore};
 }
 /* ---------- il backup su un file del Mac ----------
    Il 28 settembre "Cancella dati di navigazione" ha tolto il piano, e con lui
@@ -9253,6 +9169,49 @@ function ksList(){
   });
 }
 
+/* L'anteprima di un blocco al passaggio del mouse. 26 novembre: "voglio
+   ancora piu' reattiva la risposta dell'anteprima quando mi posiziono su un
+   blocco". Era il suggerimento del browser (il title), che arriva dopo un
+   secondo circa: ora e' una scheda che compare in sessanta millisecondi. */
+(function(){
+  let el0=null,t0=null,card=null;
+  const via=()=>{clearTimeout(t0);t0=null;if(card)card.classList.remove("on");el0=null;};
+  function mostra(bl){
+    if(!bl.isConnected||drag||rz||painting||sd)return;
+    const d0=bl.dataset.date,r=runAt(d0,+bl.dataset.start,+bl.dataset.lane);if(!r)return;
+    const m=map(),o=m[r.i];if(!o)return;
+    const v=at(ck(d0,r.start))[r.lane]||{},d=parse(d0);
+    const fra=ripLibero(v)?divisoFra(v,d0):null;
+    const stato=r.done?(vero(r)?["fatto","ok"]:["spuntato a mano · non conta","no"])
+      :(inRitardo(d0,{v:v,start:r.start,len:r.len,lane:r.lane})?["in ritardo","no"]:["da fare",""]);
+    const col=r.a==="RIP"?(state.colors[GENID]||autoColor(GENID)):o.color;
+    card=card||Object.assign(document.createElement("div"),{className:"blkcard"});
+    if(!card.isConnected)document.body.appendChild(card);
+    card.innerHTML='<i style="background:'+col+'"></i><div>'+
+      '<b>'+esc(fra&&fra.length?"Ripasso · "+fra.map(x=>(m[x]||{}).short||"?").join(", "):o.name)+'</b>'+
+      '<u>'+actOf(r.a).n+" · "+DSH[(d.getDay()+6)%7].toLowerCase()+" "+d.getDate()+" "+MESI[d.getMonth()]+'</u>'+
+      '<p><strong>'+slotTime(r.start)+"–"+slotTime(r.start+r.len)+'</strong><span>'+hrs(r.len)+'</span>'+
+      '<em class="'+stato[1]+'">'+stato[0]+"</em></p>"+
+      (r.n?'<q>'+esc(r.n)+"</q>":"")+"</div>";
+    const b=bl.getBoundingClientRect(),w=card.offsetWidth,h=card.offsetHeight;
+    let x=b.right+8;if(x+w>innerWidth-8)x=b.left-w-8;if(x<8)x=Math.max(8,Math.min(innerWidth-w-8,b.left));
+    let y=Math.max(8,Math.min(innerHeight-h-8,b.top));
+    card.style.left=x+"px";card.style.top=y+"px";
+    card.classList.add("on");
+  }
+  document.addEventListener("pointerover",e=>{
+    if(e.pointerType==="touch")return;
+    const bl=e.target.closest&&e.target.closest(".blk");
+    if(bl===el0)return;
+    via();
+    if(!bl||drag||rz||painting||sd||state.erase)return;
+    if(bl.title){bl.dataset.tt=bl.title;bl.removeAttribute("title");}
+    el0=bl;
+    t0=setTimeout(()=>mostra(bl),60);
+  });
+  ["pointerdown","scroll","keydown"].forEach(ev=>document.addEventListener(ev,via,true));
+  window.addEventListener("blur",via);
+})();
 /* suggerimento rapido per i pulsanti senza scritta (o con una sola lettera) */
 (function(){
   let el0=null,t0=null,box=null;
@@ -9350,43 +9309,6 @@ window.addEventListener("afterprint",()=>{
   ripescaDalGist();
   ripBar(true);
   fileAvvio();
-  fattoDaLink();
-  /* Sabato 3 ottobre l'hai fatto tutto, e il link per segnarlo non ha
-     funzionato due volte (4 ottobre: "ti ho detto che mi devi spuntare gli
-     slot di ieri"). Lo fa l'app da sola, una volta, all'apertura. */
-  (function(){
-    const K="piano-6272-sabato-3-ottobre";
-    try{if(localStorage.getItem(K))return;}catch(e){}
-    if(!Object.keys(state.cells||{}).length)return;     /* piano non ancora caricato */
-    const n=segnaGiornoFatto("2026-10-03",null);
-    try{localStorage.setItem(K,"1");}catch(e){}
-    if(n)setTimeout(()=>toast(hrs(n)+" di sabato 3 ottobre segnate come fatte"),1200);
-  })();
-  /* 24 ottobre: "spuntami la prima ora di Big Data" — quella della mattina,
-     che il timer della sera non aveva preso — e "spuntami anche il blocco di
-     programmazione dichiarativa di martedi' che lo avevo fatto". Come per
-     sabato 3 ottobre, una volta sola, all'apertura. */
-  (function(){
-    const K="piano-6272-24-ottobre";
-    try{if(localStorage.getItem(K))return;}catch(e){}
-    if(!Object.keys(state.cells||{}).length)return;
-    const a=segnaGiornoFatto("2026-10-24",null,null,"big data",1);
-    const b=segnaGiornoFatto("2026-10-20",null,null,"dichiar");
-    try{localStorage.setItem(K,"1");}catch(e){}
-    const detto=[a?hrs(a)+" di Big Data di oggi":"",b?hrs(b)+" di dichiarativa di martedì":""].filter(Boolean);
-    if(detto.length)setTimeout(()=>toast(detto.join(" e ")+" segnate come fatte"),1400);
-  })();
-  /* 25 ottobre: "spunta i blocchi di sabato come fatti, che mi sono scordato
-     di usare l'app". Tutto sabato 24, una volta sola, all'apertura. */
-  (function(){
-    const K="piano-6272-sabato-24-ottobre";
-    try{if(localStorage.getItem(K))return;}catch(e){}
-    if(!Object.keys(state.cells||{}).length)return;
-    const n=segnaGiornoFatto("2026-10-24",null);
-    try{localStorage.setItem(K,"1");}catch(e){}
-    if(n)setTimeout(()=>toast(hrs(n)+" di sabato 24 ottobre segnate come fatte"),1800);
-  })();
-  segnaFinoASettimana(false);
   settimanaUno19Ottobre(false);
   /* quello che sta fuori dalla fascia resta salvato ma non si vede: va detto */
   const fuori=outOfRange();
