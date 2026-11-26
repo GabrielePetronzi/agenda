@@ -88,23 +88,30 @@ body.amouse td.c:focus-visible{outline:none}
   box-shadow:0 6px 18px rgba(0,0,0,.28);opacity:0;translate:0 -3px;transition:opacity .1s,translate .1s}
 .qtip.on{opacity:1;translate:0 0}
 /* la scheda di un blocco al passaggio del mouse */
-.blkcard{position:fixed;z-index:300;pointer-events:none;display:flex;gap:10px;min-width:200px;max-width:280px;
-  padding:10px 12px 10px 10px;border-radius:11px;border:1px solid var(--line);
-  background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  box-shadow:0 12px 30px rgba(0,0,0,.35);opacity:0;scale:.97;transition:opacity .08s,scale .08s}
+/* 26 novembre, sera: "appena meno invadente". Piu' piccola, piu' leggera,
+   un'ombra corta: un cartellino, non una finestra. */
+.blkcard{position:fixed;z-index:300;pointer-events:none;display:flex;gap:8px;max-width:230px;
+  padding:7px 10px 7px 8px;border-radius:9px;border:1px solid var(--line-soft);
+  background:color-mix(in srgb,var(--surface) 96%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  box-shadow:0 4px 14px rgba(0,0,0,.22);opacity:0;scale:.98;transition:opacity .07s,scale .07s}
 .blkcard.on{opacity:1;scale:1}
-.blkcard i{width:4px;border-radius:2px;flex:0 0 auto}
-.blkcard div{min-width:0;display:flex;flex-direction:column;gap:3px}
-.blkcard b{font-size:13px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.blkcard u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3)}
-.blkcard p{margin:4px 0 0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.blkcard strong{font-family:"DM Mono",monospace;font-size:14px;font-weight:500;color:var(--tx)}
-.blkcard span{font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx3)}
-.blkcard em{font-style:normal;font-family:"DM Mono",monospace;font-size:9.5px;padding:2px 6px;border-radius:999px;
+.blkcard i{width:3px;border-radius:2px;flex:0 0 auto}
+.blkcard div{min-width:0;display:flex;flex-direction:column;gap:2px}
+.blkcard b{font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blkcard u{text-decoration:none;font-family:"DM Mono",monospace;font-size:9.5px;color:var(--tx3)}
+.blkcard p{margin:3px 0 0;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.blkcard strong{font-family:"DM Mono",monospace;font-size:12px;font-weight:500;color:var(--tx)}
+.blkcard span{font-family:"DM Mono",monospace;font-size:9.5px;color:var(--tx3)}
+.blkcard em{font-style:normal;font-family:"DM Mono",monospace;font-size:9px;padding:1px 5px;border-radius:999px;
   background:var(--raised);color:var(--tx2);border:1px solid var(--line)}
+.blkcard ul{list-style:none;margin:5px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;min-width:170px}
+.blkcard li{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx2)}
+.blkcard li i{width:7px;height:7px;border-radius:2px;align-self:center}
+.blkcard li span{flex:1;min-width:0;font-family:inherit;font-size:11px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blkcard li b{font-family:"DM Mono",monospace;font-size:10.5px;font-weight:500;color:var(--tx)}
 .blkcard em.ok{color:var(--done);border-color:color-mix(in srgb,var(--done) 45%,var(--line))}
 .blkcard em.no{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
-.blkcard q{font-size:11.5px;color:var(--tx2);quotes:none;margin-top:2px;line-height:1.35}
+.blkcard q{font-size:11px;color:var(--tx2);quotes:none;margin-top:2px;line-height:1.35}
 .tacts{display:flex;gap:8px;flex:0 0 auto;margin-left:auto}
 .seg{display:flex;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r-sm);padding:2px;flex:0 0 auto}
@@ -2465,7 +2472,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="26 nov 2026 · a";
+const VERSIONE="26 nov 2026 · b";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -6630,7 +6637,7 @@ function buildPanel(p,m){
   for(let d=state.from;d<=state.to;d++){
     let n=0;
     HOURS.forEach(sl=>{n+=at(ck(iso(dates[d]),sl)).filter(x=>x&&m[x.i]).length;});
-    const td=document.createElement("td");td.className="tot";
+    const td=document.createElement("td");td.className="tot";td.dataset.date=iso(dates[d]);
     td.innerHTML=n?"<b>"+hrs(n)+"</b>":"–";
     tr.appendChild(td);
   }
@@ -9199,15 +9206,43 @@ function ksList(){
     card.style.left=x+"px";card.style.top=y+"px";
     card.classList.add("on");
   }
+  /* 26 novembre: "voglio anche l'anteprima per le ore pianificate se ci
+     passo sopra al giorno". Sull'intestazione del giorno, o sul totale in
+     fondo alla colonna: le ore in piano e quelle fatte, materia per materia. */
+  function mostraGiorno(el){
+    if(!el.isConnected||drag||rz||painting||sd)return;
+    const d0=el.dataset.date,d=parse(d0),m=map(),per={},memo={};
+    let tot=0,fatte=0;
+    for(let sl=0;sl<24*PERQ;sl++)at(ck(d0,sl)).forEach(v=>{
+      if(!v||!m[v.i])return;
+      const ok=vero(v);tot++;if(ok)fatte++;
+      quote(v,d0,PRE(),memo).forEach(([id,w])=>{
+        if(!m[id])return;const c=per[id]=per[id]||{p:0,f:0};c.p+=w;if(ok)c.f+=w;});
+    });
+    const righe=Object.keys(per).sort((a,b)=>per[b].p-per[a].p).map(id=>{
+      const o=m[id],c=per[id],col=state.colors[id]||autoColor(id);
+      return '<li><i style="background:'+col+'"></i><span>'+esc(o.short||o.name)+"</span><b>"+hrs(Math.round(c.p*10)/10)+"</b>"+
+        (c.f?'<em class="ok">'+hrs(Math.round(c.f*10)/10)+" ✓</em>":"")+"</li>";}).join("");
+    card=card||Object.assign(document.createElement("div"),{className:"blkcard"});
+    if(!card.isConnected)document.body.appendChild(card);
+    card.innerHTML='<div><b>'+DSH[(d.getDay()+6)%7]+" "+d.getDate()+" "+MESI[d.getMonth()]+(d0===iso(new Date())?" · oggi":"")+"</b>"+
+      (tot?'<u>'+hrs(tot)+" in piano"+(fatte?" · "+hrs(fatte)+" fatte":"")+"</u><ul>"+righe+"</ul>"
+          :"<u>niente in piano</u>")+"</div>";
+    const b=el.getBoundingClientRect(),w=card.offsetWidth,h=card.offsetHeight;
+    const x=Math.max(8,Math.min(innerWidth-w-8,b.left+b.width/2-w/2));
+    const y=el.tagName==="TH"?Math.min(innerHeight-h-8,b.bottom+6):Math.max(8,b.top-h-6);
+    card.style.left=x+"px";card.style.top=y+"px";
+    card.classList.add("on");
+  }
   document.addEventListener("pointerover",e=>{
     if(e.pointerType==="touch")return;
-    const bl=e.target.closest&&e.target.closest(".blk");
+    const bl=e.target.closest&&e.target.closest(".blk,th[data-date],td.tot[data-date]");
     if(bl===el0)return;
     via();
     if(!bl||drag||rz||painting||sd||state.erase)return;
     if(bl.title){bl.dataset.tt=bl.title;bl.removeAttribute("title");}
     el0=bl;
-    t0=setTimeout(()=>mostra(bl),60);
+    t0=setTimeout(()=>bl.classList.contains("blk")?mostra(bl):mostraGiorno(bl),60);
   });
   ["pointerdown","scroll","keydown"].forEach(ev=>document.addEventListener(ev,via,true));
   window.addEventListener("blur",via);
