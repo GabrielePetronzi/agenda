@@ -371,7 +371,7 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
    luminosa della colonna: ora e' piu' piccola, a peso normale e spenta come
    gli orari a sinistra della griglia. */
 .ph{font-family:Inter,system-ui,sans-serif;font-size:12.5px;font-weight:500;flex:0 0 auto;
-  color:color-mix(in srgb,var(--tx) 72%,var(--bg));font-variant-numeric:tabular-nums;
+  color:color-mix(in srgb,var(--tx) 80%,var(--bg));font-variant-numeric:tabular-nums;
   text-align:right;line-height:1.2}
 .ph u{font-family:"DM Mono",monospace;font-weight:400;letter-spacing:0}
 .ph u{display:block;text-decoration:none;font-size:8.5px;color:var(--tx3);margin-top:2px}
@@ -681,16 +681,29 @@ html[data-fit="compact"] th s{font-size:12.5px}
 /* azioni della settimana: una sola resta visibile, le altre nel menu */
 .pacts{position:relative;flex:0 0 auto}
 .pacts>.menu{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:26;
-  background:var(--raised);border:1px solid var(--line);border-radius:var(--r);
-  box-shadow:var(--shadow);padding:6px;min-width:206px}
-.pacts.open>.menu{display:block}
+  background:var(--raised);border:1px solid var(--line);border-radius:12px;
+  box-shadow:var(--shadow);padding:6px;width:280px}
+.pacts.open>.menu{display:block;animation:selbarin .1s ease-out}
+.pacts .btn.pwk{min-height:28px;padding:4px 10px 4px 8px;font-size:11px;gap:6px}
+.pacts.open .btn.pwk{border-color:var(--action);color:var(--tx)}
+.pacts .menu .mtit{margin:4px 8px 8px;font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx3)}
+.pacts .menu .mtit b{font-family:Inter,system-ui,sans-serif;font-size:12.5px;font-weight:600;color:var(--tx)}
+.pacts .menu .mgr{margin:8px 8px 3px;font-family:"DM Mono",monospace;font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3)}
 .pacts .menu button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  background:none;border:0;color:var(--tx2);font-size:13px;padding:10px 12px;
-  border-radius:var(--r-sm);cursor:pointer}
-.pacts .menu button:hover:not(:disabled){background:var(--surface);color:var(--tx)}
-.pacts .menu button:disabled{opacity:.34;cursor:default}
-.pacts .menu button.armed{color:var(--warn)}
-.pacts .menu hr{border:0;border-top:1px solid var(--line-soft);margin:6px 0}
+  background:none;border:0;color:var(--tx2);padding:7px 8px;border-radius:8px;cursor:pointer}
+.pacts .menu .mic{display:flex;align-items:center;justify-content:center;width:28px;height:28px;flex:0 0 28px;
+  border-radius:7px;background:var(--surface);border:1px solid var(--line-soft);color:var(--tx2)}
+.pacts .menu .mtx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pacts .menu .mtx b{font-size:12.5px;font-weight:500;color:var(--tx)}
+.pacts .menu .mtx u{text-decoration:none;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);line-height:1.4}
+.pacts .menu button:hover:not(:disabled){background:var(--surface)}
+.pacts .menu button:hover:not(:disabled) .mic{color:var(--tx);border-color:var(--tx3)}
+.pacts .menu button:disabled{opacity:.4;cursor:default}
+.pacts .menu button.armed .mtx b,.pacts .menu button.armed .mic{color:var(--warn)}
+.pacts .menu button.via .mtx b,.pacts .menu button.via .mic{color:var(--warn)}
+.pacts .menu button.via:hover:not(:disabled){background:color-mix(in srgb,var(--warn) 10%,transparent)}
+.pacts .menu hr{border:0;border-top:1px solid var(--line-soft);margin:6px 4px}
 
 /* ---------- griglia ---------- */
 .gwrap{overflow-x:auto;margin:0 calc(var(--pad)*-1);padding:0 var(--pad) 2px}
@@ -2502,7 +2515,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="26 nov 2026 · f";
+const VERSIONE="26 nov 2026 · g";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -6557,45 +6570,59 @@ function buildPanel(p,m){
   };
   hd.appendChild(ttl);
 
+  /* 26 novembre: "rendi piu' chiaro e intuitivo organizzando meglio i tre
+     puntini di ogni settimana". Il pulsante dice cosa apre; il menu dice
+     quale settimana tocca e, sotto ogni voce, cosa succede: quante ore copia,
+     da dove incolla, che svuotare si annulla. Svuota sta in fondo, in rosso. */
   const acts=document.createElement("div");acts.className="pacts";
   const trg=document.createElement("button");
-  trg.className="icon sm";trg.innerHTML=icon("DOT",14);
-  trg.title="Azioni della settimana";trg.setAttribute("aria-label","Azioni della settimana");
-  const menu=document.createElement("div");menu.className="menu";
+  trg.className="btn pwk";trg.innerHTML=icon("DOT",13)+"<span>Settimana</span>";
+  trg.title="Copia, incolla, ripeti o svuota questa settimana";trg.setAttribute("aria-label","Azioni della settimana");
+  trg.setAttribute("aria-haspopup","menu");
+  const menu=document.createElement("div");menu.className="menu";menu.setAttribute("role","menu");
   trg.onclick=e=>{
     e.stopPropagation();
     const wasOpen=acts.classList.contains("open");
     document.querySelectorAll(".pacts.open").forEach(x=>x.classList.remove("open"));
     if(!wasOpen)acts.classList.add("open");
   };
-
-  const voce=(txt,fn,dis,cls,ico)=>{
-    const b=document.createElement("button");
-    b.innerHTML=(ico?icon(ico,13):"")+"<span>"+txt+"</span>";if(cls)b.className=cls;
+  const voce=(txt,sub,fn,dis,cls,ico)=>{
+    const b=document.createElement("button");b.setAttribute("role","menuitem");
+    b.innerHTML='<span class="mic">'+(ico?icon(ico,14):"")+'</span><span class="mtx"><b>'+txt+"</b><u>"+sub+"</u></span>";
+    if(cls)b.className=cls;
     if(dis)b.disabled=true;
     b.onclick=e=>{e.stopPropagation();fn(b);};
     return b;
   };
-
-  const has=Object.keys(weekData(p)).length>0;
-  const copy=voce("Copia la settimana",()=>{copyWeek(p);acts.classList.remove("open");},false,"","CPY");
-  const paste=voce(state.clip?"Incolla qui":"Incolla",()=>{
+  const gruppo=t=>{const g=document.createElement("p");g.className="mgr";g.textContent=t;return g;};
+  const wd=weekData(p),nw=Object.keys(wd).length,has=nw>0;
+  const tit=document.createElement("p");tit.className="mtit";
+  tit.innerHTML="<b>Settimana "+(p+1)+"</b> · "+fmt(dates[0])+" – "+fmt(dates[6])+(has?" · "+hrs(nw):" · vuota");
+  const copy=voce("Copia",has?hrs(nw)+" di blocchi, senza spunte":"non c'e' niente da copiare",
+    ()=>{copyWeek(p);acts.classList.remove("open");},!has,"","CPY");
+  const incollaSub=!state.clip?"prima copia una settimana"
+    :"da "+esc(state.clip.label)+" · "+hrs(state.clip.hours)+(has?" · sostituisce quello che c'e'":"");
+  const paste=voce(armed==="p"+p?"Sostituisco? Tocca ancora":"Incolla qui",incollaSub,()=>{
     if(!state.clip)return;
     if(!has||armed==="p"+p){armed=null;clearTimeout(armTmr);acts.classList.remove("open");pasteWeek(p);}
     else{armed="p"+p;panels();clearTimeout(armTmr);armTmr=setTimeout(()=>{armed=null;panels();},4000);}
   },!state.clip,armed==="p"+p?"armed":"","PST");
-  if(armed==="p"+p)paste.innerHTML=icon("PST",13)+"<span>Sovrascrivo?</span>";
-  const rep=voce("Ripeti nelle prossime…",()=>{acts.classList.remove("open");openRepeat(p);},false,"","RIP");
+  const rep=voce("Ripeti nelle prossime…","la ricopia uguale nelle settimane dopo",
+    ()=>{acts.classList.remove("open");openRepeat(p);},!has,"","RIP");
+  const cal=voce("Cambia il giorno d'inizio","da dove partono le 4 settimane",
+    ()=>{acts.classList.remove("open");openMonth(dates[0]);},false,"","CAL");
   /* 23 novembre: "per lo svuota settimana non mi chiedere piu' la
      conferma". Si annulla con ⌘Z come tutto il resto. */
-  const wipe=voce("Svuota la settimana",()=>{
+  const wipe=voce("Svuota la settimana",has?"toglie "+hrs(nw)+" · ⌘Z per annullare":"e' gia' vuota",()=>{
     acts.classList.remove("open");wipeWeek(p);
-  },false,"","TRS");
-  const cal=voce("Scegli il giorno d'inizio",()=>{acts.classList.remove("open");openMonth(dates[0]);},false,"","CAL");
-
+  },!has,"via","TRS");
+  menu.appendChild(tit);
+  menu.appendChild(gruppo("Blocchi"));
   menu.appendChild(copy);menu.appendChild(paste);menu.appendChild(rep);
+  menu.appendChild(gruppo("Settimane"));
+  menu.appendChild(cal);
   menu.appendChild(document.createElement("hr"));
-  menu.appendChild(cal);menu.appendChild(wipe);
+  menu.appendChild(wipe);
   acts.appendChild(trg);acts.appendChild(menu);
   hd.appendChild(acts);sec.appendChild(hd);
   if(closed){
