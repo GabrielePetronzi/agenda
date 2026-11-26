@@ -1306,7 +1306,13 @@ html[data-theme="light"] .pombar.on{background:color-mix(in srgb,var(--fase) 5%,
 /* il timer senza blocco: si deve vedere, e' il motivo per cui a fine sessione
    non si spunterebbe niente */
 .pombar .pmeta u.nolink{text-decoration:none;color:var(--warn);font-weight:500}
-.pombar .pbtn{display:flex;gap:6px;flex:0 0 auto}
+.pombar .pbtn{display:flex;gap:6px;flex:0 1 auto;flex-wrap:wrap;justify-content:flex-end}
+/* finestra stretta: le frasi dei pulsanti vanno su una riga loro, sotto */
+@media (max-width:1100px){
+  .pombar .pin{flex-wrap:wrap;row-gap:10px}
+  .pombar .pmeta{flex:1 1 200px}
+  .pombar .pbtn{flex:1 1 100%;justify-content:flex-start}
+}
 .pombar .pbtn button{display:inline-flex;align-items:center;gap:6px;
   background:var(--raised);border:1px solid var(--line);color:var(--tx2);
   border-radius:var(--r-sm);font-family:"DM Mono",monospace;font-size:11px;padding:8px 12px;
@@ -1317,7 +1323,7 @@ html[data-theme="light"] .pombar.on{background:color-mix(in srgb,var(--fase) 5%,
 .pombar.attesa .pmeta u.nolink{color:var(--fase)}
 .pombar .pbtn button.pgo{background:var(--fase);border-color:var(--fase);color:#14161B;font-weight:600;
   min-width:104px;justify-content:center;font-size:12px;box-shadow:0 4px 14px -6px var(--fase)}
-.pombar .pbtn button.pchiudi{margin-left:8px;background:none;border-color:transparent;color:var(--tx3)}
+.pombar .pbtn button.pchiudi{background:none;color:var(--tx2)}
 .pombar .pbtn button.pchiudi:hover{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
 html[data-theme="light"] .pombar .pbtn button.pgo{color:#fff}
 .pombar .pbtn button.pgo:hover{color:var(--bg);filter:brightness(1.08)}
@@ -1912,6 +1918,7 @@ const ICON={
       '<path d="M4.5 4.6l.6 8.2a1 1 0 0 0 1 .9h3.8a1 1 0 0 0 1-.9l.6-8.2"/>',
   PLY:'<path d="M5.6 3.3l6.5 4.7-6.5 4.7z"/>',
   PSE:'<path d="M6 3.5v9M10 3.5v9"/>',
+  STP:'<rect x="4" y="4" width="8" height="8" rx="1.5" fill="currentColor" stroke="none"/>',
   SKP:'<path d="M4.2 3.5L9.6 8l-5.4 4.5z"/><path d="M11.6 3.5v9"/>',
   CUP:'<path d="M2.9 4.3h8.2v4.2a3.2 3.2 0 0 1-3.2 3.2H6.1a3.2 3.2 0 0 1-3.2-3.2z"/>'+
       '<path d="M11.1 5.5h1.2a1.6 1.6 0 0 1 0 3.2h-1.2"/><path d="M4.6 13.3h5"/>',
@@ -2526,7 +2533,7 @@ const SWATCHES=[
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="26 nov 2026 · j";
+const VERSIONE="26 nov 2026 · k";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5552,25 +5559,18 @@ function pomRender(onlyTime){
       '<span class="pt">'+mmss(left)+"</span>"+
       '<span class="pmeta"><b>'+eti+"</b><i>"+nota+
         " · ciclo "+r.cycle+" di "+c.n+"</i></span>"+
-      /* 26 novembre: "rendi piu' chiari e intuitivi i pulsanti del timer".
-         Il principale e' pieno, del colore della fase, e viene prima; gli
-         altri dicono cosa fanno: "Vai alla pausa" o "Salta la pausa" invece
-         di "Salta", "Da capo" (con la freccia indietro, non l'icona del
-         ripasso), "Scegli il blocco", e "Chiudi" invece della sola x. */
+      /* 26 novembre, di nuovo: "ancora non si capiscono i pulsanti, anzi
+         peggio". Scelte le frasi esplicite: ogni pulsante dice per intero
+         cosa succede, e la frase segue la fase (sessione o pausa). */
       '<span class="pbtn">'+
-        '<button data-p="pause" class="pgo" title="'+
-          (attesa?"Fa partire la sessione":r.paused!=null?"Il tempo riprende a scorrere":"Ferma il tempo: niente matura finche' non riprendi")+'">'+
-          (attesa?icon("PLY",13)+"<span>Avvia</span>"
+        '<button data-p="pause" class="pgo">'+
+          (attesa?icon("PLY",13)+"<span>Avvia la sessione</span>"
           :r.paused!=null?icon("PLY",13)+"<span>Riprendi</span>"
-                         :icon("PSE",13)+"<span>Ferma</span>")+"</button>"+
-        '<button data-p="skip" title="'+(r.phase==="work"?"Chiude la sessione adesso: contano i minuti fatti":"La pausa finisce adesso")+'">'+
-          icon("SKP",12)+"<span>"+(r.phase==="work"?"Vai alla pausa":"Salta la pausa")+"</span></button>"+
-        '<button data-p="restart" title="'+(r.phase==="work"?"La sessione riparte da "+c.s+" minuti":"La pausa riparte dall'inizio")+'">'+
-          icon("UND",12)+"<span>Da capo</span></button>"+
-        (dove?"":'<button data-p="attacca" title="Tocca poi il blocco che questa sessione deve spuntare">'+
-          icon("POM",12)+"<span>Scegli il blocco</span></button>")+
-        '<button data-p="stop" class="pchiudi" title="Chiude il timer: i minuti fatti restano nel registro">'+
-          icon("XX",11)+"<span>Chiudi</span></button>"+
+                         :icon("PSE",13)+"<span>Metti in pausa</span>")+"</button>"+
+        '<button data-p="skip">'+icon("SKP",12)+"<span>"+(r.phase==="work"?"Finisci la sessione":"Finisci la pausa")+"</span></button>"+
+        '<button data-p="restart">'+icon("UND",12)+"<span>"+(r.phase==="work"?"Ricomincia la sessione":"Ricomincia la pausa")+"</span></button>"+
+        (dove?"":'<button data-p="attacca">'+icon("POM",12)+"<span>Scegli il blocco da spuntare</span></button>")+
+        '<button data-p="stop" class="pchiudi">'+icon("STP",11)+"<span>Chiudi il timer</span></button>"+
       "</span>"+
     "</div>";
   bar.querySelectorAll("button").forEach(b=>{
