@@ -379,12 +379,15 @@ html[data-theme="light"] input[type=date],html[data-theme="light"] input[type=ti
   border-radius:5px;opacity:.55;transition:opacity .12s,color .12s}
 .prow:hover .pen{opacity:1}
 .pen:hover,.pen.on{color:var(--tx);background:var(--sunken);opacity:1}
-.picker{display:none;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px 12px 40px;
+.picker{display:none;grid-template-columns:repeat(12,minmax(0,1fr));gap:5px;padding:10px 12px 12px;
   border-bottom:1px solid var(--line-soft);background:var(--sunken)}
-.picker.open{display:flex}
-.picker button{width:20px;height:20px;border-radius:6px;border:0;cursor:pointer;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.picker.open{display:grid}
+.picker button{aspect-ratio:1;width:100%;border-radius:5px;border:0;cursor:pointer;padding:0;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);transition:transform .08s}
+.picker button:hover{transform:scale(1.15)}
 .picker button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--sunken),0 0 0 3.5px var(--tx)}
+.picker label.altro{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:4px;cursor:pointer;
+  font-family:"DM Mono",monospace;font-size:10.5px;color:var(--tx2)}
 .picker input[type=color]{width:24px;height:24px;padding:0;border:1px solid var(--line);
   border-radius:6px;background:var(--surface);cursor:pointer}
 .vedit{display:none;flex-direction:column;gap:9px;padding:12px;
@@ -2506,10 +2509,15 @@ const PAL=["#AD7881","#E3575F","#F8B09A","#AE7C49","#FAAA52","#FAE0A1",
            "#92881F","#E9E86F","#5EA749","#AEF3B2","#19BC8C","#1FFDEB",
            "#A8F0E9","#0B9691","#2DD8FF","#3B8FB4","#14A8FD","#8680B5",
            "#DDC8FF","#AA6CD1","#FAA0CC","#DE5493"];
-const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
-                "#4FB3A0","#3F8F7E","#82B356","#6B9440","#B0A24E","#E0A458",
-                "#C98A3C","#E08A5B","#BF6E44","#D96C7B","#B85566","#C97BB0",
-                "#A85F93","#9B7FD4","#7C63B8","#7C8CA6"];
+/* 26 novembre: "aumenta i colori possibili per le materie". Da 22 a 48:
+   dodici tinte, dal rosso al magenta, in quattro gradazioni dalla piu'
+   chiara alla piu' piena. Tutte tengono la scritta nera dei blocchi ad
+   almeno 4,6:1. Oltre a queste resta "Altro…", il colore libero. */
+const SWATCHES=[
+  "#EFB9B9","#EFCBB9","#EFDBB9","#EFE7B9","#DDEFB9","#B9EFC2","#B9EFDE","#B9E9EF","#B9D8EF","#B9C6EF","#CCB9EF","#EFB9E4",
+  "#E29292","#E2AD92","#E2C592","#E2D792","#C7E292","#92E2A0","#92E2CA","#92DAE2","#92C1E2","#92A6E2","#B092E2","#E292D2",
+  "#D67171","#D69271","#D6B171","#D6C871","#B4D671","#71D682","#71D6B7","#71CCD6","#71ACD6","#718AD6","#9671D6","#D671C1",
+  "#CD6060","#C97B54","#C99E54","#C9BA54","#A2C954","#54C968","#54C9A6","#54BDC9","#5499C9","#647ECE","#9470D2","#C954B2"];
 
 /* ============================================================
    2. STATO
@@ -2518,7 +2526,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="26 nov 2026 · i";
+const VERSIONE="26 nov 2026 · j";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -4211,7 +4219,9 @@ function picklist(){
     inp.type="color";inp.value=o.color;inp.setAttribute("aria-label","Colore personalizzato");
     inp.onchange=()=>{openColor=null;state.colors[o.id]=inp.value;
       save("Colore aggiornato");commit();render();};
-    pick.appendChild(inp);
+    const altro=document.createElement("label");altro.className="altro";
+    altro.appendChild(inp);altro.appendChild(document.createTextNode("Altro… un colore qualsiasi"));
+    pick.appendChild(altro);
     box.appendChild(pick);
 
     sdArm(b,o);
