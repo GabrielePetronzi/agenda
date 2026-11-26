@@ -1312,7 +1312,10 @@ html[data-theme="light"] .pombar.on{background:color-mix(in srgb,var(--fase) 5%,
 /* pausa finita, la sessione aspetta te: Avvia e' l'unico tasto che conta
    adesso, e la scritta "pausa finita" non e' un avviso ma l'informazione */
 .pombar.attesa .pmeta u.nolink{color:var(--fase)}
-.pombar .pbtn button.pgo{background:var(--fase);border-color:var(--fase);color:#14161B;font-weight:600}
+.pombar .pbtn button.pgo{background:var(--fase);border-color:var(--fase);color:#14161B;font-weight:600;
+  min-width:104px;justify-content:center;font-size:12px;box-shadow:0 4px 14px -6px var(--fase)}
+.pombar .pbtn button.pchiudi{margin-left:8px;background:none;border-color:transparent;color:var(--tx3)}
+.pombar .pbtn button.pchiudi:hover{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
 html[data-theme="light"] .pombar .pbtn button.pgo{color:#fff}
 .pombar .pbtn button.pgo:hover{color:var(--bg);filter:brightness(1.08)}
 .pmrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0;
@@ -2515,7 +2518,7 @@ const SWATCHES=["#6E8BFF","#8FA4E8","#5FA8D3","#4A8FBE","#63C2C2","#4EA5A5",
    scritta nel pannello Backup: quando "mi fa ancora lo stesso" la prima
    domanda e' se il browser sta mostrando il file nuovo o uno vecchio in
    memoria — e senza questo nessuno dei due puo' rispondere. */
-const VERSIONE="26 nov 2026 · h";
+const VERSIONE="26 nov 2026 · i";
 const KEY="piano-6272-v5";
 let state={v:8,theme:"dark",piano:"LM18",year:1,ctx:"1",from:0,to:6,span:7,dayStart:0,act:"LEZ",brush:null,erase:false,
            exams:[],over:{},q:"",collapsed:{},dayClip:null,semOpen:false,blockClip:null,
@@ -5539,19 +5542,25 @@ function pomRender(onlyTime){
       '<span class="pt">'+mmss(left)+"</span>"+
       '<span class="pmeta"><b>'+eti+"</b><i>"+nota+
         " · ciclo "+r.cycle+" di "+c.n+"</i></span>"+
+      /* 26 novembre: "rendi piu' chiari e intuitivi i pulsanti del timer".
+         Il principale e' pieno, del colore della fase, e viene prima; gli
+         altri dicono cosa fanno: "Vai alla pausa" o "Salta la pausa" invece
+         di "Salta", "Da capo" (con la freccia indietro, non l'icona del
+         ripasso), "Scegli il blocco", e "Chiudi" invece della sola x. */
       '<span class="pbtn">'+
-        '<button data-p="pause"'+(attesa?' class="pgo"':"")+' title="'+
-          (attesa?"Avvia la sessione":r.paused!=null?"Riprendi":"Metti in pausa")+'">'+
-          (attesa?icon("PLY",12)+"<span>Avvia</span>"
-          :r.paused!=null?icon("PLY",12)+"<span>Riprendi</span>"
-                         :icon("PSE",12)+"<span>Pausa</span>")+"</button>"+
-        '<button data-p="restart" title="Riporta il conto all\'inizio">'+
-          icon("RIP",12)+"<span>Riavvia</span></button>"+
-        '<button data-p="skip" title="Passa alla fase successiva">'+
-          icon("SKP",12)+"<span>Salta</span></button>"+
-        (dove?"":'<button data-p="attacca" title="Scegli il blocco che questa sessione deve spuntare">'+
-          icon("POM",12)+"<span>Aggancia</span></button>")+
-        '<button data-p="stop" title="Chiudi il pomodoro">'+icon("XX",12)+"</button>"+
+        '<button data-p="pause" class="pgo" title="'+
+          (attesa?"Fa partire la sessione":r.paused!=null?"Il tempo riprende a scorrere":"Ferma il tempo: niente matura finche' non riprendi")+'">'+
+          (attesa?icon("PLY",13)+"<span>Avvia</span>"
+          :r.paused!=null?icon("PLY",13)+"<span>Riprendi</span>"
+                         :icon("PSE",13)+"<span>Ferma</span>")+"</button>"+
+        '<button data-p="skip" title="'+(r.phase==="work"?"Chiude la sessione adesso: contano i minuti fatti":"La pausa finisce adesso")+'">'+
+          icon("SKP",12)+"<span>"+(r.phase==="work"?"Vai alla pausa":"Salta la pausa")+"</span></button>"+
+        '<button data-p="restart" title="'+(r.phase==="work"?"La sessione riparte da "+c.s+" minuti":"La pausa riparte dall'inizio")+'">'+
+          icon("UND",12)+"<span>Da capo</span></button>"+
+        (dove?"":'<button data-p="attacca" title="Tocca poi il blocco che questa sessione deve spuntare">'+
+          icon("POM",12)+"<span>Scegli il blocco</span></button>")+
+        '<button data-p="stop" class="pchiudi" title="Chiude il timer: i minuti fatti restano nel registro">'+
+          icon("XX",11)+"<span>Chiudi</span></button>"+
       "</span>"+
     "</div>";
   bar.querySelectorAll("button").forEach(b=>{
